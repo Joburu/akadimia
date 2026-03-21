@@ -1,0 +1,1802 @@
+import{useState,useEffect,useRef,createContext,useContext}from"react";
+import{AreaChart,Area,BarChart,Bar,RadarChart,Radar,PolarGrid,PolarAngleAxis,XAxis,YAxis,ResponsiveContainer,Tooltip}from"recharts";
+
+/* AKADIMIA v4.2  ·  "Ujuzi Bila Mipaka"  ·  Knowledge Without Limits */
+
+const rgba=(hex,a=1)=>{const h=hex.replace("#","");return`rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;};
+
+const THEMES={
+  navy:{id:"navy",name:"Akademia Blue",emoji:"🌊",bg0:"#060915",bg1:"#0B0F1F",bg2:"#101626",bg3:"#161D33",bg4:"#1C2440",bg5:"#22294D",ac:"#D4A843",acL:"#ECC462",blue:"#3B82F6",teal:"#0D9488",purple:"#7C3AED",red:"#EF4444",green:"#16A34A",amber:"#D97706",cyan:"#0891B2",t1:"#F0F2FA",t2:"#8892B0",t3:"#3E4A6A",bd:"#18203E"},
+  savanna:{id:"savanna",name:"Savanna Dusk",emoji:"🌅",bg0:"#100A04",bg1:"#180E06",bg2:"#1F1208",bg3:"#281609",bg4:"#321C0C",bg5:"#3C210F",ac:"#E8823A",acL:"#F4A462",blue:"#60A5FA",teal:"#34D399",purple:"#A78BFA",red:"#F87171",green:"#22C55E",amber:"#FBBF24",cyan:"#22D3EE",t1:"#FDF3E7",t2:"#B8946A",t3:"#6B4A2A",bd:"#3A1F0A"},
+  forest:{id:"forest",name:"Msitu Forest",emoji:"🌿",bg0:"#030D07",bg1:"#061209",bg2:"#08180C",bg3:"#0B1F10",bg4:"#0E2715",bg5:"#12301B",ac:"#4ADE80",acL:"#86EFAC",blue:"#60A5FA",teal:"#2DD4BF",purple:"#C084FC",red:"#F87171",green:"#4ADE80",amber:"#FCD34D",cyan:"#22D3EE",t1:"#F0FDF4",t2:"#6EE7B7",t3:"#1B5E3B",bd:"#0D2E16"},
+  dusk:{id:"dusk",name:"Usiku Dusk",emoji:"🌙",bg0:"#07030F",bg1:"#0D0618",bg2:"#120821",bg3:"#180A2C",bg4:"#1E0C38",bg5:"#260E46",ac:"#A855F7",acL:"#C084FC",blue:"#60A5FA",teal:"#2DD4BF",purple:"#EC4899",red:"#F87171",green:"#34D399",amber:"#FCD34D",cyan:"#22D3EE",t1:"#F5F0FF",t2:"#9F7ECA",t3:"#4B3075",bd:"#220C42"},
+  ocean:{id:"ocean",name:"Bahari Ocean",emoji:"🐋",bg0:"#030B12",bg1:"#061119",bg2:"#091822",bg3:"#0D1F2D",bg4:"#112638",bg5:"#152E43",ac:"#06B6D4",acL:"#22D3EE",blue:"#3B82F6",teal:"#0D9488",purple:"#7C3AED",red:"#F87171",green:"#22C55E",amber:"#FCD34D",cyan:"#67E8F9",t1:"#E0F7FA",t2:"#7CB9C8",t3:"#1C4A5A",bd:"#0E2435"},
+};
+
+const LANGS={en:{flag:"🇬🇧",name:"English"},sw:{flag:"🇰🇪",name:"Kiswahili"},luo:{flag:"🫙",name:"Dholuo"},kik:{flag:"🏔",name:"Gikuyu"},luh:{flag:"🌾",name:"Luhya"},kal:{flag:"⛰",name:"Kalenjin"},som:{flag:"🌙",name:"Af Soomaali"}};
+
+const LS={
+  en:{welcome:"Welcome back",dashboard:"Dashboard",courses:"Courses",exams:"Exams",assignments:"Assignments",research:"Research",ai:"AI Tutor",calendar:"Calendar",meetings:"Meetings",opps:"Opportunities",analytics:"Analytics",tools:"Tools Hub",transcript:"Transcript",peers:"Peers",classroom:"My Classroom",admin:"Admin",settings:"Settings",signIn:"Sign In",register:"Register",pending:"Pending Approval",fieldSelect:"Choose Your Field",approve:"Approve",reject:"Reject",pendingApprovals:"Pending Approvals",online:"Online",offline:"Offline",send:"Send",ask:"Ask EduBot anything..."},
+  sw:{welcome:"Karibu tena",dashboard:"Dashibodi",courses:"Kozi",exams:"Mitihani",assignments:"Kazi",research:"Utafiti",ai:"Msaidizi AI",calendar:"Kalenda",meetings:"Mikutano",opps:"Fursa",analytics:"Uchambuzi",tools:"Zana",transcript:"Rekodi",peers:"Wanafunzi",classroom:"Darasa Langu",admin:"Msimamizi",settings:"Mipangilio",signIn:"Ingia",register:"Jisajili",pending:"Inasubiri Idhini",fieldSelect:"Chagua Taaluma",approve:"Idhini",reject:"Kataa",pendingApprovals:"Wanasubiri",online:"Mtandaoni",offline:"Nje ya Mtandao",send:"Tuma",ask:"Uliza chochote..."},
+};
+const LS_STUB={welcome:"Karibu",dashboard:"Dashboard",courses:"Courses",exams:"Exams",assignments:"Assignments",research:"Research",ai:"AI",calendar:"Calendar",meetings:"Meetings",opps:"Opportunities",analytics:"Analytics",tools:"Tools",transcript:"Transcript",peers:"Peers",classroom:"Classroom",admin:"Admin",settings:"Settings",signIn:"Sign In",register:"Register",pending:"Pending",fieldSelect:"Choose Field",approve:"Approve",reject:"Reject",pendingApprovals:"Pending",online:"Online",offline:"Offline",send:"Send",ask:"Ask..."};
+
+const FIELDS={
+  actuarial:   {id:"actuarial",   name:"Actuarial Science",   icon:"📊",color:"#D4A843",group:"Sciences",   desc:"Risk, insurance & financial modelling"},
+  medicine:    {id:"medicine",    name:"Medicine & Surgery",   icon:"🩺",color:"#EF4444",group:"Health",     desc:"Clinical medicine, surgery & health sciences"},
+  law:         {id:"law",         name:"Law",                  icon:"⚖️",color:"#7C3AED",group:"Social Sci.",desc:"Legal studies, jurisprudence & constitutional law"},
+  engineering: {id:"engineering", name:"Engineering",          icon:"⚙️",color:"#3B82F6",group:"Technology", desc:"Civil, electrical, mechanical & structural"},
+  compsci:     {id:"compsci",     name:"Computer Science",     icon:"💻",color:"#0D9488",group:"Technology", desc:"Algorithms, AI, systems & software development"},
+  business:    {id:"business",    name:"Business & Commerce",  icon:"💼",color:"#F59E0B",group:"Social Sci.",desc:"Accounting, finance, marketing & strategy"},
+  education:   {id:"education",   name:"Education",            icon:"✏️",color:"#10B981",group:"Social Sci.",desc:"Pedagogy, curriculum & educational psychology"},
+  agriculture: {id:"agriculture", name:"Agriculture",          icon:"🌾",color:"#84CC16",group:"Sciences",   desc:"Crop science, soil science & agribusiness"},
+  nursing:     {id:"nursing",     name:"Nursing & Midwifery",  icon:"💊",color:"#EC4899",group:"Health",     desc:"Clinical nursing, pharmacology & maternal health"},
+  architecture:{id:"architecture",name:"Architecture",         icon:"🏛️",color:"#6366F1",group:"Technology", desc:"Design, structural analysis & urban planning"},
+};
+
+const FIELD_DATA={
+  actuarial:   {courses:[{code:"SAC 101",name:"Principles of Actuarial Science",y:1,p:88},{code:"SAC 201",name:"Financial Mathematics I",y:2,p:62},{code:"SAS 305",name:"Stochastic Processes I",y:3,p:40},{code:"SAC 406",name:"Risk & Credibility Theory",y:4,p:20}],bodies:["Actuarial Society of Kenya (ASK)","IFoA UK","SOA USA"],tools:["Python","R","STATA","SPSS","LaTeX"],trends:["Climate risk modelling","InsurTech AI","Parametric insurance","EA pension reform"],opps:[{type:"job",org:"APA Insurance",title:"Junior Actuarial Analyst",dead:"Apr 15"},{type:"scholarship",org:"AfDB",title:"AfDB Scholarship 2026",dead:"Mar 30"},{type:"training",org:"ASSA",title:"IFoA CM1 Prep Course",dead:"Apr 1"},{type:"networking",org:"IRA Kenya",title:"EA Insurance Summit",dead:"May 5"}]},
+  medicine:    {courses:[{code:"MED 101",name:"Human Anatomy I",y:1,p:75},{code:"MED 102",name:"Human Physiology",y:1,p:68},{code:"MED 201",name:"Pathology & Microbiology",y:2,p:55},{code:"MED 301",name:"Clinical Medicine",y:3,p:48}],bodies:["Kenya Med & Dentists Board","Kenya Medical Association","COSECSA"],tools:["SPSS","STATA","R","NVivo"],trends:["Digital health Kenya","AI diagnostics","Community health workers","Universal Health Coverage"],opps:[{type:"job",org:"KNH",title:"Medical Intern",dead:"Apr 20"},{type:"scholarship",org:"WHO",title:"WHO AFRO Fellowship",dead:"May 1"},{type:"training",org:"Kenya Red Cross",title:"Advanced Life Support",dead:"Mar 30"},{type:"networking",org:"KMA",title:"KMA Annual Forum",dead:"Jun 1"}]},
+  law:         {courses:[{code:"LAW 101",name:"Legal Methods & Research",y:1,p:82},{code:"LAW 102",name:"Contract Law",y:1,p:74},{code:"LAW 201",name:"Constitutional & Admin Law",y:2,p:61},{code:"LAW 301",name:"Criminal Law & Procedure",y:3,p:53}],bodies:["Law Society of Kenya (LSK)","East Africa Law Society","Kenya School of Law"],tools:["Zotero","LexisNexis","SPSS","Westlaw"],trends:["Legal tech Kenya","Data protection law","Climate litigation","Constitutional reforms"],opps:[{type:"job",org:"Judiciary Kenya",title:"Legal Researcher",dead:"Apr 25"},{type:"scholarship",org:"EALS",title:"EA Law Society Prize",dead:"May 15"},{type:"training",org:"LSK",title:"Moot Court Competition",dead:"Apr 5"},{type:"networking",org:"LSK",title:"LSK Annual Conference",dead:"Jun 10"}]},
+  engineering: {courses:[{code:"ENG 101",name:"Engineering Mathematics",y:1,p:80},{code:"ENG 102",name:"Engineering Mechanics",y:1,p:65},{code:"ENG 201",name:"Thermodynamics",y:2,p:54},{code:"ENG 301",name:"Structural Analysis",y:3,p:44}],bodies:["Engineers Board of Kenya (EBK)","Institution of Engineers Kenya","FIDIC"],tools:["MATLAB","Python","AutoCAD","STATA"],trends:["Green building Kenya","Renewable energy","Smart infrastructure","SGR projects"],opps:[{type:"job",org:"Kenya Power",title:"Graduate Engineer",dead:"Apr 30"},{type:"scholarship",org:"EBK",title:"EBK Research Fund",dead:"May 20"},{type:"training",org:"Autodesk",title:"AutoCAD Certification",dead:"Apr 10"},{type:"networking",org:"EBK",title:"EA Engineering Expo",dead:"May 25"}]},
+  compsci:     {courses:[{code:"CS 101",name:"Introduction to Programming",y:1,p:90},{code:"CS 102",name:"Data Structures & Algorithms",y:1,p:72},{code:"CS 201",name:"Operating Systems",y:2,p:60},{code:"CS 301",name:"Database Systems",y:3,p:50}],bodies:["Computer Society of Kenya (CSK)","IEEE Kenya","ISACA"],tools:["Python","Git","SQL","R","Docker"],trends:["Generative AI","Safaricom API economy","Kenya startup ecosystem","Cybersecurity Africa"],opps:[{type:"job",org:"Safaricom",title:"Junior Software Developer",dead:"Apr 15"},{type:"scholarship",org:"Google Africa",title:"Google Developer Fund",dead:"Apr 30"},{type:"training",org:"Amazon",title:"AWS Cloud Practitioner",dead:"Mar 31"},{type:"networking",org:"iHub",title:"iHub Nairobi Meetup",dead:"Apr 20"}]},
+  business:    {courses:[{code:"BUS 101",name:"Principles of Accounting",y:1,p:85},{code:"BUS 102",name:"Microeconomics",y:1,p:70},{code:"BUS 201",name:"Corporate Finance",y:2,p:58},{code:"BUS 301",name:"Strategic Management",y:3,p:48}],bodies:["ICPAK (CPA Kenya)","CFA Institute","ACCA"],tools:["Excel","SPSS","STATA","Python","R"],trends:["M-Pesa ecosystem","ESG investing","African free trade","Nairobi financial hub"],opps:[{type:"job",org:"Equity Bank",title:"Financial Analyst Graduate",dead:"Apr 25"},{type:"scholarship",org:"CFA Institute",title:"CFA Scholarship",dead:"May 10"},{type:"training",org:"ACCA",title:"ACCA Professional Course",dead:"Apr 5"},{type:"networking",org:"KEPSA",title:"Kenya Business Forum",dead:"Jun 5"}]},
+  education:   {courses:[{code:"EDU 101",name:"Educational Psychology",y:1,p:88},{code:"EDU 102",name:"Curriculum Development",y:1,p:75},{code:"EDU 201",name:"Teaching Methods",y:2,p:65},{code:"EDU 301",name:"Educational Assessment",y:3,p:55}],bodies:["Teachers Service Commission (TSC)","Kenya Examinations Council","UNESCO"],tools:["SPSS","NVivo","STATA","Atlas.ti"],trends:["EdTech Africa","CBC implementation","Digital classrooms","Teacher professionalisation"],opps:[{type:"job",org:"TSC Kenya",title:"Graduate Teacher",dead:"May 1"},{type:"scholarship",org:"Mastercard Found.",title:"MCF Teaching Fellowship",dead:"Apr 15"},{type:"training",org:"AMI Africa",title:"Montessori Certificate",dead:"Apr 20"},{type:"networking",org:"MoE Kenya",title:"Kenya Education Forum",dead:"May 30"}]},
+  agriculture: {courses:[{code:"AGR 101",name:"Soil Science & Fertility",y:1,p:82},{code:"AGR 102",name:"Crop Science & Production",y:1,p:70},{code:"AGR 201",name:"Agricultural Economics",y:2,p:60},{code:"AGR 301",name:"Agribusiness Management",y:3,p:50}],bodies:["KALRO","ISA Kenya","FAO"],tools:["R","STATA","SAS","Python","SPSS"],trends:["Climate-smart agriculture","Precision farming Kenya","Youth in agri","AfCFTA food trade"],opps:[{type:"job",org:"KALRO",title:"Extension Officer",dead:"Apr 20"},{type:"scholarship",org:"AGRA",title:"AGRA Research Fellowship",dead:"May 5"},{type:"training",org:"FAO",title:"Climate-Smart Agriculture",dead:"Apr 1"},{type:"networking",org:"EAC",title:"EA Agri-Business Forum",dead:"Jun 15"}]},
+  nursing:     {courses:[{code:"NUR 101",name:"Anatomy for Nurses",y:1,p:80},{code:"NUR 102",name:"Pharmacology",y:1,p:68},{code:"NUR 201",name:"Clinical Nursing Practice",y:2,p:58},{code:"NUR 301",name:"Maternal & Child Health",y:3,p:48}],bodies:["Nursing Council of Kenya (NCK)","Kenya Registered Nurses Assoc.","ICN"],tools:["SPSS","STATA","R","NVivo"],trends:["UHC implementation","Mental health Kenya","Digital health records","Maternal mortality reduction"],opps:[{type:"job",org:"NHIF",title:"Registered Nurse",dead:"Apr 30"},{type:"scholarship",org:"NCK",title:"Nursing Council Bursary",dead:"May 10"},{type:"training",org:"WHO/MoH",title:"Emergency Obstetric Care",dead:"Apr 10"},{type:"networking",org:"NCK",title:"Kenya Nursing Summit",dead:"Jun 1"}]},
+  architecture:{courses:[{code:"ARC 101",name:"Design Fundamentals",y:1,p:85},{code:"ARC 102",name:"Building Technology",y:1,p:72},{code:"ARC 201",name:"Structural Analysis",y:2,p:60},{code:"ARC 301",name:"Urban Design & Planning",y:3,p:50}],bodies:["Architectural Association of Kenya (AAK)","Board of Registration of Architects","RIBA"],tools:["AutoCAD","Revit","SketchUp","Python"],trends:["Affordable housing Kenya","Green architecture","Smart cities Nairobi","BIM adoption Africa"],opps:[{type:"job",org:"NCA Kenya",title:"Graduate Architect",dead:"May 5"},{type:"scholarship",org:"AAK",title:"AAK Design Excellence Award",dead:"Apr 25"},{type:"training",org:"RIBA",title:"RIBA Part I Accreditation",dead:"Apr 15"},{type:"networking",org:"AAK",title:"Nairobi Architecture Biennale",dead:"Jun 20"}]},
+};
+
+const TOOLS_INFO={
+  Python:{color:"#F59E0B",link:"https://colab.research.google.com",site:"Google Colab",desc:"Data analysis, automation and machine learning."},
+  R:{color:"#0D9488",link:"https://posit.cloud",site:"Posit Cloud",desc:"Statistical computing — gold standard for research."},
+  STATA:{color:"#7C3AED",link:"https://www.stata.com",site:"stata.com",desc:"Powerful statistics for economics and health research."},
+  SPSS:{color:"#EC4899",link:"https://www.ibm.com/spss",site:"IBM SPSS",desc:"Survey analysis and quantitative research."},
+  LaTeX:{color:"#3B82F6",link:"https://overleaf.com",site:"Overleaf",desc:"Professional typesetting for academic papers."},
+  MATLAB:{color:"#F97316",link:"https://matlab.mathworks.com",site:"MATLAB Online",desc:"Numerical computing for engineering and simulation."},
+  AutoCAD:{color:"#EF4444",link:"https://web.autocad.com",site:"AutoCAD Web",desc:"CAD software for technical drawing and design."},
+  NVivo:{color:"#8B5CF6",link:"https://www.qsrinternational.com",site:"QSR Intl",desc:"Qualitative data analysis software."},
+  Git:{color:"#F97316",link:"https://github.com",site:"GitHub",desc:"Version control — essential for software projects."},
+  SQL:{color:"#22C55E",link:"https://sqliteonline.com",site:"SQLite Online",desc:"Standard language for database management."},
+  Excel:{color:"#16A34A",link:"https://office.com",site:"Excel Online",desc:"Spreadsheet modelling and reporting."},
+  Revit:{color:"#EF4444",link:"https://www.autodesk.com",site:"Autodesk",desc:"BIM software for architectural design."},
+  SketchUp:{color:"#FBBF24",link:"https://app.sketchup.com",site:"SketchUp",desc:"3D modelling for architecture and urban planning."},
+  Zotero:{color:"#CC0000",link:"https://www.zotero.org",site:"zotero.org",desc:"Reference management for citations and bibliography."},
+  LexisNexis:{color:"#1E3A8A",link:"https://www.lexisnexis.com",site:"LexisNexis",desc:"Legal research platform for cases and statutes."},
+  "Atlas.ti":{color:"#14B8A6",link:"https://atlasti.com",site:"atlasti.com",desc:"Qualitative research software for coding and analysis."},
+  Docker:{color:"#3B82F6",link:"https://labs.play-with-docker.com",site:"Play w/ Docker",desc:"Containerisation for deploying applications."},
+  SAS:{color:"#004F9D",link:"https://www.sas.com",site:"sas.com",desc:"Advanced analytics for agriculture, health and business."},
+  Westlaw:{color:"#DC2626",link:"https://legal.thomsonreuters.com",site:"Westlaw",desc:"Comprehensive legal research database."},
+};
+
+const TREND_DATA=[{w:"W1",sc:72},{w:"W2",sc:75},{w:"W3",sc:68},{w:"W4",sc:80},{w:"W5",sc:84},{w:"W6",sc:79},{w:"W7",sc:88},{w:"W8",sc:91}];
+const CAL_EVENTS=[
+  {d:3,type:"exam",label:"Mid-Semester Exam",time:"9:00 AM",col:"#EF4444"},
+  {d:7,type:"assignment",label:"Assignment 2 Due",time:"11:59 PM",col:"#D97706"},
+  {d:10,type:"meeting",label:"Study Group",time:"3:00 PM",col:"#3B82F6"},
+  {d:14,type:"class",label:"Online Lecture",time:"8:00 AM",col:"#0D9488"},
+  {d:17,type:"deadline",label:"Research Draft Due",time:"5:00 PM",col:"#7C3AED"},
+  {d:21,type:"exam",label:"CAT 2",time:"2:00 PM",col:"#EF4444"},
+  {d:25,type:"class",label:"Industry Talk",time:"10:00 AM",col:"#16A34A"},
+  {d:28,type:"deadline",label:"Portfolio Submission",time:"11:59 PM",col:"#D97706"},
+];
+const MEETINGS=[
+  {id:1,title:"Weekly Tutorial",host:"Dr. Ochieng",date:"Mar 21",time:"10:00 AM",dur:"1h",platform:"zoom",att:28,rec:false,type:"class"},
+  {id:2,title:"Research Supervision",host:"Prof. Wanjiku",date:"Mar 22",time:"2:00 PM",dur:"45min",platform:"meet",att:3,rec:false,type:"research"},
+  {id:3,title:"Study Group",host:"Amara Osei",date:"Mar 23",time:"4:00 PM",dur:"1.5h",platform:"teams",att:6,rec:false,type:"peer"},
+  {id:4,title:"Industry Webinar",host:"Guest Speaker",date:"Mar 25",time:"10:00 AM",dur:"2h",platform:"zoom",att:150,rec:true,type:"industry"},
+];
+const PENDING_REGS=[
+  {id:101,name:"Brian Otieno",email:"b.otieno@student.buc.ke",field:"medicine",date:"Mar 18",sid:"BUC/MED/2026/023",role:"student"},
+  {id:102,name:"Grace Mutua",email:"g.mutua@student.buc.ke",field:"law",date:"Mar 19",sid:"BUC/LAW/2026/011",role:"student"},
+  {id:103,name:"James Kariuki",email:"j.kariuki@student.buc.ke",field:"actuarial",date:"Mar 20",sid:"BUC/AS/2026/045",role:"student"},
+  {id:104,name:"Dr. Njoroge P.",email:"p.njoroge@staff.buc.ke",field:"engineering",date:"Mar 19",sid:"BUC/STAFF/7",role:"lecturer"},
+  {id:105,name:"Aisha Mohamed",email:"a.mohamed@student.buc.ke",field:"compsci",date:"Mar 20",sid:"BUC/CS/2026/019",role:"student"},
+];
+
+const ThemeCtx=createContext("navy"),LangCtx=createContext("en");
+const useT=()=>THEMES[useContext(ThemeCtx)];
+const useLang=()=>{const l=useContext(LangCtx);return k=>(LS[l]||LS_STUB)[k]||LS.en[k]||k;};
+
+const loadFonts=()=>{
+  if(document.getElementById("ak-f"))return;
+  const lk=document.createElement("link");
+  lk.id="ak-f";lk.rel="stylesheet";
+  lk.href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap";
+  document.head.appendChild(lk);
+};
+
+const sx=T=>({
+  card:{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"1.25rem"},
+  acCard:{background:`linear-gradient(135deg,${rgba(T.ac,0.14)},${rgba(T.ac,0.04)})`,border:`1px solid ${rgba(T.ac,0.28)}`,borderRadius:12,padding:"1.25rem"},
+  input:{width:"100%",background:T.bg1,border:`1px solid ${T.bd}`,borderRadius:8,padding:"9px 13px",color:T.t1,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box"},
+  btnP:{background:`linear-gradient(135deg,${T.ac},${T.acL})`,color:"#0D1226",border:"none",borderRadius:8,padding:"9px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"},
+  btnS:{background:"transparent",color:T.ac,border:`1px solid ${rgba(T.ac,0.35)}`,borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"},
+  btnD:{background:"transparent",color:T.red,border:`1px solid ${rgba(T.red,0.4)}`,borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"},
+  tag:c=>({background:`${c}22`,color:c,border:`1px solid ${c}44`,borderRadius:20,padding:"2px 10px",fontSize:11,fontWeight:600,letterSpacing:0.4,whiteSpace:"nowrap",display:"inline-block"}),
+  lbl:{fontSize:11,color:T.t3,display:"block",marginBottom:5,letterSpacing:0.6,fontWeight:600},
+  h1:{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600,color:T.t1,margin:"0 0 0.35rem"},
+  sub:{color:T.t2,fontSize:13,margin:"0 0 1.5rem"},
+});
+
+const Logo=({size=44})=>{
+  const T=useT();
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 52" fill="none">
+      <path d="M24 4L4 42H12L24 18L36 42H44L24 4Z" fill={T.ac} opacity="0.95"/>
+      <path d="M24 20L16 38H32L24 20Z" fill={T.bg0}/>
+      <rect x="8" y="28" width="32" height="4" rx="2" fill={T.acL} opacity="0.9"/>
+      <path d="M24 2C22 5 20 8 22 11C22.8 12.2 25.2 12.2 26 11C28 8 26 5 24 2Z" fill={T.acL}/>
+      <path d="M24 5C23 7 22.5 9 23.5 10.5C24 11 24.5 10.5 24.5 9C25 7.5 24.5 6 24 5Z" fill={T.bg1} opacity="0.5"/>
+    </svg>
+  );
+};
+
+const Prog=({val,color})=>{
+  const T=useT();
+  return (
+    <div style={{height:4,background:T.bg4,borderRadius:2}}>
+      <div style={{width:`${Math.min(val,100)}%`,height:"100%",background:color||T.ac,borderRadius:2,transition:"width 0.4s"}}/>
+    </div>
+  );
+};
+const Pill=({text,color})=>{const T=useT();return <span style={sx(T).tag(color||T.ac)}>{text}</span>;};
+const Av=({name,size=36,bg})=>{
+  const T=useT();const c=bg||T.purple;
+  const ini=name.split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();
+  return (
+    <div style={{width:size,height:size,background:`linear-gradient(135deg,${c},${c}88)`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color:"#fff",flexShrink:0}}>
+      {ini}
+    </div>
+  );
+};
+const StatCard=({label,value,sub,color,icon})=>{
+  const T=useT();
+  return (
+    <div style={{...sx(T).card,borderTop:`3px solid ${color}`}}>
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <div style={{fontSize:11,color:T.t3,letterSpacing:0.5}}>{label.toUpperCase()}</div>
+        {icon&&<span style={{fontSize:18}}>{icon}</span>}
+      </div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:600,color,margin:"6px 0 2px"}}>{value}</div>
+      <div style={{fontSize:11,color:T.t2}}>{sub}</div>
+    </div>
+  );
+};
+const Toast=({n})=>{
+  const T=useT();
+  if(!n)return null;
+  const ok=n.type==="success";
+  return (
+    <div style={{position:"fixed",top:20,right:20,zIndex:9999,background:ok?rgba(T.green,0.18):rgba(T.red,0.18),border:`1px solid ${ok?T.green:T.red}55`,color:ok?T.green:T.red,borderRadius:10,padding:"11px 18px",fontSize:13,fontWeight:500}}>
+      {ok?"✓  ":"✗  "}{n.msg}
+    </div>
+  );
+};
+
+const FieldSelector=({selected,onSelect})=>{
+  const T=useT();
+  const groups=[...new Set(Object.values(FIELDS).map(f=>f.group))];
+  return (
+    <div>
+      {groups.map(grp=>(
+        <div key={grp} style={{marginBottom:"1rem"}}>
+          <div style={{fontSize:10,color:T.t3,letterSpacing:0.8,marginBottom:8,fontWeight:600}}>{grp.toUpperCase()}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {Object.values(FIELDS).filter(f=>f.group===grp).map(f=>{
+              const sel=selected===f.id;
+              return (
+                <div key={f.id} onClick={()=>onSelect(f.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:`1px solid ${sel?f.color:T.bd}`,background:sel?rgba(f.color,0.15):T.bg3,cursor:"pointer"}}>
+                  <span style={{fontSize:20}}>{f.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:sel?600:400,color:sel?f.color:T.t1}}>{f.name}</div>
+                    <div style={{fontSize:10,color:T.t3}}>{f.desc.slice(0,36)}...</div>
+                  </div>
+                  {sel&&<span style={{color:f.color}}>✓</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AuthScreen=({onLogin,lang,setLang,themeId,setThemeId})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [tab,setTab]=useState("login"),[step,setStep]=useState(1);
+  const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[cpass,setCpass]=useState("");
+  const [name,setName]=useState(""),[sid,setSid]=useState(""),[role,setRole]=useState("student");
+  const [field,setField]=useState("actuarial"),[err,setErr]=useState(""),[done,setDone]=useState(false);
+  useEffect(()=>{loadFonts();},[]);
+  const next=()=>{
+    if(!name.trim()){setErr("Full name required.");return;}
+    if(!email.includes("@")||!email.includes(".")||email.indexOf("@")<1){setErr("Valid institutional email required.");return;}
+    if(!sid.trim()){setErr("Student/Staff ID required.");return;}
+    if(pass.length<8){setErr("Password must be at least 8 characters.");return;}
+    if(pass!==cpass){setErr("Passwords do not match.");return;}
+    setErr("");setStep(2);
+  };
+  if(done)return(
+    <div style={{minHeight:"100vh",background:T.bg0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",color:T.t1}}>
+      <div style={{width:460,textAlign:"center",padding:"0 1rem"}}>
+        <div style={{fontSize:52,marginBottom:"1rem"}}>⏳</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",color:T.ac,marginBottom:"0.75rem"}}>{t("pending")}</h2>
+        <p style={{fontSize:13,color:T.t2,lineHeight:1.75,marginBottom:"1.25rem"}}>
+          Your registration for <strong style={{color:T.t1}}>{(FIELDS[field]&&FIELDS[field].name)}</strong> has been submitted.
+          An administrator will review and approve your account within 24 hours.
+          You will be notified at <strong style={{color:T.ac}}>{email}</strong>.
+        </p>
+        <div style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:12,padding:"1rem",marginBottom:"1.25rem",fontSize:12,color:T.t3,textAlign:"left",lineHeight:2}}>
+          <div>🔐 AES-256 encrypted in transit and at rest</div>
+          <div>📧 Verification email sent</div>
+          <div>🕐 Approval typically within 24 hours</div>
+          <div>🛡 Admin notified of your registration</div>
+        </div>
+        <button onClick={()=>{setDone(false);setStep(1);setTab("login");}} style={{...s.btnS,fontSize:12}}>Back to Sign In</button>
+      </div>
+    </div>
+  );
+  const langOpts=Object.entries(LANGS);
+  const themeOpts=Object.values(THEMES);
+  const roleOpts=[["student","Student"],["lecturer","Lecturer / Teaching Staff"],["researcher","Researcher"]];
+  const demoRoles=[["student","Student"],["lecturer","Lecturer"],["admin","Admin"]];
+  return(
+    <div style={{minHeight:"100vh",background:T.bg0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",color:T.t1,position:"relative",overflow:"hidden"}}>
+      <svg style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",opacity:0.025,pointerEvents:"none"}}>
+        <defs><pattern id="g" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0L0 0 0 60" fill="none" stroke={T.ac} strokeWidth="0.5"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#g)"/>
+      </svg>
+      <div style={{position:"fixed",top:16,right:16,display:"flex",gap:8,zIndex:10}}>
+        <select value={lang} onChange={e=>setLang(e.target.value)} style={{...s.input,width:"auto",fontSize:11,padding:"5px 8px",background:T.bg2}}>
+          {langOpts.map(pair=><option key={pair[0]} value={pair[0]}>{pair[1].flag} {pair[1].name}</option>)}
+        </select>
+        <select value={themeId} onChange={e=>setThemeId(e.target.value)} style={{...s.input,width:"auto",fontSize:11,padding:"5px 8px",background:T.bg2}}>
+          {themeOpts.map(th=><option key={th.id} value={th.id}>{th.emoji} {th.name}</option>)}
+        </select>
+      </div>
+      <div style={{width:tab==="register"&&step===2?700:480,position:"relative",zIndex:1,maxHeight:"92vh",overflowY:"auto"}}>
+        <div style={{textAlign:"center",marginBottom:"2rem"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:14,marginBottom:10}}>
+            <div style={{width:58,height:58,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:15,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 0 36px ${rgba(T.ac,0.45)}`}}>
+              <Logo size={42}/>
+            </div>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:30,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
+              <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5}}>Ujuzi Bila Mipaka — Every Field. Every Student. One Platform.</div>
+            </div>
+          </div>
+        </div>
+        <div style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:18,padding:"2rem",boxShadow:"0 32px 80px rgba(0,0,0,0.7)"}}>
+          <div style={{display:"flex",background:T.bg1,borderRadius:10,padding:4,marginBottom:"1.5rem"}}>
+            {[["login",t("signIn")],["register",t("register")]].map(pair=>(
+              <button key={pair[0]} onClick={()=>{setTab(pair[0]);setErr("");setStep(1);}} style={{flex:1,padding:"8px",borderRadius:7,border:"none",background:tab===pair[0]?T.bg3:"transparent",color:tab===pair[0]?T.t1:T.t2,fontSize:13,fontWeight:tab===pair[0]?600:400,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s"}}>
+                {pair[1]}
+              </button>
+            ))}
+          </div>
+          {err&&<div style={{background:rgba(T.red,0.12),border:`1px solid ${rgba(T.red,0.4)}`,color:T.red,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:"1rem"}}>{err}</div>}
+          {tab==="login"&&(
+            <div>
+              <div style={{marginBottom:"0.85rem"}}>
+                <label style={s.lbl}>INSTITUTIONAL EMAIL</label>
+                <input style={s.input} type="email" placeholder="you@student.buc.edu.ke" value={email} onChange={e=>setEmail(e.target.value)}/>
+              </div>
+              <div style={{marginBottom:"1.4rem"}}>
+                <label style={s.lbl}>PASSWORD</label>
+                <input style={s.input} type="password" placeholder="..." value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onLogin("student","actuarial","David Kamau")}/>
+              </div>
+              <button onClick={()=>onLogin("student","actuarial","David Kamau")} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
+                {t("signIn")} →
+              </button>
+              <div style={{borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
+                <div style={{fontSize:11,color:T.t3,textAlign:"center",marginBottom:8}}>DEMO — SIGN IN AS:</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
+                  {demoRoles.map(pair=>(
+                    <button key={pair[0]} onClick={()=>onLogin(pair[0],"actuarial","Demo User")} style={{...s.btnS,fontSize:11,padding:"7px 6px"}}>
+                      {pair[1]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p style={{textAlign:"center",marginTop:"0.9rem",fontSize:12,color:T.t3}}>
+                <span style={{color:T.ac,cursor:"pointer"}}>Forgot password?</span> · End-to-end encrypted
+              </p>
+            </div>
+          )}
+          {tab==="register"&&step===1&&(
+            <div>
+              <div style={{fontSize:12,color:T.ac,marginBottom:"1rem",fontWeight:500}}>Step 1 of 2 — Personal Information</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"0.75rem"}}>
+                <div><label style={s.lbl}>FULL NAME</label><input style={s.input} placeholder="e.g. David Kamau" value={name} onChange={e=>setName(e.target.value)}/></div>
+                <div><label style={s.lbl}>STUDENT / STAFF ID</label><input style={s.input} placeholder="BUC/XXX/2026/001" value={sid} onChange={e=>setSid(e.target.value)}/></div>
+              </div>
+              <div style={{marginBottom:"0.75rem"}}>
+                <label style={s.lbl}>INSTITUTIONAL EMAIL</label>
+                <input style={s.input} type="email" placeholder="you@student.buc.edu.ke" value={email} onChange={e=>setEmail(e.target.value)}/>
+                <span style={{fontSize:11,color:T.t3,marginTop:4,display:"block"}}>Institutional emails only. Account requires admin approval.</span>
+              </div>
+              <div style={{marginBottom:"0.75rem"}}>
+                <label style={s.lbl}>ROLE</label>
+                <select style={s.input} value={role} onChange={e=>setRole(e.target.value)}>
+                  {roleOpts.map(pair=><option key={pair[0]} value={pair[0]}>{pair[1]}</option>)}
+                </select>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
+                <div><label style={s.lbl}>PASSWORD</label><input style={s.input} type="password" placeholder="Min. 8 characters" value={pass} onChange={e=>setPass(e.target.value)}/></div>
+                <div><label style={s.lbl}>CONFIRM PASSWORD</label><input style={s.input} type="password" placeholder="Repeat password" value={cpass} onChange={e=>setCpass(e.target.value)}/></div>
+              </div>
+              <button onClick={next} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10}}>Continue: Choose Field →</button>
+            </div>
+          )}
+          {tab==="register"&&step===2&&(
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+                <div style={{fontSize:12,color:T.ac,fontWeight:500}}>Step 2 of 2 — {t("fieldSelect")}</div>
+                <button onClick={()=>setStep(1)} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>Back</button>
+              </div>
+              <FieldSelector selected={field} onSelect={setField}/>
+              <button onClick={()=>setDone(true)} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginTop:"1rem"}}>Submit Registration →</button>
+              <p style={{fontSize:11,color:T.t3,textAlign:"center",marginTop:"0.75rem",lineHeight:1.65}}>
+                Registration reviewed by an administrator before activation. Email confirmation sent on approval.
+              </p>
+            </div>
+          )}
+        </div>
+        <div style={{display:"flex",justifyContent:"center",gap:"1.5rem",marginTop:"1.5rem",flexWrap:"wrap"}}>
+          {["🔒 AES-256","🛡 Approval Required","✓ GDPR Compliant","⚡ 99.9% Uptime"].map(b=><span key={b} style={{fontSize:11,color:T.t3}}>{b}</span>)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"}];
+
+const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
+  const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings")};
+  const nav=[...NAV_BASE,...(role==="lecturer"||role==="admin"?[{id:"classroom",icon:"🎓"}]:[]),...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
+  return(
+    <div style={{width:open?256:64,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:38,height:38,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <Logo size={28}/>
+        </div>
+        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
+      </div>
+      {open&&fld&&(
+        <div style={{padding:"0.5rem 0.75rem"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:7,background:rgba(fld.color,0.15),border:`1px solid ${rgba(fld.color,0.3)}`}}>
+            <span style={{fontSize:13}}>{fld.icon}</span>
+            <span style={{fontSize:11,color:fld.color,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{fld.name}</span>
+          </div>
+        </div>
+      )}
+      {open&&(
+        <div style={{padding:"0 0.75rem 0.5rem"}}>
+          <div onClick={()=>setOffline(!offline)} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 10px",borderRadius:7,background:offline?rgba(T.amber,0.14):rgba(T.green,0.12),border:`1px solid ${offline?rgba(T.amber,0.3):rgba(T.green,0.25)}`,cursor:"pointer"}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:offline?T.amber:T.green}}/>
+            <span style={{fontSize:11,color:offline?T.amber:T.green,fontWeight:500}}>{offline?t("offline"):t("online")}</span>
+          </div>
+        </div>
+      )}
+      <nav style={{flex:1,overflowY:"auto",padding:"0.3rem 0.5rem"}}>
+        {nav.map(item=>{
+          const active=tab===item.id;
+          return(
+            <button key={item.id} onClick={()=>setTab(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,border:"none",marginBottom:1,background:active?`linear-gradient(135deg,${rgba(T.ac,0.18)},${rgba(T.ac,0.07)})`:"transparent",color:active?T.ac:T.t2,fontSize:12,fontWeight:active?600:400,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",borderLeft:active?`2px solid ${T.ac}`:"2px solid transparent",transition:"all 0.15s"}}>
+              <span style={{fontSize:14,flexShrink:0}}>{item.icon}</span>
+              {open&&<span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{L[item.id]||item.id}</span>}
+            </button>
+          );
+        })}
+      </nav>
+      {open&&(
+        <div style={{padding:"0.85rem",borderTop:`1px solid ${T.bd}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <Av name={userName||"U"} size={30} bg={T.purple}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:500,color:T.t1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{userName}</div>
+              <div style={{fontSize:10,color:T.t3,textTransform:"capitalize"}}>{role}</div>
+            </div>
+            <button onClick={onLogout} style={{background:"none",border:"none",color:T.t3,cursor:"pointer",fontSize:14,padding:2}}>X</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId})=>{
+  const T=useT();const t=useLang();
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings")};
+  const langOpts=Object.entries(LANGS);
+  const themeOpts=Object.values(THEMES);
+  return(
+    <div style={{background:T.bg1,borderBottom:`1px solid ${T.bd}`,padding:"0.6rem 1.25rem",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+      <button onClick={toggle} style={{background:"none",border:"none",color:T.t2,cursor:"pointer",fontSize:18,padding:4,lineHeight:1}}>|||</button>
+      <span style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:T.t2,fontWeight:500}}>{L[tab]||"AKADIMIA"}</span>
+      <div style={{flex:1,position:"relative",maxWidth:380}}>
+        <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:T.t3}}>S</span>
+        <input placeholder="Search courses, resources, people..." style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"7px 12px 7px 30px",color:T.t1,fontSize:12,fontFamily:"'DM Sans',sans-serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{flex:1}}/>
+      <select value={lang} onChange={e=>setLang(e.target.value)} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
+        {langOpts.map(pair=><option key={pair[0]} value={pair[0]}>{pair[1].flag}</option>)}
+      </select>
+      <select value={themeId} onChange={e=>setThemeId(e.target.value)} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
+        {themeOpts.map(th=><option key={th.id} value={th.id}>{th.emoji}</option>)}
+      </select>
+      <div style={{position:"relative"}}>
+        <button style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"5px 9px",color:T.t2,cursor:"pointer",fontSize:14}}>B</button>
+        <div style={{position:"absolute",top:-3,right:-3,width:15,height:15,background:T.red,borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>4</div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardView=({setTab,userName,userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const fld=FIELDS[userField]||FIELDS.actuarial;
+  const cs=((FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[]).slice(0,4);
+  const deadlines=[["Assignment 2 ("+fld.name+")","Tomorrow",true],["Mid-Semester Exam","In 3 days",true],["Research Draft","In 2 weeks",false]];
+  const schedule=[["8:00 AM","Morning Lecture",T.teal],["2:00 PM","Tutorial",T.blue],["4:00 PM","Study Group",T.purple]];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("welcome")}, {userName.split(" ")[0]}</h1>
+      <p style={s.sub}><span style={{...s.tag(fld.color),marginRight:8}}>{fld.icon} {fld.name}</span>Semester 1, 2026 · AKADIMIA</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
+        <StatCard label="GPA" value="3.5" sub="Above average" color={T.green} icon="🎯"/>
+        <StatCard label="Active Courses" value={cs.length} sub="This semester" color={T.blue} icon="📚"/>
+        <StatCard label="Pending Tasks" value="3" sub="Assignments & exams" color={T.amber} icon="📋"/>
+        <StatCard label="Class Rank" value="#3" sub="Out of 42 students" color={T.ac} icon="🏆"/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Performance Trend</div>
+          <ResponsiveContainer width="100%" height={150}>
+            <AreaChart data={TREND_DATA}>
+              <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.ac} stopOpacity={0.35}/><stop offset="95%" stopColor={T.ac} stopOpacity={0}/></linearGradient></defs>
+              <XAxis dataKey="w" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} domain={[50,100]}/>
+              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
+              <Area type="monotone" dataKey="sc" stroke={T.ac} fill="url(#ag)" strokeWidth={2} dot={{fill:T.ac,r:3}}/>
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Course Progress</div>
+          {cs.map((c,i)=>{
+            const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
+            return(
+              <div key={i} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
+                  <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:8}}>{c.code} — {c.name.slice(0,26)}{c.name.length>26?"...":""}</span>
+                  <span style={{fontWeight:600,color:barColor,flexShrink:0}}>{c.p}%</span>
+                </div>
+                <Prog val={c.p} color={barColor}/>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12}}>
+        <div style={s.card}>
+          <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:10}}>Upcoming Deadlines</div>
+          {deadlines.map((d,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
+              <span style={{fontSize:12,color:T.t1}}>{d[0]}</span>
+              <Pill text={d[1]} color={d[2]?T.red:T.amber}/>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={s.card}>
+            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Today</div>
+            {schedule.map((sc,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
+                <span style={{fontSize:10,color:T.t3,width:50,flexShrink:0}}>{sc[0]}</span>
+                <div style={{width:3,height:26,background:sc[2],borderRadius:2}}/>
+                <span style={{fontSize:11,color:T.t1}}>{sc[1]}</span>
+              </div>
+            ))}
+          </div>
+          <div style={s.acCard}>
+            <div style={{fontSize:10,color:T.ac,letterSpacing:0.8,marginBottom:6}}>AI SUGGESTION</div>
+            <p style={{fontSize:12,color:T.t1,lineHeight:1.65,margin:"0 0 10px"}}>Consider joining <strong style={{color:T.ac}}>{(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies)[0]||fld.name+" body"}</strong> this semester.</p>
+            <button onClick={()=>setTab("transcript")} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View Career Plan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CoursesView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const [open,setOpen]=useState(null);
+  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
+  const actionBtns=[{lbl:"Lectures",col:T.blue},{lbl:"Notes",col:T.teal},{lbl:"Past Papers",col:T.purple},{lbl:"Assignments",col:T.amber},{lbl:"Forum",col:T.green},{lbl:"Download",col:T.t2}];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("courses")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>All enrolled units</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+        {courses.map((c,i)=>{
+          const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
+          return(
+            <div key={i} style={{...s.card,cursor:"pointer"}} onClick={()=>setOpen(open===i?null:i)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontSize:10,color:T.ac,fontWeight:700,marginBottom:4}}>{c.code} · Year {c.y}</div>
+                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{c.name}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:18,fontWeight:700,color:barColor}}>{c.p}%</div>
+                </div>
+              </div>
+              <div style={{marginTop:10}}><Prog val={c.p} color={barColor}/></div>
+              {open===i&&(
+                <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                    {actionBtns.map(btn=>(
+                      <button key={btn.lbl} style={{...s.btnS,fontSize:11,padding:"7px 8px",color:btn.col,border:`1px solid ${rgba(btn.col,0.4)}`}}>
+                        {btn.lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ExamsView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [active,setActive]=useState(false),[answers,setAnswers]=useState({}),[result,setResult]=useState(null),[timer,setTimer]=useState(900);
+  const tmr=useRef(null);const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
+  useEffect(()=>{
+    if(active){tmr.current=setInterval(()=>setTimer(prev=>{if(prev<=1){clearInterval(tmr.current);submit();return 0;}return prev-1;}),1000);}
+    return()=>clearInterval(tmr.current);
+  },[active]);
+  const QS=[
+    {id:1,q:"A probability density function (PDF) is best described as:",opts:["Can take negative values","Area under curve equals 1","Equals the CDF","Only for discrete variables"],ans:1,marks:5,expl:"The defining property of any PDF is that the total area integrates to exactly 1."},
+    {id:2,q:"Which measure is most resistant to outliers?",opts:["Mean","Variance","Median","Standard deviation"],ans:2,marks:5,expl:"The median is the middle value, unaffected by extreme values."},
+    {id:3,q:"By the Central Limit Theorem (n=100), the sampling distribution of the mean is:",opts:["Uniform","Binomial","Approximately Normal","Exponential"],ans:2,marks:5,expl:"For large n, CLT guarantees the sampling distribution approaches normality."},
+  ];
+  const submit=()=>{
+    clearInterval(tmr.current);
+    let sc=0,mx=0;
+    const d=QS.map(q=>{mx+=q.marks;const ok=answers[q.id]===q.ans;if(ok)sc+=q.marks;return{...q,chosen:answers[q.id],ok};});
+    setResult({score:sc,max:mx,pct:Math.round(sc/mx*100),detail:d});
+    setActive(false);
+  };
+  const fmt=sec=>String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+  if(active)return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+        <div>
+          <h1 style={{...s.h1,margin:0}}>Mid-Semester Examination</h1>
+          <p style={{...s.sub,margin:0}}>{(courses[0]&&courses[0].name)||(fld&&fld.name)}</p>
+        </div>
+        <div style={{textAlign:"center",background:timer<120?rgba(T.red,0.2):T.bg2,border:`1px solid ${timer<120?T.red:T.bd}`,borderRadius:12,padding:"10px 20px"}}>
+          <div style={{fontSize:10,color:T.t3}}>TIME</div>
+          <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:22,fontWeight:700,color:timer<120?T.red:T.ac}}>{fmt(timer)}</div>
+        </div>
+      </div>
+      {QS.map((q,qi)=>(
+        <div key={q.id} style={{...s.card,marginBottom:12}}>
+          <div style={{fontSize:12,color:T.t3,marginBottom:8}}>Q{qi+1} · {q.marks} marks</div>
+          <div style={{fontSize:14,fontWeight:500,color:T.t1,marginBottom:"1rem",lineHeight:1.65}}>{q.q}</div>
+          {q.opts.map((opt,oi)=>{
+            const sel=answers[q.id]===oi;
+            return(
+              <div key={oi} onClick={()=>setAnswers(a=>({...a,[q.id]:oi}))} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,marginBottom:6,border:`1px solid ${sel?T.ac:T.bd}`,background:sel?rgba(T.ac,0.12):T.bg3,cursor:"pointer"}}>
+                <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${sel?T.ac:T.t3}`,background:sel?T.ac:"transparent",flexShrink:0}}/>
+                <span style={{fontSize:13,color:T.t1}}>{opt}</span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <button onClick={submit} style={{...s.btnP,padding:"12px 32px",fontSize:14}}>Submit</button>
+    </div>
+  );
+  if(result)return(
+    <div>
+      <div style={{...s.acCard,textAlign:"center",marginBottom:"1.5rem"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:700,color:result.pct>=70?T.green:result.pct>=50?T.amber:T.red}}>{result.pct}%</div>
+        <div style={{fontSize:14,color:T.t1,marginTop:4}}>{result.score}/{result.max} marks · {result.pct>=70?"PASS":"FAIL"}</div>
+      </div>
+      {result.detail.map((q,qi)=>(
+        <div key={q.id} style={{...s.card,marginBottom:10,borderLeft:`3px solid ${q.ok?T.green:T.red}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+            <span style={{fontSize:12,color:T.t1,fontWeight:500}}>Q{qi+1}: {q.q.slice(0,55)}...</span>
+            <Pill text={q.ok?"+"+q.marks:"+0"} color={q.ok?T.green:T.red}/>
+          </div>
+          <div style={{fontSize:12,color:T.t2}}>
+            <span style={{color:q.ok?T.green:T.red}}>Your answer: {q.opts[q.chosen]||"-"}</span>
+            {!q.ok&&<span style={{color:T.green,marginLeft:16}}>Correct: {q.opts[q.ans]}</span>}
+          </div>
+          <div style={{fontSize:11,color:T.t3,marginTop:6,fontStyle:"italic"}}>{q.expl}</div>
+        </div>
+      ))}
+      <button onClick={()=>{setResult(null);setAnswers({});setTimer(900);}} style={s.btnS}>Back to Exams</button>
+    </div>
+  );
+  const examList=[
+    {title:"Mid-Semester Examination",code:(courses[0]&&courses[0].code)||"",date:"Mar 21, 2026",dur:"45 min",status:"open",total:20,score:null},
+    {title:"CAT 2 Assessment",code:(courses[1]&&courses[1].code)||"",date:"Mar 24, 2026",dur:"30 min",status:"upcoming",total:30,score:null},
+    {title:"CAT 1 — Completed",code:(courses[0]&&courses[0].code)||"",date:"Mar 10, 2026",dur:"30 min",status:"done",total:20,score:17},
+  ];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("exams")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Scheduled exams and CATs</p>
+      <div style={{display:"grid",gap:12}}>
+        {examList.map((ex,i)=>(
+          <div key={i} style={{...s.card,display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:46,height:46,background:ex.status==="open"?rgba(T.green,0.18):ex.status==="done"?rgba(T.t3,0.18):rgba(T.amber,0.18),borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+              {ex.status==="open"?"E":ex.status==="done"?"C":"S"}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{ex.title}</div>
+              <div style={{fontSize:11,color:T.t3,marginTop:3}}>{ex.code} · {ex.date} · {ex.dur} · {ex.total} marks</div>
+              {ex.score!==null&&<div style={{fontSize:12,color:T.green,marginTop:3}}>Score: {ex.score}/{ex.total} ({Math.round(ex.score/ex.total*100)}%)</div>}
+            </div>
+            {ex.status==="open"&&<button onClick={()=>{setActive(true);setAnswers({});setTimer(900);setResult(null);}} style={s.btnP}>Start</button>}
+            {ex.status==="upcoming"&&<Pill text="Scheduled" color={T.amber}/>}
+            {ex.status==="done"&&<Pill text="Done" color={T.green}/>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AssignmentsView=({userField,role})=>{
+  const T=useT();const t=useLang();const s=sx(T);const [showNew,setShowNew]=useState(false);
+  const fld=FIELDS[userField];const isLec=role==="lecturer"||role==="admin";
+  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
+  const items=[
+    {id:1,title:"Assignment 1 — Fundamentals",course:(courses[0]&&courses[0].code)||"",due:"Mar 25",marks:20,status:"submitted",grade:17,fb:"Good work."},
+    {id:2,title:"Assignment 2 — Applied Analysis",course:(courses[1]&&courses[1].code)||"",due:"Apr 5",marks:25,status:"pending",grade:null,fb:null},
+    {id:3,title:"Research Proposal",course:(courses[2]&&courses[2].code)||"",due:"Apr 15",marks:30,status:"not_started",grade:null,fb:null},
+  ];
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div>
+          <h1 style={s.h1}>{t("assignments")}</h1>
+          <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Submit, track and review</p>
+        </div>
+        {isLec&&<button onClick={()=>setShowNew(!showNew)} style={s.btnP}>+ Issue</button>}
+      </div>
+      {isLec&&showNew&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue New Assignment</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Assignment title"/></div>
+            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
+            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date"/></div>
+            <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" defaultValue="25"/></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Instructions..."/></div>
+          <div style={{display:"flex",gap:8}}>
+            <button style={s.btnP}>Issue →</button>
+            <button onClick={()=>setShowNew(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+      <div style={{display:"grid",gap:10}}>
+        {items.map(a=>{
+          const statusIcon=a.status==="submitted"?"C":a.status==="pending"?"P":"N";
+          const statusBg=a.status==="submitted"?rgba(T.green,0.18):a.status==="pending"?rgba(T.amber,0.18):rgba(T.t3,0.18);
+          return(
+            <div key={a.id} style={s.card}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+                <div style={{width:44,height:44,background:statusBg,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{statusIcon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{a.title}</div>
+                  <div style={{fontSize:11,color:T.t3,marginBottom:6}}>{a.course} · Due: {a.due} · {a.marks} marks</div>
+                  {a.grade!==null&&<div style={{fontSize:13,color:T.green}}>Grade: {a.grade}/{a.marks} · {a.fb}</div>}
+                </div>
+                <div style={{flexShrink:0,display:"flex",gap:8,alignItems:"center"}}>
+                  {a.status==="not_started"&&<button style={{...s.btnP,fontSize:12}}>Start</button>}
+                  {a.status==="pending"&&<button style={{...s.btnP,fontSize:12}}>Submit</button>}
+                  {a.status==="submitted"&&<Pill text="Submitted" color={T.green}/>}
+                  {isLec&&a.status==="submitted"&&<button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>Grade</button>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ResearchView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [mode,setMode]=useState("list"),[checking,setCk]=useState(false),[res,setRes]=useState(null);
+  const fld=FIELDS[userField];
+  const items=[
+    {id:1,title:"Applied Research in "+(fld&&fld.name),author:"Student A",type:"Undergraduate",status:"Under Review",sim:8,ai:4},
+    {id:2,title:"Emerging Trends — African Context",author:"Student B",type:"Masters",status:"Approved",sim:12,ai:7},
+    {id:3,title:"Longitudinal Study",author:"Dr. Researcher",type:"PhD",status:"Revisions",sim:19,ai:3},
+  ];
+  const run=()=>{setCk(true);setRes(null);setTimeout(()=>{setCk(false);setRes({sim:Math.floor(Math.random()*14)+3,ai:Math.floor(Math.random()*9)+2,words:8420,pages:42});},3000);};
+  const modeBtns=[["list","Submissions"],["submit","New Submission"],["check","Plagiarism Check"]];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("research")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Submit · Evaluate · Plagiarism and AI detection</p>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        {modeBtns.map(mb=>(
+          <button key={mb[0]} onClick={()=>setMode(mb[0])} style={{...(mode===mb[0]?s.btnP:s.btnS),fontSize:12,padding:"8px 16px"}}>{mb[1]}</button>
+        ))}
+      </div>
+      {mode==="list"&&(
+        <div style={{display:"grid",gap:10}}>
+          {items.map(r=>(
+            <div key={r.id} style={s.card}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{r.title}</div>
+                  <div style={{fontSize:12,color:T.t3}}>{r.author} · {r.type}</div>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <Pill text={r.status} color={r.status==="Approved"?T.green:r.status==="Revisions"?T.amber:T.blue}/>
+                  <Pill text={"Sim: "+r.sim+"%"} color={r.sim<20?T.green:T.red}/>
+                  <Pill text={"AI: "+r.ai+"%"} color={r.ai<15?T.green:T.amber}/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:"0.75rem"}}>
+                <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View</button>
+                <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>Comments</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {mode==="submit"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>New Research Submission</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Research title"/></div>
+            <div><label style={s.lbl}>AUTHOR(S)</label><input style={s.input} placeholder="All authors"/></div>
+            <div><label style={s.lbl}>SUPERVISOR</label><input style={s.input} placeholder="Supervisor name"/></div>
+            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{["Undergraduate Project","Masters Dissertation","PhD Thesis","Conference Paper"].map(v=><option key={v}>{v}</option>)}</select></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>ABSTRACT</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Summary..."/></div>
+          <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem",fontSize:12}}>Upload PDF or DOCX · Max 50MB</div>
+          <button style={s.btnP}>Submit</button>
+        </div>
+      )}
+      {mode==="check"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload for Analysis</div>
+            <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"2rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem"}}>
+              <div style={{fontSize:32,marginBottom:8}}>D</div>
+              <div style={{fontSize:12}}>Drop PDF or DOCX here</div>
+            </div>
+            {[["Turnitin","70M+ academic documents"],["GPTZero","ChatGPT/Claude/Gemini detection"],["Readability","Word count, pages, Flesch score"]].map(item=>(
+              <div key={item[0]} style={{display:"flex",gap:8,marginBottom:8}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:5,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:12,color:T.t1,fontWeight:500}}>{item[0]}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{item[1]}</div>
+                </div>
+              </div>
+            ))}
+            <button onClick={run} style={{...s.btnP,width:"100%"}} disabled={checking}>{checking?"Analysing...":"Run Analysis"}</button>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Results</div>
+            {!res&&!checking&&<div style={{textAlign:"center",color:T.t3,fontSize:13,padding:"2rem"}}>Upload to see results.</div>}
+            {checking&&<div style={{textAlign:"center",padding:"2rem"}}><div style={{fontSize:32,marginBottom:12}}>...</div><div style={{fontSize:13,color:T.t2}}>Running analysis...</div></div>}
+            {res&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"1rem"}}>
+                  {[["Similarity",res.sim,res.sim<20?T.green:T.red,"Turnitin"],["AI Content",res.ai,res.ai<15?T.green:T.amber,"GPTZero"]].map(item=>(
+                    <div key={item[0]} style={{...s.card,background:rgba(item[2],0.12),padding:"1rem",textAlign:"center"}}>
+                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:item[2]}}>{item[1]}%</div>
+                      <div style={{fontSize:11,color:T.t2}}>{item[0]} ({item[3]})</div>
+                      <Pill text={item[1]<(item[0]==="Similarity"?20:15)?"PASS":"REVIEW"} color={item[1]<(item[0]==="Similarity"?20:15)?T.green:T.red}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:12,color:T.t2}}>{res.words.toLocaleString()} words · {res.pages} pages</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AIView=({lang,userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
+  const [msgs,setMsgs]=useState([{role:"bot",text:`Karibu! I'm EduBot, AKADIMIA's AI tutor. I specialise in ${(fld&&fld.name)}. Ask me anything about your coursework, assignments, research or career — available 24/7!`}]);
+  const [inp,setInp]=useState(""),[loading,setL]=useState(false);const scrollRef=useRef(null);
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[msgs]);
+  const R={
+    assignment:`For ${(fld&&fld.name)} assignments: read the rubric carefully, break work into sections, cite all sources properly, and review before submission.`,
+    exam:`Exam prep for ${(fld&&fld.name)}: review past papers for patterns, make concise notes, practice timed questions, and form study groups.`,
+    career:`Strong career paths in ${(fld&&fld.name)} in East Africa include: ${(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies).slice(0,2).join(", ")}. Joining a professional body early builds your network.`,
+    research:`Strong research needs: clear problem statement, justified methodology, honest limitations, and conclusions tied to objectives.`,
+    trend:`Current trends in ${(fld&&fld.name)}: ${(FIELD_DATA[userField]&&FIELD_DATA[userField].trends)?.join(" · ")}.`,
+    default:`Great question about ${(fld&&fld.name)}! Could you give more context — which course is this for, and is it for an assignment, exam, or research?`,
+  };
+  const send=()=>{
+    if(!inp.trim())return;
+    const q=inp.trim();setInp("");setL(true);setMsgs(m=>[...m,{role:"user",text:q}]);
+    setTimeout(()=>{
+      const key=Object.keys(R).find(k=>q.toLowerCase().includes(k))||"default";
+      setMsgs(m=>[...m,{role:"bot",text:R[key]}]);setL(false);
+    },1100);
+  };
+  const topicBtns=["Assignment help","Exam prep","Career guidance","Emerging trends","Research tips"];
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
+      <h1 style={s.h1}>EduBot — AI Tutor</h1>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:"0.75rem",flexWrap:"wrap"}}>
+        <Pill text={(fld&&fld.icon)+" "+(fld&&fld.name)} color={(fld&&fld.color)||T.teal}/>
+        <Pill text={(LANGS[lang]&&LANGS[lang].name)} color={T.teal}/>
+        <Pill text="Anthropic Claude" color={T.purple}/>
+        <Pill text="24/7" color={T.green}/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
+        {topicBtns.map(tp=><button key={tp} onClick={()=>setInp(tp)} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>{tp}</button>)}
+      </div>
+      <div ref={scrollRef} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:"0.5rem"}}>
+        {msgs.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+            {m.role==="bot"&&<div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${T.ac},${T.acL})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginRight:8,marginTop:4}}>AI</div>}
+            <div style={{maxWidth:"75%",background:m.role==="user"?`linear-gradient(135deg,${rgba(T.ac,0.25)},${rgba(T.ac,0.12)})`:T.bg3,border:`1px solid ${m.role==="user"?rgba(T.ac,0.3):T.bd}`,borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:13,color:T.t1,lineHeight:1.65}}>
+              {m.text}
+            </div>
+          </div>
+        ))}
+        {loading&&(
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${T.ac},${T.acL})`,display:"flex",alignItems:"center",justifyContent:"center"}}>AI</div>
+            <div style={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:18,padding:"12px 18px"}}>
+              <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.t3}}/>)}</div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div style={{display:"flex",gap:8,paddingTop:"0.75rem",borderTop:`1px solid ${T.bd}`}}>
+        <input style={{...s.input,flex:1}} placeholder={t("ask")} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}/>
+        <button onClick={send} style={{...s.btnP,flexShrink:0,padding:"9px 20px"}}>{t("send")}</button>
+      </div>
+    </div>
+  );
+};
+
+const CalendarView=({setTab})=>{
+  const T=useT();const t=useLang();const s=sx(T);const [sel,setSel]=useState(null);const today=20;
+  const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const cells=[...Array(6).fill(null),...Array(31).fill(0).map((_,i)=>i+1)];
+  const evOn=d=>CAL_EVENTS.filter(e=>e.d===d);
+  return(
+    <div>
+      <h1 style={s.h1}>{t("calendar")}</h1>
+      <p style={s.sub}>March 2026 · Academic schedule · Deadlines · Classes</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:12}}>
+        <div style={s.card}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+            <button style={{...s.btnS,fontSize:12,padding:"5px 12px"}}>Feb</button>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:600,color:T.t1}}>March 2026</span>
+            <button style={{...s.btnS,fontSize:12,padding:"5px 12px"}}>Apr</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:8}}>
+            {DAYS.map(d=><div key={d} style={{textAlign:"center",fontSize:10,color:T.t3,padding:"4px 0",fontWeight:500}}>{d}</div>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+            {cells.map((d,i)=>{
+              if(!d)return <div key={i}/>;
+              const evs=evOn(d);const isT=d===today;const isS=d===sel;
+              return(
+                <div key={i} onClick={()=>setSel(d===sel?null:d)} style={{minHeight:50,background:isS?rgba(T.ac,0.18):isT?rgba(T.blue,0.2):T.bg3,border:`1px solid ${isS?T.ac:isT?T.blue:T.bd}`,borderRadius:7,padding:"4px 3px",cursor:"pointer"}}>
+                  <div style={{fontSize:11,fontWeight:isT||isS?700:400,color:isT?T.blue:isS?T.ac:T.t2,textAlign:"center",marginBottom:2}}>{d}</div>
+                  {evs.slice(0,2).map((ev,ei)=><div key={ei} style={{width:"100%",height:3,borderRadius:2,background:ev.col,marginBottom:2}}/>)}
+                  {evs.length>2&&<div style={{fontSize:8,color:T.t3,textAlign:"center"}}>+{evs.length-2}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {sel?(
+            <div style={s.card}>
+              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>{sel} March {sel===today&&<Pill text="Today" color={T.blue}/>}</div>
+              {evOn(sel).length===0?<div style={{fontSize:12,color:T.t3}}>No events.</div>:evOn(sel).map((ev,i)=>(
+                <div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
+                  <div style={{width:32,height:32,borderRadius:7,background:rgba(ev.col,0.18),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>E</div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{ev.label}</div>
+                    <div style={{fontSize:11,color:T.t3,marginTop:2}}>{ev.time}</div>
+                  </div>
+                </div>
+              ))}
+              {evOn(sel).some(e=>e.type==="meeting")&&<button onClick={()=>setTab("meetings")} style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Join Meeting</button>}
+            </div>
+          ):<div style={s.card}><div style={{fontSize:12,color:T.t2}}>Click a date to see events.</div></div>}
+          <div style={s.card}>
+            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Coming Up</div>
+            {CAL_EVENTS.filter(e=>e.d>=today).slice(0,5).map((ev,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:ev.col,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:11,color:T.t1}}>{ev.label}</div>
+                  <div style={{fontSize:10,color:T.t3}}>Mar {ev.d} · {ev.time}</div>
+                </div>
+              </div>
+            ))}
+            <button style={{...s.btnS,width:"100%",fontSize:11,marginTop:"0.5rem"}}>+ Add Event</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MeetingsView=()=>{
+  const T=useT();const t=useLang();const s=sx(T);const [showSched,setShowSched]=useState(false);
+  const PC={zoom:"#2D8CFF",meet:"#0F9D58",teams:"#6264A7"};
+  const TC={class:T.teal,research:T.purple,peer:T.blue,industry:T.green,admin:T.amber};
+  const durOpts=["30 min","1 hour","1.5 hours","2 hours"];
+  const platOpts=["Zoom","Google Meet","Teams"];
+  const typeOpts=["Class","Research","Peer","Industry","Admin"];
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div><h1 style={s.h1}>{t("meetings")}</h1><p style={s.sub}>Zoom · Google Meet · Microsoft Teams</p></div>
+        <button onClick={()=>setShowSched(!showSched)} style={s.btnP}>+ Schedule</button>
+      </div>
+      {showSched&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Schedule Meeting</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Title"/></div>
+            <div><label style={s.lbl}>DATE</label><input style={s.input} type="date"/></div>
+            <div><label style={s.lbl}>TIME</label><input style={s.input} type="time"/></div>
+            <div><label style={s.lbl}>DURATION</label><select style={s.input}>{durOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+            <div><label style={s.lbl}>PLATFORM</label><select style={s.input}>{platOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{typeOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>PARTICIPANTS</label><input style={s.input} placeholder="name@buc.ke, ..."/></div>
+          <div style={{display:"flex",gap:8}}>
+            <button style={s.btnP}>Create &amp; Invite</button>
+            <button onClick={()=>setShowSched(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+      <div style={{display:"grid",gap:10}}>
+        {MEETINGS.map(m=>(
+          <div key={m.id} style={s.card}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+              <div style={{width:42,height:42,borderRadius:10,background:rgba(PC[m.platform],0.18),border:`1px solid ${rgba(PC[m.platform],0.35)}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>M</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
+                  <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{m.title}</span>
+                  <Pill text={m.type} color={TC[m.type]}/>
+                  {m.rec&&<Pill text="Recorded" color={T.cyan}/>}
+                </div>
+                <div style={{display:"flex",gap:"1rem",fontSize:11,color:T.t3}}>
+                  <span>{m.host}</span><span>{m.date}</span><span>{m.time}</span><span>{m.dur}</span>
+                </div>
+              </div>
+              <a href="#" style={{...s.btnP,textDecoration:"none",fontSize:12,padding:"7px 14px",background:`linear-gradient(135deg,${PC[m.platform]},${PC[m.platform]}cc)`,flexShrink:0}}>Join</a>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:"0.75rem",paddingTop:"0.75rem",borderTop:`1px solid ${T.bd}`}}>
+              {["Add to Calendar","Copy Link","Email Invite"].map(a=>(
+                <button key={a} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>{a}</button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const OppsView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const [filter,setFilter]=useState("all");
+  const fld=FIELDS[userField];const data=FIELD_DATA[userField];
+  const opps=(data&&data.opps)||[];
+  const TC={scholarship:T.ac,job:T.green,training:T.blue,networking:T.purple};
+  const filtered=filter==="all"?opps:opps.filter(o=>o.type===filter);
+  const filterBtns=[["all","All"],["scholarship","Scholarships"],["job","Jobs"],["training","Training"],["networking","Networking"]];
+  const bodyMatches=[97,90,82];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("opps")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Jobs · Scholarships · Training · Networking</p>
+      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+        {filterBtns.map(fb=>(
+          <button key={fb[0]} onClick={()=>setFilter(fb[0])} style={{...(filter===fb[0]?s.btnP:s.btnS),fontSize:12,padding:"6px 14px"}}>{fb[1]}</button>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:"1.5rem"}}>
+        {filtered.map((o,i)=>(
+          <div key={i} style={s.card}>
+            <Pill text={o.type.toUpperCase()} color={TC[o.type]||T.ac}/>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,margin:"8px 0 4px"}}>{o.title}</div>
+            <div style={{fontSize:12,color:T.t3,marginBottom:"0.85rem"}}>{o.org} · Deadline: {o.dead}, 2026</div>
+            <button style={{...s.btnP,fontSize:11,padding:"5px 14px"}}>Apply</button>
+          </div>
+        ))}
+      </div>
+      <div style={{...s.card,marginBottom:"1.25rem"}}>
+        <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Emerging Trends in {(fld&&fld.name)}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+          {((data&&data.trends)||[]).map((tr,i)=>(
+            <div key={i} style={{display:"flex",gap:8,padding:"10px",borderRadius:8,background:T.bg3,border:`1px solid ${T.bd}`}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:5,flexShrink:0}}/>
+              <div style={{fontSize:12,color:T.t1}}>{tr}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={s.card}>
+        <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Recommended Professional Bodies</div>
+        {((data&&data.bodies)||[]).map((p,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bd}`}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{p}</div>
+            </div>
+            <div style={{width:80,textAlign:"right"}}>
+              <div style={{fontSize:12,fontWeight:600,color:bodyMatches[i]>=90?T.green:T.amber,marginBottom:3}}>{bodyMatches[i]}% match</div>
+              <Prog val={bodyMatches[i]} color={bodyMatches[i]>=90?T.green:T.amber}/>
+            </div>
+            <button style={{...s.btnS,fontSize:11,padding:"5px 12px",flexShrink:0}}>Learn More</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AnalyticsView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
+  const RADAR=courses.map(c=>({s:c.code.replace(" ","").slice(0,6),you:c.p}));
+  const BAR=courses.map(c=>({sub:c.code.slice(0,6),you:c.p,avg:Math.max(30,c.p-10)}));
+  const strong=courses.filter(c=>c.p>=75);
+  const weak=courses.filter(c=>c.p<60);
+  return(
+    <div>
+      <h1 style={s.h1}>{t("analytics")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Strengths · Weaknesses · AI recommendations</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Skill Radar</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={RADAR}>
+              <PolarGrid stroke={T.bd}/>
+              <PolarAngleAxis dataKey="s" tick={{fill:T.t3,fontSize:10}}/>
+              <Radar name="You" dataKey="you" stroke={T.ac} fill={rgba(T.ac,0.25)} strokeWidth={2}/>
+              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>You vs Class Average</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={BAR} layout="vertical" barSize={8}>
+              <XAxis type="number" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} domain={[0,100]}/>
+              <YAxis dataKey="sub" type="category" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} width={60}/>
+              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
+              <Bar dataKey="you" name="Yours" fill={T.ac} radius={[0,3,3,0]}/>
+              <Bar dataKey="avg" name="Class" fill={T.bg5} radius={[0,3,3,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:"0.85rem"}}>Strengths</div>
+          {strong.map((c,i)=>(
+            <div key={i} style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
+                <span>{c.code}</span><span style={{color:T.green,fontWeight:600}}>{c.p}%</span>
+              </div>
+              <Prog val={c.p} color={T.green}/>
+            </div>
+          ))}
+        </div>
+        <div style={s.card}>
+          <div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:"0.85rem"}}>Areas to Improve</div>
+          {weak.map((c,i)=>{
+            const wColor=c.p<40?T.red:T.amber;
+            return(
+              <div key={i} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
+                  <span>{c.code}</span><span style={{color:wColor,fontWeight:600}}>{c.p}%</span>
+                </div>
+                <Prog val={c.p} color={wColor}/>
+              </div>
+            );
+          })}
+          <div style={{...s.acCard,marginTop:"0.75rem",padding:"0.75rem"}}>
+            <div style={{fontSize:11,color:T.ac,marginBottom:6}}>AI Suggestion</div>
+            <div style={{fontSize:11,color:T.t2,lineHeight:1.6}}>Focus on lowest-scoring units. Use EduBot daily and connect with top peers.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ToolsView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
+  const myTools=(FIELD_DATA[userField]&&FIELD_DATA[userField].tools)||["Python","R","STATA","SPSS"];
+  const [sel,setSel]=useState(myTools[0]);const info=TOOLS_INFO[sel]||{};
+  const resourceItems=[["Official Docs","Primary reference"],["Video Tutorials","Guided courses"],["Practice Datasets","Real-world data"],["Community Forum","Get help"]];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("tools")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Analytical tools used by professionals in your field</p>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
+        {myTools.map(tool=>{
+          const inf=TOOLS_INFO[tool]||{};const active=sel===tool;
+          return(
+            <button key={tool} onClick={()=>setSel(tool)} style={{padding:"8px 18px",borderRadius:9,border:`1px solid ${active?(inf.color||T.ac):T.bd}`,background:active?rgba(inf.color||T.ac,0.18):T.bg2,color:active?(inf.color||T.ac):T.t2,fontSize:13,fontWeight:active?600:400,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+              {tool}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:14}}>
+        <div>
+          <div style={{...s.card,marginBottom:12}}>
+            <div style={{fontSize:14,fontWeight:600,color:info.color||T.ac,marginBottom:8}}>{sel}</div>
+            <div style={{fontSize:12,color:T.t2,lineHeight:1.65,marginBottom:"1rem"}}>{info.desc}</div>
+            <a href={info.link||"#"} target="_blank" rel="noreferrer" style={{...s.btnP,display:"block",textAlign:"center",textDecoration:"none",fontSize:12,padding:"8px"}}>Open {info.site||sel}</a>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:11,color:T.ac,fontWeight:700,letterSpacing:0.6,marginBottom:10}}>RESOURCES</div>
+            {resourceItems.map(ri=>(
+              <div key={ri[0]} style={{padding:"7px 0",borderBottom:`1px solid ${T.bd}`}}>
+                <div style={{fontSize:12,color:T.t1,fontWeight:500,marginBottom:2}}>{ri[0]}</div>
+                <div style={{fontSize:11,color:T.t3}}>{ri[1]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={s.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.85rem"}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1}}>Getting Started with {sel}</div>
+              <Pill text={sel} color={info.color||T.ac}/>
+            </div>
+            <div style={{background:T.bg0,border:`1px solid ${T.bd}`,borderRadius:10,padding:"1.1rem"}}>
+              <pre style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:T.t1,margin:0,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{"# "+sel+" in "+(fld&&fld.name)+"\n# Open "+info.site+" to start coding\n# EduBot can generate field-specific examples"}</pre>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:"0.85rem"}}>
+              <a href={info.link||"#"} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"6px 14px"}}>Open Platform</a>
+              <button style={{...s.btnP,fontSize:11,padding:"6px 14px"}}>Ask EduBot</button>
+            </div>
+          </div>
+          <div style={s.acCard}>
+            <div style={{fontSize:11,color:T.ac,letterSpacing:0.8,marginBottom:8}}>AI-POWERED LEARNING</div>
+            <div style={{fontSize:12,color:T.t2,lineHeight:1.65,marginBottom:10}}>EduBot understands {sel} and can generate field-specific code examples for {(fld&&fld.name)}, explain errors, and suggest analysis workflows.</div>
+            <button style={s.btnP}>Open EduBot</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TranscriptView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [mode,setMode]=useState("upload"),[done,setDone]=useState(false),[loading,setLoading]=useState(false);
+  const fld=FIELDS[userField];const data=FIELD_DATA[userField];
+  const courses=(data&&data.courses)||[];
+  const [units,setUnits]=useState(courses.slice(0,5).map(c=>({code:c.code,name:c.name,grade:"B+",credit:3})));
+  const GP={"A":4.0,"A-":3.7,"B+":3.3,"B":3.0,"B-":2.7,"C+":2.3,"C":2.0,"C-":1.7,"D+":1.3,"D":1.0,"E":0.0};
+  const gpa=units.length?(units.reduce((sum,u)=>sum+((GP[u.grade]||0)*u.credit),0)/units.reduce((sum,u)=>sum+u.credit,0)).toFixed(2):"--";
+  const gpaNum=parseFloat(gpa);
+  const standing=gpaNum>=3.5?"First Class":gpaNum>=3.0?"Upper Second":gpaNum>=2.5?"Lower Second":"Pass";
+  const run=()=>{setLoading(true);setTimeout(()=>{setDone(true);setLoading(false);},2500);};
+  const gradeOpts=["A","A-","B+","B","B-","C+","C","C-","D+","D","E"];
+  const creditOpts=[1,2,3,4,5,6];
+  const uploadFeatures=[["Reads Your Transcript","Extracts grades automatically"],["Calculates GPA","Identifies strengths and weak areas"],["Matches Certifications","Aligns to professional certs in "+(fld&&fld.name)],["12-Month Action Plan","Step-by-step career roadmap"]];
+  const modeBtns=[["upload","Upload"],["manual","Manual Entry"],["advice","Career Guidance"]];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("transcript")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Upload results for personalised career guidance</p>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        {modeBtns.map(mb=>(
+          <button key={mb[0]} onClick={()=>setMode(mb[0])} style={{...(mode===mb[0]?s.btnP:s.btnS),fontSize:12,padding:"8px 16px"}}>{mb[1]}</button>
+        ))}
+      </div>
+      {mode==="upload"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload Transcript</div>
+            <div style={{border:`2px dashed ${T.bd}`,borderRadius:10,padding:"2.5rem",textAlign:"center",cursor:"pointer",color:T.t3,marginBottom:"1rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>D</div>
+              <div style={{fontSize:13,color:T.t2,marginBottom:4}}>Drop your official transcript</div>
+              <div style={{fontSize:11}}>PDF or image · BUC, KUCCPS, A-Level</div>
+            </div>
+            <button style={{...s.btnP,width:"100%"}}>Choose File</button>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>What AKADIMIA Does</div>
+            {uploadFeatures.map(uf=>(
+              <div key={uf[0]} style={{display:"flex",gap:10,marginBottom:10}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:5,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:12,color:T.t1,fontWeight:500}}>{uf[0]}</div>
+                  <div style={{fontSize:11,color:T.t3,lineHeight:1.5}}>{uf[1]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {mode==="manual"&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+            <div>
+              <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{units.length} units · </span>
+              <span style={{fontSize:14,fontWeight:700,color:gpaNum>=3.5?T.green:gpaNum>=3.0?T.amber:T.red}}>{gpa} — {standing}</span>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>setUnits(u=>[...u,{code:"",name:"",grade:"B",credit:3}])} style={{...s.btnS,fontSize:12,padding:"6px 12px"}}>+ Add</button>
+              <button onClick={run} style={s.btnP} disabled={loading}>{loading?"Analysing...":"Analyse"}</button>
+            </div>
+          </div>
+          <div style={{display:"grid",gap:6}}>
+            {units.map((u,i)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 80px 80px 34px",gap:8,alignItems:"center"}}>
+                <input style={{...s.input,fontSize:12}} placeholder="Code" value={u.code} onChange={e=>setUnits(un=>un.map((x,xi)=>xi===i?{...x,code:e.target.value}:x))}/>
+                <input style={{...s.input,fontSize:12}} placeholder="Unit name" value={u.name} onChange={e=>setUnits(un=>un.map((x,xi)=>xi===i?{...x,name:e.target.value}:x))}/>
+                <select style={{...s.input,fontSize:12}} value={u.grade} onChange={e=>setUnits(un=>un.map((x,xi)=>xi===i?{...x,grade:e.target.value}:x))}>
+                  {gradeOpts.map(g=><option key={g}>{g}</option>)}
+                </select>
+                <select style={{...s.input,fontSize:12}} value={u.credit} onChange={e=>setUnits(un=>un.map((x,xi)=>xi===i?{...x,credit:parseInt(e.target.value)}:x))}>
+                  {creditOpts.map(c=><option key={c} value={c}>{c} CU</option>)}
+                </select>
+                <button onClick={()=>setUnits(un=>un.filter((_,xi)=>xi!==i))} style={{background:"none",border:`1px solid ${T.bd}`,borderRadius:7,color:T.red,cursor:"pointer",fontSize:14,height:36}}>x</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {mode==="advice"&&(!done?(
+        <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>G</div>
+          <div style={{fontSize:14,color:T.t2,marginBottom:"1rem"}}>Enter grades in Manual Entry tab and click Analyse for personalised guidance.</div>
+          <button onClick={()=>setMode("manual")} style={s.btnP}>Enter Grades</button>
+        </div>
+      ):(
+        <div>
+          <div style={{...s.acCard,marginBottom:"1.25rem",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {[["GPA",gpa,gpaNum>=3.5?T.green:T.amber],["Units",units.length,T.t1],["Standing",standing,T.ac],["Credits",units.reduce((sum,u)=>sum+u.credit,0),T.blue]].map(item=>(
+              <div key={item[0]} style={{textAlign:"center"}}>
+                <div style={{fontSize:10,color:T.ac,letterSpacing:0.7,marginBottom:4}}>{item[0].toUpperCase()}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:item[2]}}>{item[1]}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+            <div style={s.card}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Certifications</div>
+              {((data&&data.bodies)||[]).map((p,i)=>(
+                <div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:[97,90,82][i]>=90?T.green:T.amber,marginTop:5,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                      <span style={{fontSize:12,fontWeight:500,color:T.t1}}>{p}</span>
+                      <Pill text={[97,90,82][i]+"%"} color={[97,90,82][i]>=90?T.green:T.amber}/>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={s.card}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Career Pathways</div>
+              {["Graduate Role","Research/Postgrad","International Org"].map((cp,i)=>{
+                const cpPct=[94,85,72][i];
+                const cpCol=cpPct>=85?T.green:T.amber;
+                return(
+                  <div key={i} style={{padding:"8px 0",borderBottom:`1px solid ${T.bd}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:12,fontWeight:500,color:T.t1}}>{cp}</span>
+                      <span style={{fontSize:12,fontWeight:600,color:cpCol}}>{cpPct}%</span>
+                    </div>
+                    <Prog val={cpPct} color={cpCol}/>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={s.acCard}>
+            <div style={{fontSize:13,fontWeight:700,color:T.ac,marginBottom:"0.85rem"}}>12-Month Action Plan</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+              {[["Months 1-3","Immediate","Join student chapter\nNetwork at events\nStart cert prep"],["Months 4-6","Near-term","Sit first exam\nApply for internships\nBuild portfolio"],["Months 7-12","Long-term","Advanced cert\nPublish research\nFull-time applications"]].map(ap=>(
+                <div key={ap[0]} style={{background:rgba(T.ac,0.08),border:`1px solid ${rgba(T.ac,0.2)}`,borderRadius:8,padding:"0.85rem"}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.ac,marginBottom:6}}>{ap[0]} — {ap[1]}</div>
+                  <pre style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.t2,margin:0,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{ap[2]}</pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PeersView=({setTab,userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
+  const peers=[
+    {name:"Amara Osei",year:3,gpa:3.8,rank:1,strong:["Advanced Theory","Research"],weak:[]},
+    {name:"Fatima Hassan",year:2,gpa:2.7,rank:24,strong:["Communication"],weak:["Core Modules"]},
+    {name:"Brian Mutua",year:3,gpa:3.2,rank:8,strong:["Practical Skills","IT"],weak:["Theory"]},
+    {name:"Akinyi Otieno",year:2,gpa:2.5,rank:30,strong:["Fieldwork"],weak:["Statistics"]},
+  ];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("peers")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>AI-matched study partners</p>
+      <div style={{...s.acCard,marginBottom:"1.25rem",display:"flex",gap:12,alignItems:"center"}}>
+        <div style={{fontSize:32}}>H</div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:4}}>AI Peer Match</div>
+          <div style={{fontSize:12,color:T.t1,lineHeight:1.6}}>Amara Osei (Rank #1) is your top recommended peer. Akinyi needs help with Statistics — you can mentor her and earn peer-teaching recognition.</div>
+        </div>
+        <button onClick={()=>setTab("meetings")} style={{...s.btnP,flexShrink:0}}>Schedule Session</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+        {peers.map((p,i)=>(
+          <div key={i} style={s.card}>
+            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:"0.85rem"}}>
+              <Av name={p.name} size={42} bg={p.rank<=5?T.ac:p.rank<=15?T.blue:T.purple}/>
+              <div>
+                <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{p.name}</div>
+                <div style={{fontSize:11,color:T.t3}}>Year {p.year} · GPA {p.gpa} · Rank #{p.rank}</div>
+              </div>
+              {p.rank<=5&&<Pill text="Top 5" color={T.ac}/>}
+            </div>
+            {p.strong.length>0&&(
+              <div style={{marginBottom:6,display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:10,color:T.green,fontWeight:600}}>STRONG: </span>
+                {p.strong.map(x=><span key={x} style={sx(T).tag(T.green)}>{x}</span>)}
+              </div>
+            )}
+            {p.weak.length>0&&(
+              <div style={{marginBottom:"0.85rem",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{fontSize:10,color:T.red,fontWeight:600}}>NEEDS HELP: </span>
+                {p.weak.map(x=><span key={x} style={sx(T).tag(T.red)}>{x}</span>)}
+              </div>
+            )}
+            <div style={{display:"flex",gap:8}}>
+              <button style={{...s.btnS,flex:1,fontSize:11,padding:"6px"}}>Message</button>
+              <button onClick={()=>setTab("meetings")} style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Meet</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ClassroomView=({userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [ltab,setLtab]=useState("courses"),[showNew,setShowNew]=useState(false);
+  const fld=FIELDS[userField];const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
+  const SUBS=[
+    {student:"Amara Osei",unit:(courses[0]&&courses[0].code)||"",task:"Assignment 1",sub:"Mar 18",grade:null},
+    {student:"Brian Mutua",unit:(courses[0]&&courses[0].code)||"",task:"Assignment 1",sub:"Mar 19",grade:17},
+    {student:"Fatima Hassan",unit:(courses[1]&&courses[1].code)||"",task:"CAT 1",sub:"Mar 15",grade:22},
+    {student:"Akinyi Otieno",unit:(courses[1]&&courses[1].code)||"",task:"Assignment 1",sub:"Mar 20",grade:null},
+  ];
+  const ltabBtns=[["courses","Courses"],["issue_exam","Issue Exam"],["issue_asgn","Issue Assignment"],["submissions","Submissions"],["cls_analytics","Analytics"]];
+  const yearOpts=[1,2,3,4];
+  const examTypOpts=["MCQ","Short Answer","Essay","Practical","Mixed"];
+  const subTypOpts=["Upload File","Online Text","Both"];
+  const lateOpts=["Not allowed","10% penalty","No penalty"];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("classroom")}</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Manage courses · Issue exams and assignments · Grade</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
+        <StatCard label="My Courses" value={courses.length} sub="Active this semester" color={T.blue} icon="B"/>
+        <StatCard label="Students" value="42" sub="Enrolled" color={T.ac} icon="S"/>
+        <StatCard label="To Grade" value="2" sub="Ungraded" color={T.amber} icon="G"/>
+        <StatCard label="Class Avg" value="71%" sub="Performance" color={T.green} icon="A"/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+        {ltabBtns.map(lb=>(
+          <button key={lb[0]} onClick={()=>setLtab(lb[0])} style={{...(ltab===lb[0]?s.btnP:s.btnS),fontSize:12,padding:"7px 14px"}}>{lb[1]}</button>
+        ))}
+      </div>
+      {ltab==="courses"&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1rem"}}>
+            <span style={{fontSize:14,fontWeight:600,color:T.t1}}>Assigned Courses</span>
+            <button onClick={()=>setShowNew(!showNew)} style={s.btnP}>+ New</button>
+          </div>
+          {showNew&&(
+            <div style={{...s.card,marginBottom:"1rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create New Course</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+                <div><label style={s.lbl}>CODE</label><input style={s.input} placeholder="e.g. MED 402"/></div>
+                <div><label style={s.lbl}>NAME</label><input style={s.input} placeholder="Course title"/></div>
+                <div><label style={s.lbl}>YEAR</label><select style={s.input}>{yearOpts.map(v=><option key={v}>Year {v}</option>)}</select></div>
+                <div><label style={s.lbl}>CREDITS</label><input style={s.input} type="number" defaultValue="3"/></div>
+              </div>
+              <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,minHeight:70,resize:"vertical"}} placeholder="Objectives..."/></div>
+              <div style={{display:"flex",gap:8}}>
+                <button style={s.btnP}>Create</button>
+                <button onClick={()=>setShowNew(false)} style={s.btnS}>Cancel</button>
+              </div>
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
+            {courses.map((c,i)=>(
+              <div key={i} style={s.card}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:10,color:T.ac,fontWeight:700,marginBottom:4}}>{c.code} · Year {c.y}</div>
+                    <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{c.name}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:12,fontWeight:600,color:T.ac}}>Avg: {c.p}%</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:"0.85rem"}}>
+                  <button style={{...s.btnS,flex:1,fontSize:11,padding:"6px"}}>Upload</button>
+                  <button style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Edit</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {ltab==="issue_exam"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue Examination</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Exam title"/></div>
+            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
+            <div><label style={s.lbl}>DATE &amp; TIME</label><input style={s.input} type="datetime-local"/></div>
+            <div><label style={s.lbl}>DURATION (MIN)</label><input style={s.input} type="number" defaultValue="60"/></div>
+            <div><label style={s.lbl}>TOTAL MARKS</label><input style={s.input} type="number" defaultValue="50"/></div>
+            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{examTypOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Instructions..."/></div>
+          <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem",fontSize:12}}>Upload exam paper or add questions inline</div>
+          <div style={{display:"flex",gap:8}}>
+            <button style={s.btnP}>Issue to Students</button>
+            <button style={s.btnS}>Save Draft</button>
+          </div>
+        </div>
+      )}
+      {ltab==="issue_asgn"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue Assignment</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Assignment title"/></div>
+            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
+            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date"/></div>
+            <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" defaultValue="30"/></div>
+            <div><label style={s.lbl}>SUBMISSION</label><select style={s.input}>{subTypOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+            <div><label style={s.lbl}>LATE POLICY</label><select style={s.input}>{lateOpts.map(v=><option key={v}>{v}</option>)}</select></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS &amp; RUBRIC</label><textarea style={{...s.input,minHeight:100,resize:"vertical"}} placeholder="Instructions and marking criteria..."/></div>
+          <button style={s.btnP}>Issue to Students</button>
+        </div>
+      )}
+      {ltab==="submissions"&&(
+        <div>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Submissions</div>
+          <div style={{display:"grid",gap:8}}>
+            {SUBS.map((sub,i)=>(
+              <div key={i} style={{...s.card,display:"flex",alignItems:"center",gap:12}}>
+                <Av name={sub.student} size={36}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub.student}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{sub.unit} · {sub.task} · {sub.sub}</div>
+                </div>
+                {sub.grade!==null?(
+                  <Pill text={"Graded: "+sub.grade} color={T.green}/>
+                ):(
+                  <div style={{display:"flex",gap:8}}>
+                    <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View</button>
+                    <button style={{...s.btnP,fontSize:11,padding:"5px 12px"}}>Grade</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {ltab==="cls_analytics"&&(
+        <div>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Class Performance</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={courses.map(c=>({name:c.code.slice(-3),avg:c.p,top:Math.min(100,c.p+15),low:Math.max(20,c.p-20)}))} barSize={18}>
+              <XAxis dataKey="name" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
+              <Bar dataKey="avg" name="Average" fill={T.ac} radius={[3,3,0,0]}/>
+              <Bar dataKey="top" name="Top" fill={T.green} radius={[3,3,0,0]}/>
+              <Bar dataKey="low" name="Lowest" fill={T.red} radius={[3,3,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AdminView=()=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [pending,setPending]=useState(PENDING_REGS),[approved,setApproved]=useState([]),[rejected,setRejected]=useState([]);
+  const [atab,setAtab]=useState("approvals"),[roles,setRoles]=useState({});
+  const approve=id=>{const u=pending.find(p=>p.id===id);if(u){setApproved(a=>[...a,{...u,approvedDate:"Mar 20"}]);setPending(p=>p.filter(x=>x.id!==id));}};
+  const reject=id=>{const u=pending.find(p=>p.id===id);if(u){setRejected(r=>[...r,{...u,reason:"Does not meet requirements"}]);setPending(p=>p.filter(x=>x.id!==id));}};
+  const atabs=[["approvals",t("pendingApprovals")+" ("+pending.length+")"],["approved","Approved ("+approved.length+")"],["rejected","Rejected ("+rejected.length+")"],["roles","Roles"],["security","Security"]];
+  const userNames=["David Kamau","Amara Osei","Brian Mutua","Fatima Hassan","Dr. Njoroge"];
+  const defaultRoles=["student","student","lecturer","student","hod"];
+  const roleSelectOpts=["Student","Lecturer","HOD","Researcher","Admin"];
+  const secControls=[["Registration Approval",true,T.green],["2-Factor Authentication",true,T.green],["Email Verification",true,T.green],["Audit Trail Logging",true,T.green],["Rate Limiting",true,T.green],["Session Timeout (30min)",true,T.green],["Role-Based Access (RBAC)",true,T.green],["AES-256 Encryption",true,T.green],["Institutional Email Only",true,T.green],["IP Allowlisting",false,T.amber]];
+  const auditLog=[["Admin approved Brian Otieno","2 min ago",T.green],["Registration: Aisha Mohamed","15 min ago",T.blue],["Login: David Kamau","32 min ago",T.teal],["Registration: James Kariuki","1 hr ago",T.blue],["Security scan completed","2 hrs ago",T.ac]];
+  const fieldDist=[[42,38,29,22,18,15]];
+  return(
+    <div>
+      <h1 style={s.h1}>{t("admin")}</h1>
+      <p style={s.sub}>User management · Approvals · Roles · Security · Audit</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
+        <StatCard label="Pending" value={pending.length} sub="Awaiting review" color={T.amber} icon="W"/>
+        <StatCard label="Active Users" value={247+approved.length} sub="Approved" color={T.green} icon="U"/>
+        <StatCard label="Fields" value={Object.keys(FIELDS).length} sub="Academic disciplines" color={T.blue} icon="F"/>
+        <StatCard label="Security" value="OK" sub="All systems nominal" color={T.teal} icon="S"/>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+        {atabs.map(at=>(
+          <button key={at[0]} onClick={()=>setAtab(at[0])} style={{...(atab===at[0]?s.btnP:s.btnS),fontSize:12,padding:"7px 14px"}}>{at[1]}</button>
+        ))}
+      </div>
+      {atab==="approvals"&&(pending.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>C</div>
+          <div style={{fontSize:14,color:T.t2}}>No pending registrations.</div>
+        </div>
+      ):(
+        <div style={{display:"grid",gap:10}}>
+          {pending.map(u=>(
+            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.amber}`}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+                <Av name={u.name} size={44} bg={u.role==="lecturer"?T.blue:T.purple}/>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
+                    <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{u.name}</span>
+                    <Pill text={u.role} color={u.role==="lecturer"?T.blue:T.purple}/>
+                    {FIELDS[u.field]&&<Pill text={FIELDS[u.field].icon+" "+FIELDS[u.field].name} color={FIELDS[u.field].color}/>}
+                  </div>
+                  <div style={{fontSize:12,color:T.t3}}>{u.email} · {u.sid} · {u.date}</div>
+                </div>
+                <div style={{display:"flex",gap:8,flexShrink:0}}>
+                  <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>{t("approve")}</button>
+                  <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>{t("reject")}</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+      {atab==="approved"&&(approved.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No approvals this session.</div>
+      ):(
+        <div style={{display:"grid",gap:10}}>
+          {approved.map(u=>(
+            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.green}`,display:"flex",alignItems:"center",gap:12}}>
+              <Av name={u.name} size={36}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{u.name}</div>
+                <div style={{fontSize:11,color:T.t3}}>{(FIELDS[u.field]&&FIELDS[u.field].name)} · Approved {u.approvedDate}</div>
+              </div>
+              <Pill text="Approved" color={T.green}/>
+            </div>
+          ))}
+        </div>
+      ))}
+      {atab==="rejected"&&(rejected.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No rejections this session.</div>
+      ):(
+        <div style={{display:"grid",gap:10}}>
+          {rejected.map(u=>(
+            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.red}`,display:"flex",alignItems:"center",gap:12}}>
+              <Av name={u.name} size={36}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{u.name}</div>
+                <div style={{fontSize:11,color:T.t3}}>Reason: {u.reason}</div>
+              </div>
+              <Pill text="Rejected" color={T.red}/>
+            </div>
+          ))}
+        </div>
+      ))}
+      {atab==="roles"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={s.card}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Role Management</div>
+            {userNames.map((name,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <Av name={name} size={28}/>
+                <div style={{flex:1,fontSize:12,color:T.t1}}>{name}</div>
+                <select value={roles[name]||defaultRoles[i]} onChange={e=>setRoles(r=>({...r,[name]:e.target.value}))} style={{...s.input,width:"auto",fontSize:11,padding:"4px 8px",background:T.bg3}}>
+                  {roleSelectOpts.map(r=><option key={r}>{r}</option>)}
+                </select>
+              </div>
+            ))}
+            <button style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Save Changes</button>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Student Distribution</div>
+            {Object.values(FIELDS).slice(0,6).map((f,i)=>(
+              <div key={f.id} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t2,marginBottom:3}}>
+                  <span>{f.icon} {f.name}</span><span style={{fontWeight:600,color:T.t1}}>{fieldDist[0][i]}</span>
+                </div>
+                <Prog val={fieldDist[0][i]} color={f.color}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {atab==="security"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={s.card}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Security Controls</div>
+            {secControls.map(sc=>(
+              <div key={sc[0]} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <span style={{fontSize:12,color:T.t2}}>{sc[0]}</span>
+                <Pill text={sc[1]?"Active":"Inactive"} color={sc[2]}/>
+              </div>
+            ))}
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Audit Log</div>
+            {auditLog.map(al=>(
+              <div key={al[0]} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.bd}`}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:al[2],flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,color:T.t1}}>{al[0]}</div>
+                  <div style={{fontSize:10,color:T.t3}}>{al[1]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const langOpts=Object.entries(LANGS);
+  const themeOpts=Object.values(THEMES);
+  const fieldOpts=Object.values(FIELDS);
+  return(
+    <div>
+      <h1 style={s.h1}>{t("settings")}</h1>
+      <p style={s.sub}>Language · Theme · Field of Study</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Language</div>
+          <div style={{display:"grid",gap:7}}>
+            {langOpts.map(lo=>(
+              <div key={lo[0]} onClick={()=>setLang(lo[0])} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${lang===lo[0]?T.ac:T.bd}`,background:lang===lo[0]?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
+                <span style={{fontSize:18}}>{lo[1].flag}</span>
+                <span style={{fontSize:12,fontWeight:lang===lo[0]?600:400,color:lang===lo[0]?T.ac:T.t1,flex:1}}>{lo[1].name}</span>
+                {lang===lo[0]&&<span style={{color:T.ac}}>C</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Colour Theme</div>
+          <div style={{display:"grid",gap:7}}>
+            {themeOpts.map(th=>(
+              <div key={th.id} onClick={()=>setThemeId(th.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${themeId===th.id?T.ac:T.bd}`,background:themeId===th.id?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
+                <div style={{width:28,height:28,borderRadius:7,background:`linear-gradient(135deg,${th.ac},${th.acL})`,flexShrink:0}}/>
+                <div>
+                  <div style={{fontSize:12,fontWeight:themeId===th.id?600:400,color:themeId===th.id?T.ac:T.t1}}>{th.emoji} {th.name}</div>
+                </div>
+                {themeId===th.id&&<span style={{color:T.ac,marginLeft:"auto"}}>C</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Field of Study</div>
+          <p style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.6}}>Switch your field to see relevant courses, tools and opportunities.</p>
+          <div style={{display:"grid",gap:7}}>
+            {fieldOpts.map(f=>(
+              <div key={f.id} onClick={()=>setUserField(f.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,border:`1px solid ${userField===f.id?f.color:T.bd}`,background:userField===f.id?rgba(f.color,0.14):T.bg3,cursor:"pointer"}}>
+                <span style={{fontSize:16}}>{f.icon}</span>
+                <span style={{fontSize:11,fontWeight:userField===f.id?600:400,color:userField===f.id?f.color:T.t1,flex:1}}>{f.name}</span>
+                {userField===f.id&&<span style={{color:f.color,fontSize:12}}>C</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App(){
+  const [themeId,setThemeId]=useState("navy"),[lang,setLang]=useState("en");
+  const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
+  const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
+  const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(true);
+  const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
+  useEffect(()=>{loadFonts();},[]);
+  const flash=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
+  const handleLogin=(r,f,n)=>{setRole(r||"student");setUserField(f||"actuarial");setUserName(n||"User");setAuthed(true);flash((LS[lang]||LS.en).welcome+", "+(n||"User").split(" ")[0]+"!");};
+  const T=THEMES[themeId];
+  const VIEWS={
+    dashboard:<DashboardView setTab={setTab} userName={userName} userField={userField}/>,
+    courses:<CoursesView userField={userField}/>,
+    exams:<ExamsView userField={userField}/>,
+    assignments:<AssignmentsView userField={userField} role={role}/>,
+    research:<ResearchView userField={userField}/>,
+    ai:<AIView lang={lang} userField={userField}/>,
+    calendar:<CalendarView setTab={setTab}/>,
+    meetings:<MeetingsView/>,
+    opps:<OppsView userField={userField}/>,
+    analytics:<AnalyticsView userField={userField}/>,
+    tools:<ToolsView userField={userField}/>,
+    transcript:<TranscriptView userField={userField}/>,
+    peers:<PeersView setTab={setTab} userField={userField}/>,
+    classroom:<ClassroomView userField={userField}/>,
+    admin:<AdminView/>,
+    settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId} userField={userField} setUserField={setUserField}/>,
+  };
+  return(
+    <ThemeCtx.Provider value={themeId}>
+      <LangCtx.Provider value={lang}>
+        <Toast n={toast}/>
+        {!authed?(
+          <AuthScreen onLogin={handleLogin} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
+        ):(
+          <div style={{display:"flex",height:"100vh",background:T.bg0,fontFamily:"'DM Sans',sans-serif",color:T.t1,overflow:"hidden"}}>
+            <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={()=>{setAuthed(false);setTab("dashboard");}}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
+              <div style={{flex:1,overflowY:"auto",padding:"1.5rem"}}>
+                {VIEWS[tab]||VIEWS.dashboard}
+              </div>
+            </div>
+            {offline&&(
+              <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.amber,padding:"9px 1.5rem",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:999}}>
+                <span style={{fontSize:13,color:"#0D1226",fontWeight:500}}>Offline Mode — Cached content. Changes sync on reconnect.</span>
+                <button onClick={()=>setOffline(false)} style={{background:"#0D1226",border:"none",borderRadius:6,padding:"5px 14px",fontSize:12,color:T.amber,cursor:"pointer",fontWeight:600}}>Go Online</button>
+              </div>
+            )}
+          </div>
+        )}
+      </LangCtx.Provider>
+    </ThemeCtx.Provider>
+  );
+}
