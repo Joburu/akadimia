@@ -1900,24 +1900,74 @@ const ClassroomView=({userField})=>{
 
 const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
-  const [pending,setPending]=useState(PENDING_REGS),[approved,setApproved]=useState([]),[rejected,setRejected]=useState([]);
-  const [atab,setAtab]=useState("approvals"),[roles,setRoles]=useState({});
-  const approve=id=>{const u=pending.find(p=>p.id===id);if(u){setApproved(a=>[...a,{...u,approvedDate:"Mar 20"}]);setPending(p=>p.filter(x=>x.id!==id));}};
-  const reject=id=>{const u=pending.find(p=>p.id===id);if(u){setRejected(r=>[...r,{...u,reason:"Does not meet requirements"}]);setPending(p=>p.filter(x=>x.id!==id));}};
-  const atabs=[["approvals",t("pendingApprovals")+" ("+pending.length+")"],["approved","Approved ("+approved.length+")"],["rejected","Rejected ("+rejected.length+")"],["roles","Roles"],["security","Security"]];
-  const userNames=["David Kamau","Amara Osei","Brian Mutua","Fatima Hassan","Dr. Njoroge"];
-  const defaultRoles=["student","student","lecturer","student","hod"];
-  const roleSelectOpts=["Student","Lecturer","HOD","Researcher","Admin"];
+  const [pending,setPending]=useState([]);
+  const [approved,setApproved]=useState([]);
+  const [rejected,setRejected]=useState([]);
+  const [atab,setAtab]=useState("approvals");
+  const [loading,setLoading]=useState(true);
+
+  const loadUsers=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:pend}=await supabase.from("profiles").select("*,auth_user:id(email)").eq("status","pending").order("created_at",{ascending:false});
+    const {data:appr}=await supabase.from("profiles").select("*").eq("status","approved").order("created_at",{ascending:false});
+    const {data:rejt}=await supabase.from("profiles").select("*").eq("status","rejected").order("created_at",{ascending:false});
+    setPending(pend||[]);
+    setApproved(appr||[]);
+    setRejected(rejt||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{loadUsers();},[]);
+
+  const approve=async(id)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("profiles").update({status:"approved"}).eq("id",id);
+    loadUsers();
+  };
+
+  const reject=async(id)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("profiles").update({status:"rejected"}).eq("id",id);
+    loadUsers();
+  };
+
+  const changeRole=async(id,role)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("profiles").update({role}).eq("id",id);
+    loadUsers();
+  };
+
+  const atabs=[["approvals","Pending ("+pending.length+")"],["approved","Approved ("+approved.length+")"],["rejected","Rejected ("+rejected.length+")"],["roles","Roles"],["security","Security"]];
   const secControls=[["Registration Approval",true,T.green],["2-Factor Authentication",true,T.green],["Email Verification",true,T.green],["Audit Trail Logging",true,T.green],["Rate Limiting",true,T.green],["Session Timeout (30min)",true,T.green],["Role-Based Access (RBAC)",true,T.green],["AES-256 Encryption",true,T.green],["Institutional Email Only",true,T.green],["IP Allowlisting",false,T.amber]];
-  const auditLog=[["Admin approved Brian Otieno","2 min ago",T.green],["Registration: Aisha Mohamed","15 min ago",T.blue],["Login: David Kamau","32 min ago",T.teal],["Registration: James Kariuki","1 hr ago",T.blue],["Security scan completed","2 hrs ago",T.ac]];
-  const fieldDist=[[42,38,29,22,18,15]];
+
+  const UserCard=({u,actions})=>(
+    <div style={{...s.card,borderLeft:`3px solid ${u.status==="pending"?T.amber:u.status==="approved"?T.green:T.red}`}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+        <Av name={u.full_name||"?"} size={44} bg={u.role==="lecturer"||u.role==="admin"?T.blue:T.purple}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
+            <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{u.full_name||"Unknown"}</span>
+            <Pill text={u.role||"student"} color={u.role==="lecturer"||u.role==="admin"?T.blue:T.purple}/>
+            {FIELDS[u.field]&&<Pill text={FIELDS[u.field].icon+" "+FIELDS[u.field].name} color={FIELDS[u.field].color}/>}
+          </div>
+          <div style={{fontSize:12,color:T.t3}}>
+            {u.student_id&&<span style={{marginRight:8}}>{u.student_id}</span>}
+            {new Date(u.created_at).toLocaleDateString()}
+          </div>
+        </div>
+        {actions&&<div style={{display:"flex",gap:8,flexShrink:0}}>{actions(u)}</div>}
+      </div>
+    </div>
+  );
+
   return(
     <div>
       <h1 style={s.h1}>{t("admin")}</h1>
-      <p style={s.sub}>User management · Approvals · Roles · Security · Audit</p>
+      <p style={s.sub}>User management · Approvals · Roles · Security</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
         <StatCard label="Pending" value={pending.length} sub="Awaiting review" color={T.amber} icon="W"/>
-        <StatCard label="Active Users" value={247+approved.length} sub="Approved" color={T.green} icon="U"/>
+        <StatCard label="Active Users" value={approved.length} sub="Approved" color={T.green} icon="U"/>
         <StatCard label="Fields" value={Object.keys(FIELDS).length} sub="Academic disciplines" color={T.blue} icon="F"/>
         <StatCard label="Security" value="OK" sub="All systems nominal" color={T.teal} icon="S"/>
       </div>
@@ -1926,114 +1976,69 @@ const AdminView=()=>{
           <button key={at[0]} onClick={()=>setAtab(at[0])} style={{...(atab===at[0]?s.btnP:s.btnS),fontSize:12,padding:"7px 14px"}}>{at[1]}</button>
         ))}
       </div>
-      {atab==="approvals"&&(pending.length===0?(
+      {loading&&<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading users from database...</div>}
+      {!loading&&atab==="approvals"&&(pending.length===0?(
         <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>C</div>
+          <div style={{fontSize:40,marginBottom:12}}>✅</div>
           <div style={{fontSize:14,color:T.t2}}>No pending registrations.</div>
         </div>
       ):(
         <div style={{display:"grid",gap:10}}>
           {pending.map(u=>(
-            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.amber}`}}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
-                <Av name={u.name} size={44} bg={u.role==="lecturer"?T.blue:T.purple}/>
-                <div style={{flex:1}}>
-                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5,flexWrap:"wrap"}}>
-                    <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{u.name}</span>
-                    <Pill text={u.role} color={u.role==="lecturer"?T.blue:T.purple}/>
-                    {FIELDS[u.field]&&<Pill text={FIELDS[u.field].icon+" "+FIELDS[u.field].name} color={FIELDS[u.field].color}/>}
-                  </div>
-                  <div style={{fontSize:12,color:T.t3}}>{u.email} · {u.sid} · {u.date}</div>
-                </div>
-                <div style={{display:"flex",gap:8,flexShrink:0}}>
-                  <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>{t("approve")}</button>
-                  <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>{t("reject")}</button>
-                </div>
-              </div>
-            </div>
+            <UserCard key={u.id} u={u} actions={u=>(<>
+              <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>Approve</button>
+              <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>Reject</button>
+            </>)}/>
           ))}
         </div>
       ))}
-      {atab==="approved"&&(approved.length===0?(
-        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No approvals this session.</div>
+      {!loading&&atab==="approved"&&(approved.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No approved users yet.</div>
       ):(
         <div style={{display:"grid",gap:10}}>
           {approved.map(u=>(
-            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.green}`,display:"flex",alignItems:"center",gap:12}}>
-              <Av name={u.name} size={36}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{u.name}</div>
-                <div style={{fontSize:11,color:T.t3}}>{(FIELDS[u.field]&&FIELDS[u.field].name)} · Approved {u.approvedDate}</div>
-              </div>
-              <Pill text="Approved" color={T.green}/>
-            </div>
+            <UserCard key={u.id} u={u} actions={u=>(<>
+              <select defaultValue={u.role} onChange={e=>changeRole(u.id,e.target.value)} style={{...s.input,fontSize:12,padding:"6px 10px",width:"auto"}} onClick={e=>e.stopPropagation()}>
+                <option value="student">Student</option>
+                <option value="lecturer">Lecturer</option>
+                <option value="admin">Admin</option>
+                <option value="researcher">Researcher</option>
+              </select>
+              <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
+            </>)}/>
           ))}
         </div>
       ))}
-      {atab==="rejected"&&(rejected.length===0?(
-        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No rejections this session.</div>
+      {!loading&&atab==="rejected"&&(rejected.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No rejected users.</div>
       ):(
         <div style={{display:"grid",gap:10}}>
           {rejected.map(u=>(
-            <div key={u.id} style={{...s.card,borderLeft:`3px solid ${T.red}`,display:"flex",alignItems:"center",gap:12}}>
-              <Av name={u.name} size={36}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{u.name}</div>
-                <div style={{fontSize:11,color:T.t3}}>Reason: {u.reason}</div>
-              </div>
-              <Pill text="Rejected" color={T.red}/>
-            </div>
+            <UserCard key={u.id} u={u} actions={u=>(<>
+              <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>Re-approve</button>
+            </>)}/>
           ))}
         </div>
       ))}
       {atab==="roles"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={s.card}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Role Management</div>
-            {userNames.map((name,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <Av name={name} size={28}/>
-                <div style={{flex:1,fontSize:12,color:T.t1}}>{name}</div>
-                <select value={roles[name]||defaultRoles[i]} onChange={e=>setRoles(r=>({...r,[name]:e.target.value}))} style={{...s.input,width:"auto",fontSize:11,padding:"4px 8px",background:T.bg3}}>
-                  {roleSelectOpts.map(r=><option key={r}>{r}</option>)}
-                </select>
-              </div>
-            ))}
-            <button style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Save Changes</button>
-          </div>
-          <div style={s.card}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Student Distribution</div>
-            {Object.values(FIELDS).slice(0,6).map((f,i)=>(
-              <div key={f.id} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t2,marginBottom:3}}>
-                  <span>{f.icon} {f.name}</span><span style={{fontWeight:600,color:T.t1}}>{fieldDist[0][i]}</span>
-                </div>
-                <Prog val={fieldDist[0][i]} color={f.color}/>
-              </div>
-            ))}
-          </div>
+        <div style={{...s.card}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Role Definitions</div>
+          {[["student","Can view materials, submit assignments, take exams",T.purple],["lecturer","Can upload materials, create exams, grade assignments",T.blue],["researcher","Can submit research, access research portal",T.teal],["admin","Full platform access and user management",T.red]].map(r=>(
+            <div key={r[0]} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${T.bd}`}}>
+              <Pill text={r[0]} color={r[2]}/>
+              <span style={{fontSize:13,color:T.t2}}>{r[1]}</span>
+            </div>
+          ))}
         </div>
       )}
       {atab==="security"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={s.card}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Security Controls</div>
-            {secControls.map(sc=>(
-              <div key={sc[0]} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{fontSize:12,color:T.t2}}>{sc[0]}</span>
-                <Pill text={sc[1]?"Active":"Inactive"} color={sc[2]}/>
-              </div>
-            ))}
-          </div>
-          <div style={s.card}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Audit Log</div>
-            {auditLog.map(al=>(
-              <div key={al[0]} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.bd}`}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:al[2],flexShrink:0}}/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:11,color:T.t1}}>{al[0]}</div>
-                  <div style={{fontSize:10,color:T.t3}}>{al[1]}</div>
-                </div>
+        <div style={{...s.card}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Security Controls</div>
+          <div style={{display:"grid",gap:8}}>
+            {secControls.map((sc,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.bd}`}}>
+                <span style={{fontSize:13,color:T.t1}}>{sc[0]}</span>
+                <span style={{fontSize:11,fontWeight:600,color:sc[2],background:rgba(sc[2],0.12),borderRadius:6,padding:"3px 10px"}}>{sc[1]?"ACTIVE":"INACTIVE"}</span>
               </div>
             ))}
           </div>
@@ -2042,7 +2047,6 @@ const AdminView=()=>{
     </div>
   );
 };
-
 const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,fontSize,setFontSize,highContrast,setHighContrast})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const langOpts=Object.entries(LANGS);
