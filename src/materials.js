@@ -1,6 +1,6 @@
 import { supabase } from './supabase.js'
 
-export async function uploadMaterial(file, courseCode, field, title, description, uploaderName, passcode='') {
+export async function uploadMaterial(file, courseCode, field, title, description, uploaderName, passcode='', linkUrl='') {
   const ext = file.name.split('.').pop()
   const path = `${field}/${courseCode}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`
   
@@ -25,7 +25,8 @@ export async function uploadMaterial(file, courseCode, field, title, description
       file_type: file.type,
       file_size: file.size,
       uploader_name: uploaderName,
-      passcode: passcode||null
+      passcode: passcode||null,
+      link_url: linkUrl||null
     })
   
   if (dbError) return { error: dbError.message }
@@ -83,7 +84,8 @@ export async function saveLinkMaterial(link, courseCode, field, title, descripti
       file_type: isVideo ? 'video/external' : 'link/external',
       file_size: 0,
       uploader_name: uploaderName,
-      passcode: passcode||null
+      passcode: passcode||null,
+      link_url: linkUrl||null
     })
   if (error) return { error: error.message }
   return { success: true }

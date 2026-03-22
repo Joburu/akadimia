@@ -661,11 +661,9 @@ const CoursesView=({userField,role,userName})=>{
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
     let result={success:true};
     if(uploadFile){
-      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
-    }
-    if(!result.error&&uploadLink){
-      const linkTitle=uploadFile?uploadTitle+" (Recording)":uploadTitle;
-      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,linkTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode,uploadLink);
+    } else if(uploadLink){
+      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
     }
     setUploading(false);
     if(result.error){setUploadErr(result.error);return;}
@@ -750,6 +748,7 @@ const CoursesView=({userField,role,userName})=>{
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
                     <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:12,padding:"7px 14px",textDecoration:"none",textAlign:"center"}}>{btnLabel}</a>
+                    {m.link_url&&<a href={m.link_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"6px 14px",textDecoration:"none",textAlign:"center"}}>▶ Watch Recording</a>}
                     {role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial,getMaterials}=await import("./materials.js");await deleteMaterial(m.id);const updated=await getMaterials(userField);setMaterials(updated);}}} style={{...s.btnD,fontSize:11,padding:"5px 10px",textAlign:"center"}}>✕ Delete</button>}
                   </div>
                 </div>
