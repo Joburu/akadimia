@@ -659,9 +659,14 @@ const CoursesView=({userField,role,userName})=>{
     if(!uploadFile&&!uploadLink){setUploadErr("Please select a file or paste an external link.");return;}
     setUploading(true);setUploadErr("");
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
-    const result=uploadLink&&!uploadFile
-      ?await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode)
-      :await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
+    let result={success:true};
+    if(uploadFile){
+      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
+    }
+    if(!result.error&&uploadLink){
+      const linkTitle=uploadFile?uploadTitle+" (Recording)":uploadTitle;
+      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,linkTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
+    }
     setUploading(false);
     if(result.error){setUploadErr(result.error);return;}
     const {getMaterials}=await import("./materials.js");
