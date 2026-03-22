@@ -1749,7 +1749,7 @@ export default function App(){
   const [themeId,setThemeId]=useState("navy"),[lang,setLang]=useState("en");
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
-  const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(true);
+  const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
   const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
   useEffect(()=>{loadFonts();},[]);
   const flash=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
