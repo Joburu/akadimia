@@ -837,13 +837,18 @@ const AIView=({lang,userField})=>{
     trend:`Current trends in ${(fld&&fld.name)}: ${(FIELD_DATA[userField]&&FIELD_DATA[userField].trends)?.join(" · ")}.`,
     default:`Great question about ${(fld&&fld.name)}! Could you give more context — which course is this for, and is it for an assignment, exam, or research?`,
   };
-  const send=()=>{
+  const send=async()=>{
     if(!inp.trim())return;
     const q=inp.trim();setInp("");setL(true);setMsgs(m=>[...m,{role:"user",text:q}]);
-    setTimeout(()=>{
+    try {
+      const {askClaude}=await import("./api.js");
+      const reply=await askClaude(q,fld?.name||"Actuarial Science",lang);
+      setMsgs(m=>[...m,{role:"bot",text:reply}]);
+    } catch(e) {
       const key=Object.keys(R).find(k=>q.toLowerCase().includes(k))||"default";
-      setMsgs(m=>[...m,{role:"bot",text:R[key]}]);setL(false);
-    },1100);
+      setMsgs(m=>[...m,{role:"bot",text:R[key]}]);
+    }
+    setL(false);
   };
   const topicBtns=["Assignment help","Exam prep","Career guidance","Emerging trends","Research tips"];
   return(
