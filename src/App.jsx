@@ -1554,44 +1554,102 @@ const ToolsView=({userField})=>{
 
 const TranscriptView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
-  const [mode,setMode]=useState("upload"),[done,setDone]=useState(false),[loading,setLoading]=useState(false);
   const fld=FIELDS[userField];const data=FIELD_DATA[userField];
   const courses=(data&&data.courses)||[];
+  const [mode,setMode]=useState("upload");
+  const [loading,setLoading]=useState(false);
+  const [aiResult,setAiResult]=useState(null);
+  const [aiError,setAiError]=useState("");
+  const [uploadedFile,setUploadedFile]=useState(null);
   const [units,setUnits]=useState(courses.slice(0,5).map(c=>({code:c.code,name:c.name,grade:"B+",credit:3})));
-  const GP={"A":4.0,"A-":3.7,"B+":3.3,"B":3.0,"B-":2.7,"C+":2.3,"C":2.0,"C-":1.7,"D+":1.3,"D":1.0,"E":0.0};
-  const gpa=units.length?(units.reduce((sum,u)=>sum+((GP[u.grade]||0)*u.credit),0)/units.reduce((sum,u)=>sum+u.credit,0)).toFixed(2):"--";
-  const gpaNum=parseFloat(gpa);
-  const standing=gpaNum>=3.5?"First Class":gpaNum>=3.0?"Upper Second":gpaNum>=2.5?"Lower Second":"Pass";
-  const run=()=>{setLoading(true);setTimeout(()=>{setDone(true);setLoading(false);},2500);};
+  const fileRef=useRef(null);
   const gradeOpts=["A","A-","B+","B","B-","C+","C","C-","D+","D","E"];
   const creditOpts=[1,2,3,4,5,6];
-  const uploadFeatures=[["Reads Your Transcript","Extracts grades automatically"],["Calculates GPA","Identifies strengths and weak areas"],["Matches Certifications","Aligns to professional certs in "+(fld&&fld.name)],["12-Month Action Plan","Step-by-step career roadmap"]];
-  const modeBtns=[["upload","Upload"],["manual","Manual Entry"],["advice","Career Guidance"]];
+
+  const gradeToGPA=g=>({A:4.0,"A-":3.7,"B+":3.3,B:3.0,"B-":2.7,"C+":2.3,C:2.0,"C-":1.7,"D+":1.3,D:1.0,E:0.0}[g]||0);
+  const totalPoints=units.reduce((s,u)=>s+gradeToGPA(u.grade)*u.credit,0);
+  const totalCredits=units.reduce((s,u)=>s+u.credit,0);
+  const gpaNum=totalCredits>0?totalPoints/totalCredits:0;
+  const gpa=gpaNum.toFixed(2);
+  const standing=gpaNum>=3.5?"First Class":gpaNum>=3.0?"Upper Second":gpaNum>=2.5?"Lower Second":"Pass";
+
+  const analyseWithAI=async(src)=>{
+    setLoading(true);setAiError("");setAiResult(null);
+    try{
+      const fieldName=(fld&&fld.name)||userField;
+      let prompt="";
+      if(src==="manual"){
+        const unitList=units.map(u=>u.code+" "+u.name+": "+u.grade+" ("+u.credit+" CU)").join(", ");
+        prompt=`You are an academic advisor at a Kenyan university. A student studying ${fieldName} has the following grades:
+${unitList}
+GPA: ${gpa} (${standing})
+
+Provide a structured analysis with these sections:
+1. **Academic Summary** — brief assessment of their performance
+2. **Strengths** — 3 units/areas they excel in
+3. **Areas to Improve** — 2-3 weak areas with specific advice
+4. **Recommended Certifications** — 3-4 professional certifications relevant to ${fieldName} in Kenya/East Africa, with why each fits their profile
+5. **Career Pathways** — top 3 career options with % fit score based on their grades
+6. **12-Month Action Plan** — 4 quarterly milestones
+
+Keep advice practical and relevant to the Kenyan job market.`;
+      } else {
+        prompt=`You are an academic advisor. A student studying ${fieldName} in Kenya has uploaded their transcript. Based on their field, provide:
+1. **What to Look For** in a transcript for ${fieldName}
+2. **Recommended Certifications** — top 4 professional certifications in Kenya/East Africa for ${fieldName} students
+3. **Career Pathways** — top 3 career paths for ${fieldName} graduates in Kenya
+4. **12-Month Action Plan** — quarterly steps to strengthen their profile
+5. **Professional Bodies** — key associations to join in Kenya
+
+Keep all advice specific to the Kenyan and East African context.`;
+      }
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:prompt}]})
+      });
+      const d=await res.json();
+      const text=d.content?.[0]?.text||"Could not generate analysis.";
+      setAiResult(text);
+      setMode("advice");
+    }catch(e){
+      setAiError("AI analysis failed. Please try again.");
+    }
+    setLoading(false);
+  };
+
   return(
     <div>
       <h1 style={s.h1}>{t("transcript")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Upload results for personalised career guidance</p>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Upload results for personalised AI career guidance</p>
       <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-        {modeBtns.map(mb=>(
+        {[["upload","📄 Upload"],["manual","✏️ Manual Entry"],["advice","🎯 Career Guidance"]].map(mb=>(
           <button key={mb[0]} onClick={()=>setMode(mb[0])} style={{...(mode===mb[0]?s.btnP:s.btnS),fontSize:12,padding:"8px 16px"}}>{mb[1]}</button>
         ))}
       </div>
+
       {mode==="upload"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <div style={s.card}>
-            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload Transcript</div>
-            <div style={{border:`2px dashed ${T.bd}`,borderRadius:10,padding:"2.5rem",textAlign:"center",cursor:"pointer",color:T.t3,marginBottom:"1rem"}}>
-              <div style={{fontSize:40,marginBottom:12}}>D</div>
-              <div style={{fontSize:13,color:T.t2,marginBottom:4}}>Drop your official transcript</div>
-              <div style={{fontSize:11}}>PDF or image · BUC, KUCCPS, A-Level</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload Your Transcript</div>
+            <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadedFile?T.green:T.bd}`,borderRadius:10,padding:"2.5rem",textAlign:"center",cursor:"pointer",marginBottom:"1rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>{uploadedFile?"✅":"📄"}</div>
+              <div style={{fontSize:13,color:uploadedFile?T.green:T.t2,marginBottom:4}}>{uploadedFile?uploadedFile.name:"Drop your official transcript here"}</div>
+              <div style={{fontSize:11,color:T.t3}}>PDF or image · BUC, KUCCPS, A-Level</div>
             </div>
-            <button style={{...s.btnP,width:"100%"}}>Choose File</button>
+            <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.png,.jpg,.jpeg" onChange={e=>setUploadedFile(e.target.files[0]||null)}/>
+            {aiError&&<div style={{color:T.red,fontSize:12,marginBottom:8}}>{aiError}</div>}
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>fileRef.current&&fileRef.current.click()} style={{...s.btnS,flex:1}}>Choose File</button>
+              <button onClick={()=>analyseWithAI("upload")} style={{...s.btnP,flex:1}} disabled={loading}>{loading?"Analysing...":"Get AI Guidance →"}</button>
+            </div>
+            <div style={{fontSize:11,color:T.t3,marginTop:8,textAlign:"center"}}>Or use Manual Entry to type your grades for detailed GPA analysis</div>
           </div>
           <div style={s.card}>
-            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>What AKADIMIA Does</div>
-            {uploadFeatures.map(uf=>(
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>What AI Does With Your Transcript</div>
+            {[["🎓 Reads Your Field","Gives guidance specific to "+((fld&&fld.name)||"your field")+" in Kenya"],["📊 Calculates Standing","Identifies your academic strengths and weak areas"],["🏆 Matches Certifications","Finds professional certs that boost your career"],["🗺️ Career Pathways","Shows top career options with fit scores"],["📅 12-Month Plan","Step-by-step quarterly action roadmap"]].map(uf=>(
               <div key={uf[0]} style={{display:"flex",gap:10,marginBottom:10}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:5,flexShrink:0}}/>
+                <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:6,flexShrink:0}}/>
                 <div>
                   <div style={{fontSize:12,color:T.t1,fontWeight:500}}>{uf[0]}</div>
                   <div style={{fontSize:11,color:T.t3,lineHeight:1.5}}>{uf[1]}</div>
@@ -1601,18 +1659,20 @@ const TranscriptView=({userField})=>{
           </div>
         </div>
       )}
+
       {mode==="manual"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
             <div>
               <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{units.length} units · </span>
-              <span style={{fontSize:14,fontWeight:700,color:gpaNum>=3.5?T.green:gpaNum>=3.0?T.amber:T.red}}>{gpa} — {standing}</span>
+              <span style={{fontSize:14,fontWeight:700,color:gpaNum>=3.5?T.green:gpaNum>=3.0?T.amber:T.red}}>{gpa} GPA — {standing}</span>
             </div>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setUnits(u=>[...u,{code:"",name:"",grade:"B",credit:3}])} style={{...s.btnS,fontSize:12,padding:"6px 12px"}}>+ Add</button>
-              <button onClick={run} style={s.btnP} disabled={loading}>{loading?"Analysing...":"Analyse"}</button>
+              <button onClick={()=>setUnits(u=>[...u,{code:"",name:"",grade:"B",credit:3}])} style={{...s.btnS,fontSize:12,padding:"6px 12px"}}>+ Add Unit</button>
+              <button onClick={()=>analyseWithAI("manual")} style={s.btnP} disabled={loading||units.length===0}>{loading?"Analysing...":"Analyse with AI →"}</button>
             </div>
           </div>
+          {aiError&&<div style={{color:T.red,fontSize:12,marginBottom:8,padding:"8px 12px",background:rgba(T.red,0.1),borderRadius:8}}>{aiError}</div>}
           <div style={{display:"grid",gap:6}}>
             {units.map((u,i)=>(
               <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 80px 80px 34px",gap:8,alignItems:"center"}}>
@@ -1624,77 +1684,48 @@ const TranscriptView=({userField})=>{
                 <select style={{...s.input,fontSize:12}} value={u.credit} onChange={e=>setUnits(un=>un.map((x,xi)=>xi===i?{...x,credit:parseInt(e.target.value)}:x))}>
                   {creditOpts.map(c=><option key={c} value={c}>{c} CU</option>)}
                 </select>
-                <button onClick={()=>setUnits(un=>un.filter((_,xi)=>xi!==i))} style={{background:"none",border:`1px solid ${T.bd}`,borderRadius:7,color:T.red,cursor:"pointer",fontSize:14,height:36}}>x</button>
+                <button onClick={()=>setUnits(un=>un.filter((_,xi)=>xi!==i))} style={{background:"none",border:`1px solid ${T.bd}`,borderRadius:7,color:T.red,cursor:"pointer",fontSize:14,height:36}}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{...s.card,marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {[["GPA",gpa,gpaNum>=3.5?T.green:T.amber],["Units",units.length,T.t1],["Standing",standing,T.ac],["Credits",totalCredits,T.blue]].map(item=>(
+              <div key={item[0]} style={{textAlign:"center"}}>
+                <div style={{fontSize:10,color:T.t3,marginBottom:4}}>{item[0].toUpperCase()}</div>
+                <div style={{fontSize:20,fontWeight:700,color:item[2]}}>{item[1]}</div>
               </div>
             ))}
           </div>
         </div>
       )}
-      {mode==="advice"&&(!done?(
-        <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>G</div>
-          <div style={{fontSize:14,color:T.t2,marginBottom:"1rem"}}>Enter grades in Manual Entry tab and click Analyse for personalised guidance.</div>
-          <button onClick={()=>setMode("manual")} style={s.btnP}>Enter Grades</button>
-        </div>
-      ):(
+
+      {mode==="advice"&&(
         <div>
-          <div style={{...s.acCard,marginBottom:"1.25rem",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
-            {[["GPA",gpa,gpaNum>=3.5?T.green:T.amber],["Units",units.length,T.t1],["Standing",standing,T.ac],["Credits",units.reduce((sum,u)=>sum+u.credit,0),T.blue]].map(item=>(
-              <div key={item[0]} style={{textAlign:"center"}}>
-                <div style={{fontSize:10,color:T.ac,letterSpacing:0.7,marginBottom:4}}>{item[0].toUpperCase()}</div>
-                <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:item[2]}}>{item[1]}</div>
+          {!aiResult?(
+            <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>🎯</div>
+              <div style={{fontSize:14,color:T.t2,marginBottom:"1rem"}}>Enter your grades in Manual Entry or upload your transcript to get personalised AI guidance.</div>
+              <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+                <button onClick={()=>setMode("upload")} style={s.btnS}>Upload Transcript</button>
+                <button onClick={()=>setMode("manual")} style={s.btnP}>Enter Grades →</button>
               </div>
-            ))}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
-            <div style={s.card}>
-              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Certifications</div>
-              {((data&&data.bodies)||[]).map((p,i)=>(
-                <div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:[97,90,82][i]>=90?T.green:T.amber,marginTop:5,flexShrink:0}}/>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                      <span style={{fontSize:12,fontWeight:500,color:T.t1}}>{p}</span>
-                      <Pill text={[97,90,82][i]+"%"} color={[97,90,82][i]>=90?T.green:T.amber}/>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
-            <div style={s.card}>
-              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Career Pathways</div>
-              {["Graduate Role","Research/Postgrad","International Org"].map((cp,i)=>{
-                const cpPct=[94,85,72][i];
-                const cpCol=cpPct>=85?T.green:T.amber;
-                return(
-                  <div key={i} style={{padding:"8px 0",borderBottom:`1px solid ${T.bd}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                      <span style={{fontSize:12,fontWeight:500,color:T.t1}}>{cp}</span>
-                      <span style={{fontSize:12,fontWeight:600,color:cpCol}}>{cpPct}%</span>
-                    </div>
-                    <Prog val={cpPct} color={cpCol}/>
-                  </div>
-                );
-              })}
+          ):(
+            <div style={{...s.card}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+                <div style={{fontSize:14,fontWeight:600,color:T.t1}}>🎯 Your Personalised Career Guidance</div>
+                <button onClick={()=>{setAiResult(null);setMode("manual");}} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>Re-analyse</button>
+              </div>
+              <div style={{fontSize:13,color:T.t1,lineHeight:1.8}}>
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{aiResult}</ReactMarkdown>
+              </div>
             </div>
-          </div>
-          <div style={s.acCard}>
-            <div style={{fontSize:13,fontWeight:700,color:T.ac,marginBottom:"0.85rem"}}>12-Month Action Plan</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-              {[["Months 1-3","Immediate","Join student chapter\nNetwork at events\nStart cert prep"],["Months 4-6","Near-term","Sit first exam\nApply for internships\nBuild portfolio"],["Months 7-12","Long-term","Advanced cert\nPublish research\nFull-time applications"]].map(ap=>(
-                <div key={ap[0]} style={{background:rgba(T.ac,0.08),border:`1px solid ${rgba(T.ac,0.2)}`,borderRadius:8,padding:"0.85rem"}}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.ac,marginBottom:6}}>{ap[0]} — {ap[1]}</div>
-                  <pre style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:T.t2,margin:0,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{ap[2]}</pre>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
-      ))}
+      )}
     </div>
   );
 };
-
 const PeersView=({setTab,userField})=>{
   const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
   const peers=[
