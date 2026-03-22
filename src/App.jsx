@@ -295,16 +295,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
               <button onClick={async()=>{if(onRealLogin&&email&&pass){setLoading(true);setAuthErr("");const err=await onRealLogin(email,pass);setLoading(false);if(err)setAuthErr(err);}else{onLogin("student","actuarial","David Kamau");}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
                 {t("signIn")} →
               </button>
-              <div style={{borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
-                <div style={{fontSize:11,color:T.t3,textAlign:"center",marginBottom:8}}>DEMO — SIGN IN AS:</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
-                  {demoRoles.map(pair=>(
-                    <button key={pair[0]} onClick={()=>onLogin(pair[0],"actuarial","Demo User")} style={{...s.btnS,fontSize:11,padding:"7px 6px"}}>
-                      {pair[1]}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
               <p style={{textAlign:"center",marginTop:"0.9rem",fontSize:12,color:T.t3}}>
                 <span style={{color:T.ac,cursor:"pointer"}}>Forgot password?</span> · End-to-end encrypted
               </p>
@@ -1701,7 +1692,7 @@ const AdminView=()=>{
   );
 };
 
-const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField})=>{
+const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,fontSize,setFontSize,highContrast,setHighContrast})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const langOpts=Object.entries(LANGS);
   const themeOpts=Object.values(THEMES);
@@ -1751,12 +1742,34 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField})=>{
           </div>
         </div>
       </div>
+    <div style={{...s.card,marginTop:16}}>
+      <div style={{fontSize:14,fontWeight:500,color:T.t1,marginBottom:"1rem"}}>Accessibility</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>Text size</div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={()=>setFontSize(f=>Math.max(12,f-1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A-</button>
+            <span style={{fontSize:13,color:T.t1,minWidth:40,textAlign:"center"}}>{fontSize}px</span>
+            <button onClick={()=>setFontSize(f=>Math.min(20,f+1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A+</button>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>High contrast mode</div>
+          <div onClick={()=>setHighContrast(h=>!h)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${highContrast?T.ac:T.bd}`,background:highContrast?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
+            <div style={{width:36,height:20,borderRadius:10,background:highContrast?T.ac:T.bg4,position:"relative",transition:"background 0.2s"}}>
+              <div style={{position:"absolute",top:2,left:highContrast?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+            </div>
+            <span style={{fontSize:12,color:T.t1}}>{highContrast?"On — High contrast":"Off — Standard"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     </div>
   );
 };
 
 export default function App(){
-  const [themeId,setThemeId]=useState("navy"),[lang,setLang]=useState("en");
+  const [themeId,setThemeId]=useState("navy"),[lang,setLang]=useState("en"),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
   const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
@@ -1813,7 +1826,7 @@ export default function App(){
     peers:<PeersView setTab={setTab} userField={userField}/>,
     classroom:<ClassroomView userField={userField}/>,
     admin:<AdminView/>,
-    settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId} userField={userField} setUserField={setUserField}/>,
+    settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
   };
   return(
     <ThemeCtx.Provider value={themeId}>
@@ -1822,13 +1835,13 @@ export default function App(){
         {!authed?(
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
         ):(
-          <div style={{display:"flex",height:"100vh",background:T.bg0,fontFamily:"'DM Sans',sans-serif",color:T.t1,overflow:"hidden"}}>
+          <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
             <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={()=>{setAuthed(false);setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
-              <div style={{flex:1,overflowY:"auto",padding:"1.5rem"}}>
+              <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
                 {VIEWS[tab]||VIEWS.dashboard}
-              </div>
+              </div></div>
             </div>
             {offline&&(
               <div style={{position:"fixed",bottom:0,left:0,right:0,background:T.amber,padding:"9px 1.5rem",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:999}}>
