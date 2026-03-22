@@ -12,3 +12,25 @@ html, body, #root {
 body {
   -webkit-font-smoothing: antialiased;
 }
+
+@media (max-width: 768px) {
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  [style*="repeat(2, 1fr)"],
+  [style*="repeat(2,1fr)"],
+  [style*="1fr 1fr"],
+  [style*="2fr 1fr"],
+  [style*="1fr 300px"],
+  [style*="280px 1fr"],
+  [style*="repeat(3, 1fr)"],
+  [style*="repeat(3,1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="120px 1fr 80px 80px 34px"] {
+    grid-template-columns: 80px 1fr 60px 60px 30px !important;
+  }
+}
