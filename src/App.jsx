@@ -205,9 +205,9 @@ const FieldSelector=({selected,onSelect})=>{
   );
 };
 
-const AuthScreen=({onLogin,lang,setLang,themeId,setThemeId})=>{
+const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThemeId})=>{
   const T=useT();const t=useLang();const s=sx(T);
-  const [tab,setTab]=useState("login"),[step,setStep]=useState(1);
+  const [tab,setTab]=useState("login"),[step,setStep]=useState(1),[loading,setLoading]=useState(false),[authErr,setAuthErr]=useState("");
   const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[cpass,setCpass]=useState("");
   const [name,setName]=useState(""),[sid,setSid]=useState(""),[role,setRole]=useState("student");
   const [field,setField]=useState("actuarial"),[err,setErr]=useState(""),[done,setDone]=useState(false);
@@ -278,7 +278,7 @@ const AuthScreen=({onLogin,lang,setLang,themeId,setThemeId})=>{
               </button>
             ))}
           </div>
-          {err&&<div style={{background:rgba(T.red,0.12),border:`1px solid ${rgba(T.red,0.4)}`,color:T.red,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:"1rem"}}>{err}</div>}
+          {err&&<div style={{background:rgba(T.red,0.12),border:`1px solid ${rgba(T.red,0.4)}`,color:T.red,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:"1rem"}}>{err}</div>}{authErr&&<div style={{background:rgba(T.red,0.12),border:`1px solid ${rgba(T.red,0.4)}`,color:T.red,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:"1rem"}}>{authErr}</div>}
           {tab==="login"&&(
             <div>
               <div style={{marginBottom:"0.85rem"}}>
@@ -289,7 +289,7 @@ const AuthScreen=({onLogin,lang,setLang,themeId,setThemeId})=>{
                 <label style={s.lbl}>PASSWORD</label>
                 <input style={s.input} type="password" placeholder="..." value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onLogin("student","actuarial","David Kamau")}/>
               </div>
-              <button onClick={()=>onLogin("student","actuarial","David Kamau")} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
+              <button onClick={async()=>{if(onRealLogin&&email&&pass){setLoading(true);setAuthErr("");const err=await onRealLogin(email,pass);setLoading(false);if(err)setAuthErr(err);}else{onLogin("student","actuarial","David Kamau");}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
                 {t("signIn")} →
               </button>
               <div style={{borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
@@ -1756,6 +1756,22 @@ export default function App(){
   useEffect(()=>{loadFonts();},[]);
   const flash=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
   const handleLogin=(r,f,n)=>{setRole(r||"student");setUserField(f||"actuarial");setUserName(n||"User");setAuthed(true);flash((LS[lang]||LS.en).welcome+", "+(n||"User").split(" ")[0]+"!");};
+  const handleRealLogin=async(email,password)=>{
+    const {handleSignIn}=await import("./auth.js");
+    const result=await handleSignIn(email,password);
+    if(result.error)return result.error;
+    const p=result.profile;
+    setRole(p.role||"student");setUserField(p.field||"actuarial");
+    setUserName(p.full_name||email);setAuthed(true);
+    flash((LS[lang]||LS.en).welcome+", "+(p.full_name||email).split(" ")[0]+"!");
+    return null;
+  };
+  const handleRealSignUp=async(email,password,meta)=>{
+    const {handleSignUp}=await import("./auth.js");
+    const result=await handleSignUp(email,password,meta);
+    if(result.error)return result.error;
+    return null;
+  };
   const T=THEMES[themeId];
   const VIEWS={
     dashboard:<DashboardView setTab={setTab} userName={userName} userField={userField}/>,
@@ -1780,7 +1796,7 @@ export default function App(){
       <LangCtx.Provider value={lang}>
         <Toast n={toast}/>
         {!authed?(
-          <AuthScreen onLogin={handleLogin} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
+          <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
         ):(
           <div style={{display:"flex",height:"100vh",background:T.bg0,fontFamily:"'DM Sans',sans-serif",color:T.t1,overflow:"hidden"}}>
             <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={()=>{setAuthed(false);setTab("dashboard");}}/>
