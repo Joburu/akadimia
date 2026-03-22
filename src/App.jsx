@@ -630,17 +630,83 @@ const DashboardView=({setTab,userName,userField})=>{
   );
 };
 
-const CoursesView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);const [open,setOpen]=useState(null);
-  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
-  const actionBtns=[{lbl:"Lectures",col:T.blue},{lbl:"Notes",col:T.teal},{lbl:"Past Papers",col:T.purple},{lbl:"Assignments",col:T.amber},{lbl:"Forum",col:T.green},{lbl:"Download",col:T.t2}];
+const CoursesView=({userField,role,userName})=>{
+  const T=useT();const t=useLang();const s=sx(T);
+  const [open,setOpen]=useState(null);
+  const [materials,setMaterials]=useState([]);
+  const [uploading,setUploading]=useState(false);
+  const [showUpload,setShowUpload]=useState(false);
+  const [uploadTitle,setUploadTitle]=useState("");
+  const [uploadDesc,setUploadDesc]=useState("");
+  const [uploadCourse,setUploadCourse]=useState("");
+  const [uploadFile,setUploadFile]=useState(null);
+  const [uploadErr,setUploadErr]=useState("");
+  const fileRef=useRef(null);
+  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
+  const fld=FIELDS[userField];
+  const isLec=role==="lecturer"||role==="admin";
+
+  useEffect(()=>{
+    import("./materials.js").then(({getMaterials})=>{
+      getMaterials(userField).then(data=>setMaterials(data));
+    });
+  },[userField]);
+
+  const handleUpload=async()=>{
+    if(!uploadFile||!uploadTitle||!uploadCourse){setUploadErr("Please fill all fields and select a file.");return;}
+    setUploading(true);setUploadErr("");
+    const {uploadMaterial}=await import("./materials.js");
+    const result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer");
+    setUploading(false);
+    if(result.error){setUploadErr(result.error);return;}
+    const {getMaterials}=await import("./materials.js");
+    const updated=await getMaterials(userField);
+    setMaterials(updated);
+    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");
+  };
+
+  const courseMaterials=(code)=>materials.filter(m=>m.course_code===code);
+
   return(
     <div>
-      <h1 style={s.h1}>{t("courses")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>All enrolled units</p>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div>
+          <h1 style={s.h1}>{t("courses")}</h1>
+          <p style={s.sub}><span style={{...s.tag(fld?.color||T.ac),marginRight:8}}>{fld?.icon} {fld?.name}</span>Notes · Recordings · Past papers</p>
+        </div>
+        {isLec&&<button onClick={()=>setShowUpload(!showUpload)} style={s.btnP}>+ Upload Material</button>}
+      </div>
+      {isLec&&showUpload&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload Course Material</div>
+          {uploadErr&&<div style={{color:T.red,fontSize:12,marginBottom:8}}>{uploadErr}</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Week 3 Lecture Notes" value={uploadTitle} onChange={e=>setUploadTitle(e.target.value)}/></div>
+            <div><label style={s.lbl}>COURSE</label>
+              <select style={s.input} value={uploadCourse} onChange={e=>setUploadCourse(e.target.value)}>
+                <option value="">Select course...</option>
+                {courses.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
+          <div style={{marginBottom:"1rem"}}>
+            <label style={s.lbl}>FILE (PDF, Word, PowerPoint, MP4, MP3 — max 500MB)</label>
+            <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadFile?T.green:T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",cursor:"pointer",color:uploadFile?T.green:T.t3,fontSize:13}}>
+              {uploadFile?"✓ "+uploadFile.name+" ("+(uploadFile.size/1024/1024).toFixed(1)+" MB)":"Click to choose file"}
+            </div>
+            <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.webm,.mp3,.m4a,.png,.jpg" onChange={e=>setUploadFile(e.target.files[0]||null)}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={handleUpload} style={s.btnP} disabled={uploading}>{uploading?"Uploading...":"Upload →"}</button>
+            <button onClick={()=>setShowUpload(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
         {courses.map((c,i)=>{
           const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
+          const mats=courseMaterials(c.code);
           return(
             <div key={i} style={{...s.card,cursor:"pointer"}} onClick={()=>setOpen(open===i?null:i)}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -650,18 +716,38 @@ const CoursesView=({userField})=>{
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:18,fontWeight:700,color:barColor}}>{c.p}%</div>
+                  {mats.length>0&&<div style={{fontSize:10,color:T.t3}}>{mats.length} file{mats.length>1?"s":""}</div>}
                 </div>
               </div>
               <div style={{marginTop:10}}><Prog val={c.p} color={barColor}/></div>
               {open===i&&(
-                <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {actionBtns.map(btn=>(
-                      <button key={btn.lbl} style={{...s.btnS,fontSize:11,padding:"7px 8px",color:btn.col,border:`1px solid ${rgba(btn.col,0.4)}`}}>
-                        {btn.lbl}
-                      </button>
-                    ))}
-                  </div>
+                <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}} onClick={e=>e.stopPropagation()}>
+                  {mats.length===0?(
+                    <div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>No materials uploaded yet.</div>
+                  ):(
+                    <div style={{display:"grid",gap:8}}>
+                      {mats.map(m=>{
+                        const isVideo=m.file_type&&m.file_type.includes("video");
+                        const isAudio=m.file_type&&m.file_type.includes("audio");
+                        const icon=m.file_type&&m.file_type.includes("pdf")?"📕":isVideo?"🎬":isAudio?"🎧":m.file_type&&(m.file_type.includes("powerpoint")||m.file_type.includes("presentation"))?"📙":"📘";
+                        return(
+                          <div key={m.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:2}}>{icon} {m.title}</div>
+                                <div style={{fontSize:11,color:T.t3}}>{m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}{m.file_size?" · "+(m.file_size/1024/1024).toFixed(1)+"MB":""}</div>
+                              </div>
+                              <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none",flexShrink:0}}>
+                                {isVideo?"▶ Watch":isAudio?"▶ Listen":"⬇ Download"}
+                              </a>
+                            </div>
+                            {isVideo&&<video controls style={{width:"100%",marginTop:8,borderRadius:6,maxHeight:200}} src={m.file_url}/>}
+                            {isAudio&&<audio controls style={{width:"100%",marginTop:8}} src={m.file_url}/>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -671,7 +757,6 @@ const CoursesView=({userField})=>{
     </div>
   );
 };
-
 const ExamsView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [active,setActive]=useState(false),[answers,setAnswers]=useState({}),[result,setResult]=useState(null),[timer,setTimer]=useState(900);
@@ -1932,7 +2017,7 @@ export default function App(){
   const T=THEMES[themeId];
   const VIEWS={
     dashboard:<DashboardView setTab={setTab} userName={userName} userField={userField}/>,
-    courses:<CoursesView userField={userField}/>,
+    courses:<CoursesView userField={userField} role={role} userName={userName}/>,
     exams:<ExamsView userField={userField}/>,
     assignments:<AssignmentsView userField={userField} role={role}/>,
     research:<ResearchView userField={userField}/>,
