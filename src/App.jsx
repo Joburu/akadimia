@@ -644,6 +644,10 @@ const CoursesView=({userField,role,userName})=>{
   const [uploadLink,setUploadLink]=useState("");
   const [uploadPasscode,setUploadPasscode]=useState("");
   const fileRef=useRef(null);
+  const videoRef=useRef(null);
+  const audioRef=useRef(null);
+  const [uploadVideo,setUploadVideo]=useState(null);
+  const [uploadAudio,setUploadAudio]=useState(null);
   const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
   const fld=FIELDS[userField];
   const isLec=role==="lecturer"||role==="admin";
@@ -656,21 +660,32 @@ const CoursesView=({userField,role,userName})=>{
 
   const handleUpload=async()=>{
     if(!uploadTitle||!uploadCourse){setUploadErr("Please enter a title and course code.");return;}
-    if(!uploadFile&&!uploadLink){setUploadErr("Please select a file or paste an external link.");return;}
+    if(!uploadFile&&!uploadVideo&&!uploadAudio&&!uploadLink){setUploadErr("Please attach at least one file or paste a link.");return;}
     setUploading(true);setUploadErr("");
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
     let result={success:true};
     if(uploadFile){
-      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode,uploadLink);
-    } else if(uploadLink){
-      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle+" (Notes)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      if(result.error){setUploadErr(result.error);setUploading(false);return;}
+    }
+    if(uploadVideo){
+      result=await uploadMaterial(uploadVideo,uploadCourse,userField,uploadTitle+" (Video)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      if(result.error){setUploadErr(result.error);setUploading(false);return;}
+    }
+    if(uploadAudio){
+      result=await uploadMaterial(uploadAudio,uploadCourse,userField,uploadTitle+" (Audio)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      if(result.error){setUploadErr(result.error);setUploading(false);return;}
+    }
+    if(uploadLink){
+      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle+" (Recording)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     setUploading(false);
     if(result.error){setUploadErr(result.error);return;}
     const {getMaterials}=await import("./materials.js");
     const updated=await getMaterials(userField);
     setMaterials(updated);
-    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");setUploadLink("");setUploadPasscode("");
+    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadVideo(null);setUploadAudio(null);setUploadCourse("");setUploadLink("");setUploadPasscode("");
   };
 
   const courseMaterials=(code)=>materials.filter(m=>m.course_code===code);
@@ -695,18 +710,40 @@ const CoursesView=({userField,role,userName})=>{
               <datalist id="course-list">{courses.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}</datalist>
             </div>
           </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>OR PASTE EXTERNAL LINK (Zoom recording, YouTube, Google Drive, OneDrive)</label><input style={s.input} placeholder="https://..." value={uploadLink} onChange={e=>setUploadLink(e.target.value)}/></div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>PASSCODE (if link is password protected)</label><input style={s.input} placeholder="e.g. ?%$91p$@" value={uploadPasscode} onChange={e=>setUploadPasscode(e.target.value)}/></div>
-          <div style={{marginBottom:"1rem"}}>
-            <label style={s.lbl}>FILE (PDF, Word, PowerPoint, MP4, MP3 — max 2GB) — or paste a link above instead</label>
-            <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadFile?T.green:T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",cursor:"pointer",color:uploadFile?T.green:T.t3,fontSize:13}}>
-              {uploadFile?"✓ "+uploadFile.name+" ("+(uploadFile.size/1024/1024).toFixed(1)+" MB)":"Click to choose file"}
+          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description of this week's content..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div style={{...s.card,background:T.bg3,padding:"0.85rem"}}>
+              <div style={{fontSize:11,color:T.ac,fontWeight:700,marginBottom:8}}>📄 DOCUMENT / SLIDES / NOTES</div>
+              <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadFile?T.green:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:uploadFile?T.green:T.t3,fontSize:12,marginBottom:6}}>
+                {uploadFile?"✓ "+uploadFile.name+" ("+(uploadFile.size/1024/1024).toFixed(1)+"MB)":"Click to attach PDF, Word or PowerPoint"}
+              </div>
+              <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg" onChange={e=>setUploadFile(e.target.files[0]||null)}/>
+              {uploadFile&&<button onClick={()=>setUploadFile(null)} style={{...s.btnD,fontSize:10,padding:"3px 8px",width:"100%"}}>Remove file</button>}
             </div>
-            <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.webm,.mp3,.m4a,.png,.jpg" onChange={e=>setUploadFile(e.target.files[0]||null)}/>
+            <div style={{...s.card,background:T.bg3,padding:"0.85rem"}}>
+              <div style={{fontSize:11,color:T.purple,fontWeight:700,marginBottom:8}}>🎬 VIDEO FILE (MP4, WEBM)</div>
+              <div onClick={()=>videoRef.current&&videoRef.current.click()} style={{border:`2px dashed ${uploadVideo?T.purple:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:uploadVideo?T.purple:T.t3,fontSize:12,marginBottom:6}}>
+                {uploadVideo?"✓ "+uploadVideo.name+" ("+(uploadVideo.size/1024/1024).toFixed(1)+"MB)":"Click to attach video (max 2GB)"}
+              </div>
+              <input ref={videoRef} type="file" style={{display:"none"}} accept=".mp4,.webm,.mov" onChange={e=>setUploadVideo(e.target.files[0]||null)}/>
+              {uploadVideo&&<button onClick={()=>setUploadVideo(null)} style={{...s.btnD,fontSize:10,padding:"3px 8px",width:"100%"}}>Remove video</button>}
+            </div>
+            <div style={{...s.card,background:T.bg3,padding:"0.85rem"}}>
+              <div style={{fontSize:11,color:T.teal,fontWeight:700,marginBottom:8}}>🎧 AUDIO FILE (MP3, M4A)</div>
+              <div onClick={()=>audioRef.current&&audioRef.current.click()} style={{border:`2px dashed ${uploadAudio?T.teal:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:uploadAudio?T.teal:T.t3,fontSize:12,marginBottom:6}}>
+                {uploadAudio?"✓ "+uploadAudio.name+" ("+(uploadAudio.size/1024/1024).toFixed(1)+"MB)":"Click to attach audio recording"}
+              </div>
+              <input ref={audioRef} type="file" style={{display:"none"}} accept=".mp3,.m4a,.wav,.aac" onChange={e=>setUploadAudio(e.target.files[0]||null)}/>
+              {uploadAudio&&<button onClick={()=>setUploadAudio(null)} style={{...s.btnD,fontSize:10,padding:"3px 8px",width:"100%"}}>Remove audio</button>}
+            </div>
+            <div style={{...s.card,background:T.bg3,padding:"0.85rem"}}>
+              <div style={{fontSize:11,color:T.blue,fontWeight:700,marginBottom:8}}>🔗 EXTERNAL LINK (Zoom, YouTube, Drive)</div>
+              <input style={{...s.input,marginBottom:6}} placeholder="https://..." value={uploadLink} onChange={e=>setUploadLink(e.target.value)}/>
+              <input style={{...s.input,fontSize:12}} placeholder="Passcode (if required)" value={uploadPasscode} onChange={e=>setUploadPasscode(e.target.value)}/>
+            </div>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={handleUpload} style={s.btnP} disabled={uploading}>{uploading?"Uploading...":"Upload →"}</button>
+            <button onClick={handleUpload} style={s.btnP} disabled={uploading}>{uploading?"Uploading...":"Upload All →"}</button>
             <button onClick={()=>setShowUpload(false)} style={s.btnS}>Cancel</button>
           </div>
         </div>
