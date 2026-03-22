@@ -1759,6 +1759,22 @@ export default function App(){
   const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
   const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
   useEffect(()=>{loadFonts();},[]);
+  useEffect(()=>{
+    const restoreSession=async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data:{session}}=await supabase.auth.getSession();
+      if(session){
+        const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        if(data&&data.status==="approved"){
+          setRole(data.role||"student");
+          setUserField(data.field||"actuarial");
+          setUserName(data.full_name||session.user.email);
+          setAuthed(true);
+        }
+      }
+    };
+    restoreSession();
+  },[]);
   const flash=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
   const handleLogin=(r,f,n)=>{setRole(r||"student");setUserField(f||"actuarial");setUserName(n||"User");setAuthed(true);flash((LS[lang]||LS.en).welcome+", "+(n||"User").split(" ")[0]+"!");};
   const handleRealLogin=async(email,password)=>{
