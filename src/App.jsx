@@ -1577,43 +1577,38 @@ const TranscriptView=({userField})=>{
     setLoading(true);setAiError("");setAiResult(null);
     try{
       const fieldName=(fld&&fld.name)||userField;
-      let prompt="";
-      if(src==="manual"){
-        const unitList=units.map(u=>u.code+" "+u.name+": "+u.grade+" ("+u.credit+" CU)").join(", ");
-        prompt=`You are an academic advisor at a Kenyan university. A student studying ${fieldName} has the following grades:
-${unitList}
-GPA: ${gpa} (${standing})
-
-Provide a structured analysis with these sections:
-1. **Academic Summary** — brief assessment of their performance
-2. **Strengths** — 3 units/areas they excel in
-3. **Areas to Improve** — 2-3 weak areas with specific advice
-4. **Recommended Certifications** — 3-4 professional certifications relevant to ${fieldName} in Kenya/East Africa, with why each fits their profile
-5. **Career Pathways** — top 3 career options with % fit score based on their grades
-6. **12-Month Action Plan** — 4 quarterly milestones
-
-Keep advice practical and relevant to the Kenyan job market.`;
+      let messages=[];
+      if(src==="upload"&&uploadedFile){
+        const base64=await new Promise((res,rej)=>{
+          const r=new FileReader();
+          r.onload=()=>res(r.result.split(",")[1]);
+          r.onerror=rej;
+          r.readAsDataURL(uploadedFile);
+        });
+        const isPDF=uploadedFile.type==="application/pdf";
+        const content=[
+          isPDF
+            ?{type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}}
+            :{type:"image",source:{type:"base64",media_type:uploadedFile.type,data:base64}},
+          {type:"text",text:"You are an academic advisor at a Kenyan university. This student studies "+fieldName+". Read their transcript carefully and provide:\n1. **Academic Summary** — their actual GPA, standing, and overall performance from the transcript\n2. **Strengths** — top performing units you can see\n3. **Areas to Improve** — weak areas with specific advice\n4. **Recommended Certifications** — 3-4 certs matching their actual profile in Kenya\n5. **Career Pathways** — top 3 careers with % fit based on what you see\n6. **12-Month Action Plan** — 4 quarterly steps tailored to their results\n\nBase everything on what you actually see in the transcript."}
+        ];
+        messages=[{role:"user",content}];
       } else {
-        prompt=`You are an academic advisor. A student studying ${fieldName} in Kenya has uploaded their transcript. Based on their field, provide:
-1. **What to Look For** in a transcript for ${fieldName}
-2. **Recommended Certifications** — top 4 professional certifications in Kenya/East Africa for ${fieldName} students
-3. **Career Pathways** — top 3 career paths for ${fieldName} graduates in Kenya
-4. **12-Month Action Plan** — quarterly steps to strengthen their profile
-5. **Professional Bodies** — key associations to join in Kenya
-
-Keep all advice specific to the Kenyan and East African context.`;
+        const unitList=units.map(u=>u.code+" "+u.name+": "+u.grade+" ("+u.credit+" CU)").join(", ");
+        const prompt="You are an academic advisor at a Kenyan university. A "+fieldName+" student has these grades: "+unitList+". GPA: "+gpa+" ("+standing+"). Provide:\n1. **Academic Summary** — 2-3 sentence assessment of their actual performance\n2. **Strengths** — top 3 units they excel in\n3. **Areas to Improve** — weakest 2-3 units with specific advice\n4. **Recommended Certifications** — 3-4 certs matching their profile in Kenya\n5. **Career Pathways** — top 3 careers with % fit based on their actual grades\n6. **12-Month Action Plan** — 4 quarterly milestones tailored to their GPA\n\nBe specific to their actual grades, not generic.";
+        messages=[{role:"user",content:prompt}];
       }
       const res=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:prompt}]})
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1500,messages})
       });
       const d=await res.json();
       const text=d.content?.[0]?.text||"Could not generate analysis.";
-      setAiResult(text);
-      setMode("advice");
+      setAiResult(text);setMode("advice");
     }catch(e){
-      setAiError("AI analysis failed. Please try again.");
+      console.error(e);
+      setAiError("AI analysis failed: "+e.message);
     }
     setLoading(false);
   };
