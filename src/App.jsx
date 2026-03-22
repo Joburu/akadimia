@@ -643,6 +643,8 @@ const CoursesView=({userField,role,userName})=>{
   const [uploadErr,setUploadErr]=useState("");
   const [uploadLink,setUploadLink]=useState("");
   const [uploadPasscode,setUploadPasscode]=useState("");
+  const [uploadLevel,setUploadLevel]=useState("undergraduate");
+  const [uploadYear,setUploadYear]=useState("");
   const fileRef=useRef(null);
   const videoRef=useRef(null);
   const audioRef=useRef(null);
@@ -665,19 +667,19 @@ const CoursesView=({userField,role,userName})=>{
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
     let result={success:true};
     if(uploadFile){
-      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle+" (Notes)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle+" (Notes)",uploadDesc,userName||"Lecturer",uploadPasscode,"",uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     if(uploadVideo){
-      result=await uploadMaterial(uploadVideo,uploadCourse,userField,uploadTitle+" (Video)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await uploadMaterial(uploadVideo,uploadCourse,userField,uploadTitle+" (Video)",uploadDesc,userName||"Lecturer",uploadPasscode,"",uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     if(uploadAudio){
-      result=await uploadMaterial(uploadAudio,uploadCourse,userField,uploadTitle+" (Audio)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await uploadMaterial(uploadAudio,uploadCourse,userField,uploadTitle+" (Audio)",uploadDesc,userName||"Lecturer",uploadPasscode,"",uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     if(uploadLink){
-      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle+" (Recording)",uploadDesc,userName||"Lecturer",uploadPasscode);
+      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle+" (Recording)",uploadDesc,userName||"Lecturer",uploadPasscode,uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     setUploading(false);
@@ -685,7 +687,7 @@ const CoursesView=({userField,role,userName})=>{
     const {getMaterials}=await import("./materials.js");
     const updated=await getMaterials(userField);
     setMaterials(updated);
-    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadVideo(null);setUploadAudio(null);setUploadCourse("");setUploadLink("");setUploadPasscode("");
+    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadVideo(null);setUploadAudio(null);setUploadCourse("");setUploadLink("");setUploadPasscode("");setUploadLevel("undergraduate");setUploadYear("");
   };
 
   const courseMaterials=(code)=>materials.filter(m=>m.course_code===code);
@@ -708,6 +710,29 @@ const CoursesView=({userField,role,userName})=>{
             <div><label style={s.lbl}>COURSE CODE</label>
               <input style={s.input} placeholder="e.g. SAC 101 or type any code" value={uploadCourse} onChange={e=>setUploadCourse(e.target.value)} list="course-list"/>
               <datalist id="course-list">{courses.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}</datalist>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>PROGRAMME LEVEL</label>
+              <select style={s.input} value={uploadLevel} onChange={e=>setUploadLevel(e.target.value)}>
+                <option value="undergraduate">Undergraduate</option>
+                <option value="masters">Masters (Postgraduate)</option>
+                <option value="phd">PhD (Doctoral)</option>
+              </select>
+            </div>
+            <div><label style={s.lbl}>YEAR / SEMESTER</label>
+              <select style={s.input} value={uploadYear} onChange={e=>setUploadYear(e.target.value)}>
+                <option value="">Select...</option>
+                <option value="Year 1">Year 1</option>
+                <option value="Year 2">Year 2</option>
+                <option value="Year 3">Year 3</option>
+                <option value="Year 4">Year 4</option>
+                <option value="Masters Sem 1">Masters Sem 1</option>
+                <option value="Masters Sem 2">Masters Sem 2</option>
+                <option value="PhD Year 1">PhD Year 1</option>
+                <option value="PhD Year 2">PhD Year 2</option>
+                <option value="PhD Year 3+">PhD Year 3+</option>
+              </select>
             </div>
           </div>
           <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description of this week's content..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
@@ -754,9 +779,31 @@ const CoursesView=({userField,role,userName})=>{
           <div style={{fontSize:14,color:T.t2,marginBottom:8}}>No materials uploaded yet.</div>
           {isLec&&<div style={{fontSize:12,color:T.t3}}>Click "+ Upload Material" to add lecture notes, recordings or links.</div>}
         </div>
-      ):(
-        <div style={{display:"grid",gap:10}}>
-          {materials.map(m=>{
+      ):(()=>{
+        const levelOrder=["undergraduate","masters","phd"];
+        const levelLabel={"undergraduate":"🎓 Undergraduate","masters":"📘 Masters (Postgraduate)","phd":"🔬 PhD (Doctoral)"};
+        const levelColor={"undergraduate":T.ac,"masters":T.purple,"phd":T.teal};
+        const grouped={};
+        materials.forEach(m=>{
+          const lvl=m.programme_level||"undergraduate";
+          const yr=m.year_level||"General";
+          if(!grouped[lvl])grouped[lvl]={};
+          if(!grouped[lvl][yr])grouped[lvl][yr]=[];
+          grouped[lvl][yr].push(m);
+        });
+        return(
+        <div style={{display:"grid",gap:20}}>
+          {levelOrder.filter(lvl=>grouped[lvl]).map(lvl=>(
+            <div key={lvl}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,paddingBottom:8,borderBottom:`2px solid ${rgba(levelColor[lvl],0.4)}`}}>
+                <span style={{fontSize:15,fontWeight:700,color:levelColor[lvl]}}>{levelLabel[lvl]}</span>
+                <span style={{fontSize:11,color:T.t3,background:rgba(levelColor[lvl],0.12),borderRadius:10,padding:"2px 10px"}}>{Object.values(grouped[lvl]).flat().length} resource{Object.values(grouped[lvl]).flat().length>1?"s":""}</span>
+              </div>
+              {Object.keys(grouped[lvl]).sort().map(yr=>(
+                <div key={yr} style={{marginBottom:16}}>
+                  {yr!=="General"&&<div style={{fontSize:11,fontWeight:700,color:T.t2,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em"}}>📅 {yr}</div>}
+                  <div style={{display:"grid",gap:8}}>
+                  {grouped[lvl][yr].map(m=>{
             const isVideo=m.file_type&&(m.file_type.includes("video")||m.file_type.includes("zoom")||m.file_type.includes("loom"));
             const isAudio=m.file_type&&m.file_type.includes("audio");
             const isExternal=m.file_type&&m.file_type.includes("external");
@@ -792,8 +839,14 @@ const CoursesView=({userField,role,userName})=>{
               </div>
             );
           })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
-      )}
+        );
+      })())}
 
     </div>
   );

@@ -1,6 +1,6 @@
 import { supabase } from './supabase.js'
 
-export async function uploadMaterial(file, courseCode, field, title, description, uploaderName, passcode='', linkUrl='') {
+export async function uploadMaterial(file, courseCode, field, title, description, uploaderName, passcode='', linkUrl='', programmeLevel='undergraduate', yearLevel='') {
   const ext = file.name.split('.').pop()
   const path = `${field}/${courseCode}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`
   
@@ -26,7 +26,9 @@ export async function uploadMaterial(file, courseCode, field, title, description
       file_size: file.size,
       uploader_name: uploaderName,
       passcode: passcode||null,
-      link_url: linkUrl||null
+      link_url: linkUrl||null,
+      programme_level: programmeLevel||'undergraduate',
+      year_level: yearLevel||null
     })
   
   if (dbError) return { error: dbError.message }
@@ -70,7 +72,7 @@ export function fileIcon(type) {
   return '📄'
 }
 
-export async function saveLinkMaterial(link, courseCode, field, title, description, uploaderName, passcode='') {
+export async function saveLinkMaterial(link, courseCode, field, title, description, uploaderName, passcode='', programmeLevel='undergraduate', yearLevel='') {
   const isVideo = link.includes('youtube') || link.includes('youtu.be') || link.includes('zoom') || link.includes('loom') || link.includes('drive.google') || link.includes('onedrive')
   const { supabase } = await import('./supabase.js')
   const { error } = await supabase
@@ -85,7 +87,9 @@ export async function saveLinkMaterial(link, courseCode, field, title, descripti
       file_size: 0,
       uploader_name: uploaderName,
       passcode: passcode||null,
-      link_url: linkUrl||null
+      link_url: linkUrl||null,
+      programme_level: programmeLevel||'undergraduate',
+      year_level: yearLevel||null
     })
   if (error) return { error: error.message }
   return { success: true }
