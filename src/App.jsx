@@ -642,6 +642,7 @@ const CoursesView=({userField,role,userName})=>{
   const [uploadFile,setUploadFile]=useState(null);
   const [uploadErr,setUploadErr]=useState("");
   const [uploadLink,setUploadLink]=useState("");
+  const [uploadPasscode,setUploadPasscode]=useState("");
   const fileRef=useRef(null);
   const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
   const fld=FIELDS[userField];
@@ -659,14 +660,14 @@ const CoursesView=({userField,role,userName})=>{
     setUploading(true);setUploadErr("");
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
     const result=uploadLink&&!uploadFile
-      ?await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer")
-      :await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer");
+      ?await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode)
+      :await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode);
     setUploading(false);
     if(result.error){setUploadErr(result.error);return;}
     const {getMaterials}=await import("./materials.js");
     const updated=await getMaterials(userField);
     setMaterials(updated);
-    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");setUploadLink("");
+    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");setUploadLink("");setUploadPasscode("");
   };
 
   const courseMaterials=(code)=>materials.filter(m=>m.course_code===code);
@@ -693,6 +694,7 @@ const CoursesView=({userField,role,userName})=>{
           </div>
           <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
           <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>OR PASTE EXTERNAL LINK (Zoom recording, YouTube, Google Drive, OneDrive)</label><input style={s.input} placeholder="https://..." value={uploadLink} onChange={e=>setUploadLink(e.target.value)}/></div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>PASSCODE (if link is password protected)</label><input style={s.input} placeholder="e.g. ?%$91p$@" value={uploadPasscode} onChange={e=>setUploadPasscode(e.target.value)}/></div>
           <div style={{marginBottom:"1rem"}}>
             <label style={s.lbl}>FILE (PDF, Word, PowerPoint, MP4, MP3 — max 2GB) — or paste a link above instead</label>
             <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadFile?T.green:T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",cursor:"pointer",color:uploadFile?T.green:T.t3,fontSize:13}}>
@@ -722,9 +724,13 @@ const CoursesView=({userField,role,userName})=>{
                     <div style={{fontSize:11,color:T.t3}}>{m.course_code} · {m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}{m.file_size>0?" · "+(m.file_size/1024/1024).toFixed(1)+"MB":""}</div>
                     {m.description&&<div style={{fontSize:11,color:T.t2,marginTop:2}}>{m.description}</div>}
                   </div>
-                  <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none",flexShrink:0}}>
-                    {isVideo||isExternal?"▶ Open":isAudio?"▶ Listen":"⬇ Download"}
-                  </a>
+                  <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
+                    {m.passcode&&<span style={{fontSize:10,color:T.amber,background:rgba(T.amber,0.12),border:`1px solid ${rgba(T.amber,0.3)}`,borderRadius:6,padding:"3px 8px"}}>🔑 {m.passcode}</span>}
+                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none"}}>
+                      {isVideo||isExternal?"▶ Open":isAudio?"▶ Listen":"⬇ Download"}
+                    </a>
+                    {role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial}=await import("./materials.js");await deleteMaterial(m.id);const {getMaterials}=await import("./materials.js");getMaterials(userField).then(d=>setMaterials(d));}}} style={{...s.btnD,fontSize:11,padding:"5px 10px"}}>✕</button>}
+                  </div>
                 </div>
               );
             })}
@@ -732,7 +738,7 @@ const CoursesView=({userField,role,userName})=>{
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-        {courses.map((c,i)=>{
+        {courses.filter(c=>materials.some(m=>m.course_code===c.code)).concat(courses.filter(c=>!materials.some(m=>m.course_code===c.code))).map((c,i)=>{
           const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
           const mats=courseMaterials(c.code);
           return(
