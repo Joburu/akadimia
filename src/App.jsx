@@ -706,6 +706,31 @@ const CoursesView=({userField,role,userName})=>{
           </div>
         </div>
       )}
+      {materials.length>0&&(
+        <div style={{...s.card,marginBottom:"1.25rem"}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>All Uploaded Materials ({materials.length})</div>
+          <div style={{display:"grid",gap:8}}>
+            {materials.map(m=>{
+              const isVideo=m.file_type&&m.file_type.includes("video");
+              const isAudio=m.file_type&&m.file_type.includes("audio");
+              const isExternal=m.file_type&&m.file_type.includes("external");
+              const icon=m.file_type&&m.file_type.includes("pdf")?"📕":isVideo?"🎬":isAudio?"🎧":isExternal?"🔗":m.file_type&&(m.file_type.includes("powerpoint")||m.file_type.includes("presentation"))?"📙":"📘";
+              return(
+                <div key={m.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:2}}>{icon} {m.title}</div>
+                    <div style={{fontSize:11,color:T.t3}}>{m.course_code} · {m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}{m.file_size>0?" · "+(m.file_size/1024/1024).toFixed(1)+"MB":""}</div>
+                    {m.description&&<div style={{fontSize:11,color:T.t2,marginTop:2}}>{m.description}</div>}
+                  </div>
+                  <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none",flexShrink:0}}>
+                    {isVideo||isExternal?"▶ Open":isAudio?"▶ Listen":"⬇ Download"}
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
         {courses.map((c,i)=>{
           const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
