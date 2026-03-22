@@ -645,6 +645,13 @@ const CoursesView=({userField,role,userName})=>{
   const [uploadPasscode,setUploadPasscode]=useState("");
   const [uploadLevel,setUploadLevel]=useState("undergraduate");
   const [uploadYear,setUploadYear]=useState("");
+  const [editId,setEditId]=useState(null);
+  const [editTitle,setEditTitle]=useState("");
+  const [editDesc,setEditDesc]=useState("");
+  const [editLink,setEditLink]=useState("");
+  const [editPasscode,setEditPasscode]=useState("");
+  const [editLevel,setEditLevel]=useState("undergraduate");
+  const [editYear,setEditYear]=useState("");
   const fileRef=useRef(null);
   const videoRef=useRef(null);
   const audioRef=useRef(null);
@@ -750,7 +757,7 @@ const CoursesView=({userField,role,userName})=>{
               <div onClick={()=>videoRef.current&&videoRef.current.click()} style={{border:`2px dashed ${uploadVideo?T.purple:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:uploadVideo?T.purple:T.t3,fontSize:12,marginBottom:6}}>
                 {uploadVideo?"✓ "+uploadVideo.name+" ("+(uploadVideo.size/1024/1024).toFixed(1)+"MB)":"Click to attach video (max 2GB)"}
               </div>
-              <input ref={videoRef} type="file" style={{display:"none"}} accept=".mp4,.webm,.mov" onChange={e=>setUploadVideo(e.target.files[0]||null)}/>
+              <input ref={videoRef} type="file" style={{display:"none"}} accept=".mp4,.webm,.mov,.avi,.mpeg,.mpg,video/*" onChange={e=>setUploadVideo(e.target.files[0]||null)}/>
               {uploadVideo&&<button onClick={()=>setUploadVideo(null)} style={{...s.btnD,fontSize:10,padding:"3px 8px",width:"100%"}}>Remove video</button>}
             </div>
             <div style={{...s.card,background:T.bg3,padding:"0.85rem"}}>
@@ -829,11 +836,56 @@ const CoursesView=({userField,role,userName})=>{
                     </div>
                     {m.description&&<div style={{fontSize:12,color:T.t2}}>{m.description}</div>}
                     {m.passcode&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:4,background:rgba(T.amber,0.12),border:`1px solid ${rgba(T.amber,0.3)}`,borderRadius:6,padding:"3px 10px",fontSize:11,color:T.amber}}>🔑 Passcode: <strong>{m.passcode}</strong></div>}
+                    {editId===m.id&&(
+                      <div style={{marginTop:12,padding:12,background:T.bg4,borderRadius:8,display:"grid",gap:8}} onClick={e=>e.stopPropagation()}>
+                        <div style={{fontSize:11,fontWeight:700,color:T.ac,marginBottom:4}}>EDIT MATERIAL</div>
+                        <input style={s.input} placeholder="Title" defaultValue={m.title} onChange={e=>setEditTitle(e.target.value)}/>
+                        <input style={s.input} placeholder="Description" defaultValue={m.description||""} onChange={e=>setEditDesc(e.target.value)}/>
+                        <input style={s.input} placeholder="Recording link (https://...)" defaultValue={m.link_url||""} onChange={e=>setEditLink(e.target.value)}/>
+                        <input style={s.input} placeholder="Passcode" defaultValue={m.passcode||""} onChange={e=>setEditPasscode(e.target.value)}/>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                          <select style={s.input} defaultValue={m.programme_level||"undergraduate"} onChange={e=>setEditLevel(e.target.value)}>
+                            <option value="undergraduate">Undergraduate</option>
+                            <option value="masters">Masters</option>
+                            <option value="phd">PhD</option>
+                          </select>
+                          <select style={s.input} defaultValue={m.year_level||""} onChange={e=>setEditYear(e.target.value)}>
+                            <option value="">General</option>
+                            <option value="Year 1">Year 1</option>
+                            <option value="Year 2">Year 2</option>
+                            <option value="Year 3">Year 3</option>
+                            <option value="Year 4">Year 4</option>
+                            <option value="Masters Sem 1">Masters Sem 1</option>
+                            <option value="Masters Sem 2">Masters Sem 2</option>
+                            <option value="PhD Year 1">PhD Year 1</option>
+                            <option value="PhD Year 2">PhD Year 2</option>
+                            <option value="PhD Year 3+">PhD Year 3+</option>
+                          </select>
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <button onClick={async()=>{
+                            const {supabase}=await import("./supabase.js");
+                            await supabase.from("course_materials").update({
+                              title:editTitle||m.title,
+                              description:editDesc!==undefined?editDesc:m.description,
+                              link_url:editLink||m.link_url,
+                              passcode:editPasscode||m.passcode,
+                              programme_level:editLevel||m.programme_level,
+                              year_level:editYear||m.year_level
+                            }).eq("id",m.id);
+                            const {getMaterials}=await import("./materials.js");
+                            const updated=await getMaterials(userField);
+                            setMaterials(updated);setEditId(null);
+                          }} style={{...s.btnP,fontSize:11,padding:"6px 14px"}}>Save Changes</button>
+                          <button onClick={()=>setEditId(null)} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
                     <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:12,padding:"7px 14px",textDecoration:"none",textAlign:"center"}}>{btnLabel}</a>
-                    {m.link_url&&<a href={m.link_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"6px 14px",textDecoration:"none",textAlign:"center"}}>▶ Watch Recording</a>}
-                    {role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial,getMaterials}=await import("./materials.js");await deleteMaterial(m.id);const updated=await getMaterials(userField);setMaterials(updated);}}} style={{...s.btnD,fontSize:11,padding:"5px 10px",textAlign:"center"}}>✕ Delete</button>}
+                    {m.link_url&&<a href={m.link_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"6px 14px",textDecoration:"none",textAlign:"center",color:T.purple}}>▶ Watch Recording</a>}
+                    {isLec&&<button onClick={()=>setEditId(editId===m.id?null:m.id)} style={{...s.btnS,fontSize:11,padding:"5px 10px",textAlign:"center"}}>✏ Edit</button>}{role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial,getMaterials}=await import("./materials.js");await deleteMaterial(m.id);const updated=await getMaterials(userField);setMaterials(updated);}}} style={{...s.btnD,fontSize:11,padding:"5px 10px",textAlign:"center"}}>✕ Delete</button>}
                   </div>
                 </div>
               </div>
