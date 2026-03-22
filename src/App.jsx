@@ -831,6 +831,7 @@ const CoursesView=({userField,role,userName})=>{
                     </div>
                     <div style={{fontSize:11,color:T.t3,marginBottom:m.description?4:0}}>
                       {m.course_code&&<span style={{background:rgba(T.ac,0.15),color:T.ac,borderRadius:4,padding:"1px 6px",marginRight:6,fontSize:10,fontWeight:600}}>{m.course_code}</span>}
+                      {m.year_level&&<span style={{background:rgba(T.purple,0.15),color:T.purple,borderRadius:4,padding:"1px 6px",marginRight:6,fontSize:10,fontWeight:600}}>{m.year_level}</span>}
                       {m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}
                       {m.file_size>0&&" · "+(m.file_size/1024/1024).toFixed(1)+"MB"}
                     </div>
