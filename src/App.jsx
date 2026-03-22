@@ -674,7 +674,7 @@ const CoursesView=({userField,role,userName})=>{
     const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
     let result={success:true};
     if(uploadFile){
-      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle+" (Notes)",uploadDesc,userName||"Lecturer",uploadPasscode,"",uploadLevel,uploadYear);
+      result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle+" (Notes)",uploadDesc,userName||"Lecturer",uploadPasscode,uploadLink,uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     if(uploadVideo){
@@ -685,8 +685,8 @@ const CoursesView=({userField,role,userName})=>{
       result=await uploadMaterial(uploadAudio,uploadCourse,userField,uploadTitle+" (Audio)",uploadDesc,userName||"Lecturer",uploadPasscode,"",uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
-    if(uploadLink){
-      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle+" (Recording)",uploadDesc,userName||"Lecturer",uploadPasscode,uploadLevel,uploadYear);
+    if(uploadLink&&!uploadFile){
+      result=await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer",uploadPasscode,uploadLevel,uploadYear);
       if(result.error){setUploadErr(result.error);setUploading(false);return;}
     }
     setUploading(false);
