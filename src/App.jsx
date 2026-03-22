@@ -1909,7 +1909,7 @@ const AdminView=()=>{
   const loadUsers=async()=>{
     setLoading(true);
     const {supabase}=await import("./supabase.js");
-    const {data:pend}=await supabase.from("profiles").select("*,auth_user:id(email)").eq("status","pending").order("created_at",{ascending:false});
+    const {data:pend}=await supabase.from("profiles").select("*").eq("status","pending").order("created_at",{ascending:false});
     const {data:appr}=await supabase.from("profiles").select("*").eq("status","approved").order("created_at",{ascending:false});
     const {data:rejt}=await supabase.from("profiles").select("*").eq("status","rejected").order("created_at",{ascending:false});
     setPending(pend||[]);
