@@ -359,7 +359,7 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
   const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings")};
   const nav=[...NAV_BASE,...(role==="lecturer"||role==="admin"?[{id:"classroom",icon:"🎓"}]:[]),...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
   return(
-    <div style={{width:open?256:64,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
+    <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:38,height:38,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <Logo size={28}/>
