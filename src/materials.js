@@ -46,7 +46,9 @@ export async function getMaterials(field, courseCode) {
 }
 
 export async function deleteMaterial(id) {
-  await supabase.from('course_materials').delete().eq('id', id)
+  const { error } = await supabase.from('course_materials').delete().eq('id', id)
+  if (error) console.error('Delete error:', error)
+  return !error
 }
 
 export function formatFileSize(bytes) {
