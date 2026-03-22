@@ -708,86 +708,52 @@ const CoursesView=({userField,role,userName})=>{
           </div>
         </div>
       )}
-      {materials.length>0&&(
-        <div style={{...s.card,marginBottom:"1.25rem"}}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>All Uploaded Materials ({materials.length})</div>
-          <div style={{display:"grid",gap:8}}>
-            {materials.map(m=>{
-              const isVideo=m.file_type&&m.file_type.includes("video");
-              const isAudio=m.file_type&&m.file_type.includes("audio");
-              const isExternal=m.file_type&&m.file_type.includes("external");
-              const icon=m.file_type&&m.file_type.includes("pdf")?"📕":isVideo?"🎬":isAudio?"🎧":isExternal?"🔗":m.file_type&&(m.file_type.includes("powerpoint")||m.file_type.includes("presentation"))?"📙":"📘";
-              return(
-                <div key={m.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:2}}>{icon} {m.title}</div>
-                    <div style={{fontSize:11,color:T.t3}}>{m.course_code} · {m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}{m.file_size>0?" · "+(m.file_size/1024/1024).toFixed(1)+"MB":""}</div>
-                    {m.description&&<div style={{fontSize:11,color:T.t2,marginTop:2}}>{m.description}</div>}
-                  </div>
-                  <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
-                    {m.passcode&&<span style={{fontSize:10,color:T.amber,background:rgba(T.amber,0.12),border:`1px solid ${rgba(T.amber,0.3)}`,borderRadius:6,padding:"3px 8px"}}>🔑 {m.passcode}</span>}
-                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none"}}>
-                      {isVideo||isExternal?"▶ Open":isAudio?"▶ Listen":"⬇ Download"}
-                    </a>
-                    {role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial}=await import("./materials.js");await deleteMaterial(m.id);const {getMaterials}=await import("./materials.js");getMaterials(userField).then(d=>setMaterials(d));}}} style={{...s.btnD,fontSize:11,padding:"5px 10px"}}>✕</button>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {materials.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>📚</div>
+          <div style={{fontSize:14,color:T.t2,marginBottom:8}}>No materials uploaded yet.</div>
+          {isLec&&<div style={{fontSize:12,color:T.t3}}>Click "+ Upload Material" to add lecture notes, recordings or links.</div>}
         </div>
-      )}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-        {courses.filter(c=>materials.some(m=>m.course_code===c.code)).concat(courses.filter(c=>!materials.some(m=>m.course_code===c.code))).map((c,i)=>{
-          const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
-          const mats=courseMaterials(c.code);
-          return(
-            <div key={i} style={{...s.card,cursor:"pointer"}} onClick={()=>setOpen(open===i?null:i)}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div>
-                  <div style={{fontSize:10,color:T.ac,fontWeight:700,marginBottom:4}}>{c.code} · Year {c.y}</div>
-                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{c.name}</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:18,fontWeight:700,color:barColor}}>{c.p}%</div>
-                  {mats.length>0&&<div style={{fontSize:10,color:T.t3}}>{mats.length} file{mats.length>1?"s":""}</div>}
+      ):(
+        <div style={{display:"grid",gap:10}}>
+          {materials.map(m=>{
+            const isVideo=m.file_type&&(m.file_type.includes("video")||m.file_type.includes("zoom")||m.file_type.includes("loom"));
+            const isAudio=m.file_type&&m.file_type.includes("audio");
+            const isExternal=m.file_type&&m.file_type.includes("external");
+            const isPDF=m.file_type&&m.file_type.includes("pdf");
+            const isPPT=m.file_type&&(m.file_type.includes("powerpoint")||m.file_type.includes("presentation"));
+            const isDoc=m.file_type&&(m.file_type.includes("word")||m.file_type.includes("document"));
+            const icon=isPDF?"📕":isVideo?"🎬":isAudio?"🎧":isExternal?"🔗":isPPT?"📙":isDoc?"📘":"📄";
+            const btnLabel=isVideo?"▶ Watch Recording":isAudio?"▶ Listen":isExternal?"🔗 Open Link":isPDF?"📖 View PDF":isPPT?"📊 View Slides":"⬇ Download";
+            const typeLabel=isPDF?"PDF":isVideo?"Video":isAudio?"Audio":isExternal?"External Link":isPPT?"Slides":isDoc?"Document":"File";
+            return(
+              <div key={m.id} style={{...s.card,borderLeft:`3px solid ${isPDF?T.red:isVideo?T.purple:isAudio?T.teal:isExternal?T.blue:isPPT?T.amber:T.t3}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontSize:18}}>{icon}</span>
+                      <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{m.title}</span>
+                      <span style={{...s.tag(isPDF?T.red:isVideo?T.purple:isAudio?T.teal:isExternal?T.blue:T.amber),fontSize:10}}>{typeLabel}</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.t3,marginBottom:m.description?4:0}}>
+                      {m.course_code&&<span style={{background:rgba(T.ac,0.15),color:T.ac,borderRadius:4,padding:"1px 6px",marginRight:6,fontSize:10,fontWeight:600}}>{m.course_code}</span>}
+                      {m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}
+                      {m.file_size>0&&" · "+(m.file_size/1024/1024).toFixed(1)+"MB"}
+                    </div>
+                    {m.description&&<div style={{fontSize:12,color:T.t2}}>{m.description}</div>}
+                    {m.passcode&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:4,background:rgba(T.amber,0.12),border:`1px solid ${rgba(T.amber,0.3)}`,borderRadius:6,padding:"3px 10px",fontSize:11,color:T.amber}}>🔑 Passcode: <strong>{m.passcode}</strong></div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:12,padding:"7px 14px",textDecoration:"none",textAlign:"center"}}>{btnLabel}</a>
+                    {role==="admin"&&<button onClick={async(e)=>{e.stopPropagation();if(window.confirm("Delete this material?")){const {deleteMaterial,getMaterials}=await import("./materials.js");await deleteMaterial(m.id);const updated=await getMaterials(userField);setMaterials(updated);}}} style={{...s.btnD,fontSize:11,padding:"5px 10px",textAlign:"center"}}>✕ Delete</button>}
+                  </div>
                 </div>
               </div>
-              <div style={{marginTop:10}}><Prog val={c.p} color={barColor}/></div>
-              {open===i&&(
-                <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}} onClick={e=>e.stopPropagation()}>
-                  {mats.length===0?(
-                    <div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>No materials uploaded yet.</div>
-                  ):(
-                    <div style={{display:"grid",gap:8}}>
-                      {mats.map(m=>{
-                        const isVideo=m.file_type&&m.file_type.includes("video");
-                        const isAudio=m.file_type&&m.file_type.includes("audio");
-                        const icon=m.file_type&&m.file_type.includes("pdf")?"📕":isVideo?"🎬":isAudio?"🎧":m.file_type&&(m.file_type.includes("powerpoint")||m.file_type.includes("presentation"))?"📙":"📘";
-                        return(
-                          <div key={m.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:2}}>{icon} {m.title}</div>
-                                <div style={{fontSize:11,color:T.t3}}>{m.uploader_name} · {new Date(m.created_at).toLocaleDateString()}{m.file_size?" · "+(m.file_size/1024/1024).toFixed(1)+"MB":""}</div>
-                              </div>
-                              <a href={m.file_url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 12px",textDecoration:"none",flexShrink:0}}>
-                                {isVideo?"▶ Watch":isAudio?"▶ Listen":"⬇ Download"}
-                              </a>
-                            </div>
-                            {isVideo&&<video controls style={{width:"100%",marginTop:8,borderRadius:6,maxHeight:200}} src={m.file_url}/>}
-                            {isAudio&&<audio controls style={{width:"100%",marginTop:8}} src={m.file_url}/>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 };
