@@ -339,7 +339,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
                 <button onClick={()=>setStep(1)} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>Back</button>
               </div>
               <FieldSelector selected={field} onSelect={setField}/>
-              <button onClick={()=>setDone(true)} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginTop:"1rem"}}>Submit Registration →</button>
+              <button onClick={async()=>{if(onRealSignUp){setLoading(true);setErr("");const e=await onRealSignUp(email,pass,{full_name:name,student_id:sid,role,field});setLoading(false);if(e){setErr(e);}else{setDone(true);}}else{setDone(true);}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginTop:"1rem"}} disabled={loading}>{loading?"Submitting...":"Submit Registration →"}</button>
               <p style={{fontSize:11,color:T.t3,textAlign:"center",marginTop:"0.75rem",lineHeight:1.65}}>
                 Registration reviewed by an administrator before activation. Email confirmation sent on approval.
               </p>
