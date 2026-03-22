@@ -641,6 +641,7 @@ const CoursesView=({userField,role,userName})=>{
   const [uploadCourse,setUploadCourse]=useState("");
   const [uploadFile,setUploadFile]=useState(null);
   const [uploadErr,setUploadErr]=useState("");
+  const [uploadLink,setUploadLink]=useState("");
   const fileRef=useRef(null);
   const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
   const fld=FIELDS[userField];
@@ -653,16 +654,19 @@ const CoursesView=({userField,role,userName})=>{
   },[userField]);
 
   const handleUpload=async()=>{
-    if(!uploadFile||!uploadTitle||!uploadCourse){setUploadErr("Please fill all fields and select a file.");return;}
+    if(!uploadTitle||!uploadCourse){setUploadErr("Please enter a title and course code.");return;}
+    if(!uploadFile&&!uploadLink){setUploadErr("Please select a file or paste an external link.");return;}
     setUploading(true);setUploadErr("");
-    const {uploadMaterial}=await import("./materials.js");
-    const result=await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer");
+    const {uploadMaterial,saveLinkMaterial}=await import("./materials.js");
+    const result=uploadLink&&!uploadFile
+      ?await saveLinkMaterial(uploadLink,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer")
+      :await uploadMaterial(uploadFile,uploadCourse,userField,uploadTitle,uploadDesc,userName||"Lecturer");
     setUploading(false);
     if(result.error){setUploadErr(result.error);return;}
     const {getMaterials}=await import("./materials.js");
     const updated=await getMaterials(userField);
     setMaterials(updated);
-    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");
+    setShowUpload(false);setUploadTitle("");setUploadDesc("");setUploadFile(null);setUploadCourse("");setUploadLink("");
   };
 
   const courseMaterials=(code)=>materials.filter(m=>m.course_code===code);
@@ -682,16 +686,15 @@ const CoursesView=({userField,role,userName})=>{
           {uploadErr&&<div style={{color:T.red,fontSize:12,marginBottom:8}}>{uploadErr}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
             <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Week 3 Lecture Notes" value={uploadTitle} onChange={e=>setUploadTitle(e.target.value)}/></div>
-            <div><label style={s.lbl}>COURSE</label>
-              <select style={s.input} value={uploadCourse} onChange={e=>setUploadCourse(e.target.value)}>
-                <option value="">Select course...</option>
-                {courses.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
-              </select>
+            <div><label style={s.lbl}>COURSE CODE</label>
+              <input style={s.input} placeholder="e.g. SAC 101 or type any code" value={uploadCourse} onChange={e=>setUploadCourse(e.target.value)} list="course-list"/>
+              <datalist id="course-list">{courses.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}</datalist>
             </div>
           </div>
           <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION (optional)</label><input style={s.input} placeholder="Brief description..." value={uploadDesc} onChange={e=>setUploadDesc(e.target.value)}/></div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>OR PASTE EXTERNAL LINK (Zoom recording, YouTube, Google Drive, OneDrive)</label><input style={s.input} placeholder="https://..." value={uploadLink} onChange={e=>setUploadLink(e.target.value)}/></div>
           <div style={{marginBottom:"1rem"}}>
-            <label style={s.lbl}>FILE (PDF, Word, PowerPoint, MP4, MP3 — max 500MB)</label>
+            <label style={s.lbl}>FILE (PDF, Word, PowerPoint, MP4, MP3 — max 2GB) — or paste a link above instead</label>
             <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${uploadFile?T.green:T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",cursor:"pointer",color:uploadFile?T.green:T.t3,fontSize:13}}>
               {uploadFile?"✓ "+uploadFile.name+" ("+(uploadFile.size/1024/1024).toFixed(1)+" MB)":"Click to choose file"}
             </div>

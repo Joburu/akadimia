@@ -65,3 +65,22 @@ export function fileIcon(type) {
   if (type.includes('image')) return '🖼'
   return '📄'
 }
+
+export async function saveLinkMaterial(link, courseCode, field, title, description, uploaderName) {
+  const isVideo = link.includes('youtube') || link.includes('youtu.be') || link.includes('zoom') || link.includes('loom') || link.includes('drive.google') || link.includes('onedrive')
+  const { supabase } = await import('./supabase.js')
+  const { error } = await supabase
+    .from('course_materials')
+    .insert({
+      course_code: courseCode,
+      field,
+      title,
+      description,
+      file_url: link,
+      file_type: isVideo ? 'video/external' : 'link/external',
+      file_size: 0,
+      uploader_name: uploaderName
+    })
+  if (error) return { error: error.message }
+  return { success: true }
+}
