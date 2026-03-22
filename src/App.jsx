@@ -1,4 +1,5 @@
 import{useState,useEffect,useRef,createContext,useContext}from"react";
+import ReactMarkdown from"react-markdown";
 import{supabase}from"./supabase.js";
 import{askClaude,signIn,signUp,signOut,getProfile,getPendingUsers,updateUserStatus}from"./api.js";
 import{AreaChart,Area,BarChart,Bar,RadarChart,Radar,PolarGrid,PolarAngleAxis,XAxis,YAxis,ResponsiveContainer,Tooltip}from"recharts";
@@ -868,7 +869,7 @@ const AIView=({lang,userField})=>{
           <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
             {m.role==="bot"&&<div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${T.ac},${T.acL})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginRight:8,marginTop:4}}>AI</div>}
             <div style={{maxWidth:"75%",background:m.role==="user"?`linear-gradient(135deg,${rgba(T.ac,0.25)},${rgba(T.ac,0.12)})`:T.bg3,border:`1px solid ${m.role==="user"?rgba(T.ac,0.3):T.bd}`,borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:13,color:T.t1,lineHeight:1.65}}>
-              {m.text}
+              {m.role==="bot"?<ReactMarkdown>{m.text}</ReactMarkdown>:m.text}
             </div>
           </div>
         ))}
