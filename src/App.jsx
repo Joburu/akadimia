@@ -40,16 +40,136 @@ const FIELDS={
 };
 
 const FIELD_DATA={
-  actuarial:   {courses:[{code:"SAC 101",name:"Principles of Actuarial Science",y:1,p:88},{code:"SAC 201",name:"Financial Mathematics I",y:2,p:62},{code:"SAS 305",name:"Stochastic Processes I",y:3,p:40},{code:"SAC 406",name:"Risk & Credibility Theory",y:4,p:20}],bodies:["Actuarial Society of Kenya (ASK)","IFoA UK","SOA USA"],tools:["Python","R","STATA","SPSS","LaTeX"],trends:["Climate risk modelling","InsurTech AI","Parametric insurance","EA pension reform"],opps:[{type:"job",org:"APA Insurance",title:"Junior Actuarial Analyst",dead:"Apr 15"},{type:"scholarship",org:"AfDB",title:"AfDB Scholarship 2026",dead:"Mar 30"},{type:"training",org:"ASSA",title:"IFoA CM1 Prep Course",dead:"Apr 1"},{type:"networking",org:"IRA Kenya",title:"EA Insurance Summit",dead:"May 5"}]},
-  medicine:    {courses:[{code:"MED 101",name:"Human Anatomy I",y:1,p:75},{code:"MED 102",name:"Human Physiology",y:1,p:68},{code:"MED 201",name:"Pathology & Microbiology",y:2,p:55},{code:"MED 301",name:"Clinical Medicine",y:3,p:48}],bodies:["Kenya Med & Dentists Board","Kenya Medical Association","COSECSA"],tools:["SPSS","STATA","R","NVivo"],trends:["Digital health Kenya","AI diagnostics","Community health workers","Universal Health Coverage"],opps:[{type:"job",org:"KNH",title:"Medical Intern",dead:"Apr 20"},{type:"scholarship",org:"WHO",title:"WHO AFRO Fellowship",dead:"May 1"},{type:"training",org:"Kenya Red Cross",title:"Advanced Life Support",dead:"Mar 30"},{type:"networking",org:"KMA",title:"KMA Annual Forum",dead:"Jun 1"}]},
-  law:         {courses:[{code:"LAW 101",name:"Legal Methods & Research",y:1,p:82},{code:"LAW 102",name:"Contract Law",y:1,p:74},{code:"LAW 201",name:"Constitutional & Admin Law",y:2,p:61},{code:"LAW 301",name:"Criminal Law & Procedure",y:3,p:53}],bodies:["Law Society of Kenya (LSK)","East Africa Law Society","Kenya School of Law"],tools:["Zotero","LexisNexis","SPSS","Westlaw"],trends:["Legal tech Kenya","Data protection law","Climate litigation","Constitutional reforms"],opps:[{type:"job",org:"Judiciary Kenya",title:"Legal Researcher",dead:"Apr 25"},{type:"scholarship",org:"EALS",title:"EA Law Society Prize",dead:"May 15"},{type:"training",org:"LSK",title:"Moot Court Competition",dead:"Apr 5"},{type:"networking",org:"LSK",title:"LSK Annual Conference",dead:"Jun 10"}]},
-  engineering: {courses:[{code:"ENG 101",name:"Engineering Mathematics",y:1,p:80},{code:"ENG 102",name:"Engineering Mechanics",y:1,p:65},{code:"ENG 201",name:"Thermodynamics",y:2,p:54},{code:"ENG 301",name:"Structural Analysis",y:3,p:44}],bodies:["Engineers Board of Kenya (EBK)","Institution of Engineers Kenya","FIDIC"],tools:["MATLAB","Python","AutoCAD","STATA"],trends:["Green building Kenya","Renewable energy","Smart infrastructure","SGR projects"],opps:[{type:"job",org:"Kenya Power",title:"Graduate Engineer",dead:"Apr 30"},{type:"scholarship",org:"EBK",title:"EBK Research Fund",dead:"May 20"},{type:"training",org:"Autodesk",title:"AutoCAD Certification",dead:"Apr 10"},{type:"networking",org:"EBK",title:"EA Engineering Expo",dead:"May 25"}]},
-  compsci:     {courses:[{code:"CS 101",name:"Introduction to Programming",y:1,p:90},{code:"CS 102",name:"Data Structures & Algorithms",y:1,p:72},{code:"CS 201",name:"Operating Systems",y:2,p:60},{code:"CS 301",name:"Database Systems",y:3,p:50}],bodies:["Computer Society of Kenya (CSK)","IEEE Kenya","ISACA"],tools:["Python","Git","SQL","R","Docker"],trends:["Generative AI","Safaricom API economy","Kenya startup ecosystem","Cybersecurity Africa"],opps:[{type:"job",org:"Safaricom",title:"Junior Software Developer",dead:"Apr 15"},{type:"scholarship",org:"Google Africa",title:"Google Developer Fund",dead:"Apr 30"},{type:"training",org:"Amazon",title:"AWS Cloud Practitioner",dead:"Mar 31"},{type:"networking",org:"iHub",title:"iHub Nairobi Meetup",dead:"Apr 20"}]},
-  business:    {courses:[{code:"BUS 101",name:"Principles of Accounting",y:1,p:85},{code:"BUS 102",name:"Microeconomics",y:1,p:70},{code:"BUS 201",name:"Corporate Finance",y:2,p:58},{code:"BUS 301",name:"Strategic Management",y:3,p:48}],bodies:["ICPAK (CPA Kenya)","CFA Institute","ACCA"],tools:["Excel","SPSS","STATA","Python","R"],trends:["M-Pesa ecosystem","ESG investing","African free trade","Nairobi financial hub"],opps:[{type:"job",org:"Equity Bank",title:"Financial Analyst Graduate",dead:"Apr 25"},{type:"scholarship",org:"CFA Institute",title:"CFA Scholarship",dead:"May 10"},{type:"training",org:"ACCA",title:"ACCA Professional Course",dead:"Apr 5"},{type:"networking",org:"KEPSA",title:"Kenya Business Forum",dead:"Jun 5"}]},
-  education:   {courses:[{code:"EDU 101",name:"Educational Psychology",y:1,p:88},{code:"EDU 102",name:"Curriculum Development",y:1,p:75},{code:"EDU 201",name:"Teaching Methods",y:2,p:65},{code:"EDU 301",name:"Educational Assessment",y:3,p:55}],bodies:["Teachers Service Commission (TSC)","Kenya Examinations Council","UNESCO"],tools:["SPSS","NVivo","STATA","Atlas.ti"],trends:["EdTech Africa","CBC implementation","Digital classrooms","Teacher professionalisation"],opps:[{type:"job",org:"TSC Kenya",title:"Graduate Teacher",dead:"May 1"},{type:"scholarship",org:"Mastercard Found.",title:"MCF Teaching Fellowship",dead:"Apr 15"},{type:"training",org:"AMI Africa",title:"Montessori Certificate",dead:"Apr 20"},{type:"networking",org:"MoE Kenya",title:"Kenya Education Forum",dead:"May 30"}]},
-  agriculture: {courses:[{code:"AGR 101",name:"Soil Science & Fertility",y:1,p:82},{code:"AGR 102",name:"Crop Science & Production",y:1,p:70},{code:"AGR 201",name:"Agricultural Economics",y:2,p:60},{code:"AGR 301",name:"Agribusiness Management",y:3,p:50}],bodies:["KALRO","ISA Kenya","FAO"],tools:["R","STATA","SAS","Python","SPSS"],trends:["Climate-smart agriculture","Precision farming Kenya","Youth in agri","AfCFTA food trade"],opps:[{type:"job",org:"KALRO",title:"Extension Officer",dead:"Apr 20"},{type:"scholarship",org:"AGRA",title:"AGRA Research Fellowship",dead:"May 5"},{type:"training",org:"FAO",title:"Climate-Smart Agriculture",dead:"Apr 1"},{type:"networking",org:"EAC",title:"EA Agri-Business Forum",dead:"Jun 15"}]},
-  nursing:     {courses:[{code:"NUR 101",name:"Anatomy for Nurses",y:1,p:80},{code:"NUR 102",name:"Pharmacology",y:1,p:68},{code:"NUR 201",name:"Clinical Nursing Practice",y:2,p:58},{code:"NUR 301",name:"Maternal & Child Health",y:3,p:48}],bodies:["Nursing Council of Kenya (NCK)","Kenya Registered Nurses Assoc.","ICN"],tools:["SPSS","STATA","R","NVivo"],trends:["UHC implementation","Mental health Kenya","Digital health records","Maternal mortality reduction"],opps:[{type:"job",org:"NHIF",title:"Registered Nurse",dead:"Apr 30"},{type:"scholarship",org:"NCK",title:"Nursing Council Bursary",dead:"May 10"},{type:"training",org:"WHO/MoH",title:"Emergency Obstetric Care",dead:"Apr 10"},{type:"networking",org:"NCK",title:"Kenya Nursing Summit",dead:"Jun 1"}]},
-  architecture:{courses:[{code:"ARC 101",name:"Design Fundamentals",y:1,p:85},{code:"ARC 102",name:"Building Technology",y:1,p:72},{code:"ARC 201",name:"Structural Analysis",y:2,p:60},{code:"ARC 301",name:"Urban Design & Planning",y:3,p:50}],bodies:["Architectural Association of Kenya (AAK)","Board of Registration of Architects","RIBA"],tools:["AutoCAD","Revit","SketchUp","Python"],trends:["Affordable housing Kenya","Green architecture","Smart cities Nairobi","BIM adoption Africa"],opps:[{type:"job",org:"NCA Kenya",title:"Graduate Architect",dead:"May 5"},{type:"scholarship",org:"AAK",title:"AAK Design Excellence Award",dead:"Apr 25"},{type:"training",org:"RIBA",title:"RIBA Part I Accreditation",dead:"Apr 15"},{type:"networking",org:"AAK",title:"Nairobi Architecture Biennale",dead:"Jun 20"}]},
+  actuarial:   {courses:[{code:"SAC 101",name:"Principles of Actuarial Science",y:1,p:88},{code:"SAC 201",name:"Financial Mathematics I",y:2,p:62},{code:"SAS 305",name:"Stochastic Processes I",y:3,p:40},{code:"SAC 406",name:"Risk & Credibility Theory",y:4,p:20}],bodies:["Actuarial Society of Kenya (ASK)","IFoA UK","SOA USA"],tools:["Python","R","STATA","SPSS","LaTeX"],trends:["Climate risk modelling","InsurTech AI","Parametric insurance","EA pension reform"],opps:[
+    {type:"job",org:"APA Insurance",title:"Junior Actuarial Analyst",dead:"May 30",link:"https://www.apainsurance.org/careers"},
+    {type:"job",org:"Britam Kenya",title:"Actuarial Graduate Trainee",dead:"Jun 15",link:"https://www.britam.com/ke/careers"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Postgraduate Scholarship 2026",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"DAAD Germany",title:"DAAD In-Country Scholarship",dead:"Jul 15",link:"https://www.daad.de/en"},
+    {type:"scholarship",org:"AfDB",title:"AfDB Scholarship Programme",dead:"Jun 1",link:"https://www.afdb.org/scholarships"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Research Grant — Risk & Insurance",dead:"Jul 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"grant",org:"IDRC Canada",title:"IDRC Research Award — Africa",dead:"Aug 15",link:"https://www.idrc.ca"},
+    {type:"training",org:"IFoA UK",title:"IFoA CM1 Actuarial Mathematics",dead:"May 20",link:"https://www.actuaries.org.uk"},
+    {type:"training",org:"SOA USA",title:"SOA Exam P Preparation",dead:"Jun 10",link:"https://www.soa.org"},
+    {type:"networking",org:"ASK Kenya",title:"ASK Annual Conference 2026",dead:"Aug 1",link:"https://www.actuarialkenya.org"},
+    {type:"networking",org:"IRA Kenya",title:"East Africa Insurance Summit",dead:"Sep 5",link:"https://www.ira.go.ke"}
+  ]},
+  medicine:    {courses:[{code:"MED 101",name:"Human Anatomy I",y:1,p:75},{code:"MED 102",name:"Human Physiology",y:1,p:68},{code:"MED 201",name:"Pathology & Microbiology",y:2,p:55},{code:"MED 301",name:"Clinical Medicine",y:3,p:48}],bodies:["Kenya Med & Dentists Board","Kenya Medical Association","COSECSA"],tools:["SPSS","STATA","R","NVivo"],trends:["Digital health Kenya","AI diagnostics","Community health workers","Universal Health Coverage"],opps:[
+    {type:"job",org:"KNH Nairobi",title:"Medical Intern 2026",dead:"Jun 30",link:"https://www.knh.or.ke"},
+    {type:"job",org:"Aga Khan Hospital",title:"Junior Medical Officer",dead:"Jul 15",link:"https://www.agakhanhospitals.org"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Health Sciences Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"WHO AFRO",title:"WHO AFRO Fellowship 2026",dead:"Jul 1",link:"https://www.afro.who.int"},
+    {type:"scholarship",org:"Wellcome Trust",title:"Wellcome Africa Research Award",dead:"Aug 15",link:"https://wellcome.org"},
+    {type:"grant",org:"KEMRI",title:"KEMRI Research Grant",dead:"Jul 31",link:"https://www.kemri.org"},
+    {type:"grant",org:"NIH Fogarty",title:"NIH Fogarty Global Health Grant",dead:"Sep 1",link:"https://www.fic.nih.gov"},
+    {type:"training",org:"Kenya Red Cross",title:"Advanced Life Support (ALS)",dead:"May 30",link:"https://www.redcross.or.ke"},
+    {type:"training",org:"COSECSA",title:"COSECSA Surgical Fellowship",dead:"Jun 15",link:"https://www.cosecsa.org"},
+    {type:"networking",org:"KMA",title:"Kenya Medical Association Forum",dead:"Aug 20",link:"https://www.kma.co.ke"},
+    {type:"networking",org:"AMSEA",title:"Association of Medical Students EA",dead:"Sep 10",link:"https://www.amsea.org"}
+  ]},
+  law:         {courses:[{code:"LAW 101",name:"Legal Methods & Research",y:1,p:82},{code:"LAW 102",name:"Contract Law",y:1,p:74},{code:"LAW 201",name:"Constitutional & Admin Law",y:2,p:61},{code:"LAW 301",name:"Criminal Law & Procedure",y:3,p:53}],bodies:["Law Society of Kenya (LSK)","East Africa Law Society","Kenya School of Law"],tools:["Zotero","LexisNexis","SPSS","Westlaw"],trends:["Legal tech Kenya","Data protection law","Climate litigation","Constitutional reforms"],opps:[
+    {type:"job",org:"Judiciary Kenya",title:"Legal Researcher/Clerk",dead:"Jun 30",link:"https://www.judiciary.go.ke"},
+    {type:"job",org:"Kenya Law Reform",title:"Legal Officer — Graduate",dead:"Jul 15",link:"https://www.kenyalaw.org"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Postgraduate Law Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"EALS",title:"East Africa Law Society Prize",dead:"Jul 20",link:"https://www.eals.org"},
+    {type:"scholarship",org:"Rhodes Trust",title:"Rhodes Scholarship — Kenya",dead:"Aug 1",link:"https://www.rhodeshouse.ox.ac.uk"},
+    {type:"grant",org:"Ford Foundation",title:"Ford Foundation Legal Research Grant",dead:"Aug 31",link:"https://www.fordfoundation.org"},
+    {type:"grant",org:"Open Society",title:"OSF Africa Legal Fellowship",dead:"Sep 15",link:"https://www.opensocietyfoundations.org"},
+    {type:"training",org:"LSK Kenya",title:"LSK Moot Court Competition",dead:"May 10",link:"https://www.lsk.or.ke"},
+    {type:"training",org:"Kenya School of Law",title:"Advocates Training Programme",dead:"Jun 1",link:"https://www.ksl.ac.ke"},
+    {type:"networking",org:"LSK Kenya",title:"LSK Annual Law Conference",dead:"Aug 15",link:"https://www.lsk.or.ke"},
+    {type:"networking",org:"EALS",title:"EA Law Society Annual Congress",dead:"Sep 20",link:"https://www.eals.org"}
+  ]},
+  engineering: {courses:[{code:"ENG 101",name:"Engineering Mathematics",y:1,p:80},{code:"ENG 102",name:"Engineering Mechanics",y:1,p:65},{code:"ENG 201",name:"Thermodynamics",y:2,p:54},{code:"ENG 301",name:"Structural Analysis",y:3,p:44}],bodies:["Engineers Board of Kenya (EBK)","Institution of Engineers Kenya","FIDIC"],tools:["MATLAB","Python","AutoCAD","STATA"],trends:["Green building Kenya","Renewable energy","Smart infrastructure","SGR projects"],opps:[
+    {type:"job",org:"Kenya Power & Lighting",title:"Graduate Engineer Trainee",dead:"Jun 30",link:"https://www.kplc.co.ke/careers"},
+    {type:"job",org:"Kenya Roads Board",title:"Graduate Civil Engineer",dead:"Jul 15",link:"https://www.krb.go.ke"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Engineering Research Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"DAAD Germany",title:"DAAD Engineering Scholarship",dead:"Jul 31",link:"https://www.daad.de/en"},
+    {type:"scholarship",org:"African Union",title:"AU Engineering Excellence Award",dead:"Aug 15",link:"https://www.au.int"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Infrastructure Research Grant",dead:"Jul 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"grant",org:"World Bank",title:"World Bank Infrastructure Grant — EA",dead:"Sep 1",link:"https://www.worldbank.org"},
+    {type:"training",org:"Autodesk",title:"AutoCAD Professional Certification",dead:"May 15",link:"https://www.autodesk.com/certification"},
+    {type:"training",org:"EBK Kenya",title:"EBK Professional Registration Course",dead:"Jun 10",link:"https://www.ebk.or.ke"},
+    {type:"networking",org:"EBK Kenya",title:"East Africa Engineering Expo",dead:"Aug 20",link:"https://www.ebk.or.ke"},
+    {type:"networking",org:"IEK Kenya",title:"Institution of Engineers Kenya Gala",dead:"Sep 15",link:"https://www.iek.or.ke"}
+  ]},
+  compsci:     {courses:[{code:"CS 101",name:"Introduction to Programming",y:1,p:90},{code:"CS 102",name:"Data Structures & Algorithms",y:1,p:72},{code:"CS 201",name:"Operating Systems",y:2,p:60},{code:"CS 301",name:"Database Systems",y:3,p:50}],bodies:["Computer Society of Kenya (CSK)","IEEE Kenya","ISACA"],tools:["Python","Git","SQL","R","Docker"],trends:["Generative AI","Safaricom API economy","Kenya startup ecosystem","Cybersecurity Africa"],opps:[
+    {type:"job",org:"Safaricom PLC",title:"Junior Software Developer",dead:"Jun 15",link:"https://www.safaricom.co.ke/careers"},
+    {type:"job",org:"Andela Africa",title:"Junior Engineer Program",dead:"Jul 1",link:"https://www.andela.com"},
+    {type:"scholarship",org:"Google Africa",title:"Google Generation Scholarship",dead:"Jun 30",link:"https://buildyourfuture.withgoogle.com/scholarships"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF ICT Research Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"Mastercard Found.",title:"Mastercard Foundation Scholars",dead:"Jul 31",link:"https://mastercardfdn.org/scholars"},
+    {type:"grant",org:"IDRC Canada",title:"IDRC Digital Africa Research Grant",dead:"Aug 1",link:"https://www.idrc.ca"},
+    {type:"grant",org:"Mozilla Foundation",title:"Mozilla Technology Fund",dead:"Aug 31",link:"https://foundation.mozilla.org"},
+    {type:"training",org:"Amazon AWS",title:"AWS Cloud Practitioner Certification",dead:"May 31",link:"https://aws.amazon.com/certification"},
+    {type:"training",org:"Microsoft",title:"Azure Fundamentals Certification",dead:"Jun 15",link:"https://learn.microsoft.com"},
+    {type:"networking",org:"iHub Nairobi",title:"iHub Tech Meetup — Nairobi",dead:"Monthly",link:"https://ihub.co.ke"},
+    {type:"networking",org:"ALC Africa",title:"Google Africa Developer Community",dead:"Ongoing",link:"https://gdg.community.dev"}
+  ]},
+  business:    {courses:[{code:"BUS 101",name:"Principles of Accounting",y:1,p:85},{code:"BUS 102",name:"Microeconomics",y:1,p:70},{code:"BUS 201",name:"Corporate Finance",y:2,p:58},{code:"BUS 301",name:"Strategic Management",y:3,p:48}],bodies:["ICPAK (CPA Kenya)","CFA Institute","ACCA"],tools:["Excel","SPSS","STATA","Python","R"],trends:["M-Pesa ecosystem","ESG investing","African free trade","Nairobi financial hub"],opps:[
+    {type:"job",org:"Equity Bank Kenya",title:"Graduate Financial Analyst",dead:"Jun 30",link:"https://www.equitybank.co.ke/careers"},
+    {type:"job",org:"KCB Group",title:"Management Trainee Programme",dead:"Jul 15",link:"https://kcbgroup.com/careers"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Business Research Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"CFA Institute",title:"CFA Institute Scholarship",dead:"Jul 1",link:"https://www.cfainstitute.org/programs/scholarships"},
+    {type:"scholarship",org:"ACCA Global",title:"ACCA Access Scholarship",dead:"Jul 31",link:"https://www.accaglobal.com/scholarships"},
+    {type:"grant",org:"Tony Elumelu Found.",title:"TEF Entrepreneurship Programme",dead:"Jun 30",link:"https://www.tonyelumelufoundation.org"},
+    {type:"grant",org:"KEPSA Kenya",title:"KEPSA SME Research Grant",dead:"Aug 15",link:"https://www.kepsa.or.ke"},
+    {type:"training",org:"ACCA Kenya",title:"ACCA Professional Qualification",dead:"May 20",link:"https://www.accaglobal.com"},
+    {type:"training",org:"ICPAK Kenya",title:"CPA Kenya Professional Course",dead:"Jun 10",link:"https://www.icpak.com"},
+    {type:"networking",org:"KEPSA Kenya",title:"Kenya Business Forum 2026",dead:"Aug 20",link:"https://www.kepsa.or.ke"},
+    {type:"networking",org:"NSE Kenya",title:"Nairobi Securities Exchange Investor Forum",dead:"Sep 10",link:"https://www.nse.co.ke"}
+  ]},
+  education:   {courses:[{code:"EDU 101",name:"Educational Psychology",y:1,p:88},{code:"EDU 102",name:"Curriculum Development",y:1,p:75},{code:"EDU 201",name:"Teaching Methods",y:2,p:65},{code:"EDU 301",name:"Educational Assessment",y:3,p:55}],bodies:["Teachers Service Commission (TSC)","Kenya Examinations Council","UNESCO"],tools:["SPSS","NVivo","STATA","Atlas.ti"],trends:["EdTech Africa","CBC implementation","Digital classrooms","Teacher professionalisation"],opps:[
+    {type:"job",org:"TSC Kenya",title:"Graduate Teacher — Secondary",dead:"Jun 30",link:"https://www.tsc.go.ke"},
+    {type:"job",org:"Aga Khan Schools",title:"Teacher — Sciences/Maths",dead:"Jul 15",link:"https://www.agakhanschools.org"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Education Research Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"Mastercard Found.",title:"MCF Teaching Excellence Fellowship",dead:"Jul 20",link:"https://mastercardfdn.org"},
+    {type:"scholarship",org:"UNESCO",title:"UNESCO Education Research Fellowship",dead:"Aug 1",link:"https://www.unesco.org/fellowships"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Curriculum Research Grant",dead:"Jul 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"grant",org:"USAID Kenya",title:"USAID Education Development Grant",dead:"Aug 31",link:"https://www.usaid.gov/kenya"},
+    {type:"training",org:"Kenya Inst. Curriculum",title:"KICD Curriculum Developer Training",dead:"May 30",link:"https://www.kicd.ac.ke"},
+    {type:"training",org:"AMI Africa",title:"Montessori Teaching Certificate",dead:"Jun 15",link:"https://www.ami.education"},
+    {type:"networking",org:"MoE Kenya",title:"Kenya National Education Forum",dead:"Aug 20",link:"https://www.education.go.ke"},
+    {type:"networking",org:"KNUT Kenya",title:"Kenya National Union of Teachers Congress",dead:"Sep 15",link:"https://www.knut.net"}
+  ]},
+  agriculture: {courses:[{code:"AGR 101",name:"Soil Science & Fertility",y:1,p:82},{code:"AGR 102",name:"Crop Science & Production",y:1,p:70},{code:"AGR 201",name:"Agricultural Economics",y:2,p:60},{code:"AGR 301",name:"Agribusiness Management",y:3,p:50}],bodies:["KALRO","ISA Kenya","FAO"],tools:["R","STATA","SAS","Python","SPSS"],trends:["Climate-smart agriculture","Precision farming Kenya","Youth in agri","AfCFTA food trade"],opps:[
+    {type:"job",org:"KALRO Kenya",title:"Research Scientist — Crops",dead:"Jun 30",link:"https://www.kalro.org/careers"},
+    {type:"job",org:"Twiga Foods",title:"Agricultural Extension Officer",dead:"Jul 15",link:"https://www.twigafoods.com"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Agricultural Research Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"AGRA",title:"AGRA Graduate Research Fellowship",dead:"Jul 20",link:"https://www.agra.org"},
+    {type:"scholarship",org:"RUFORUM",title:"RUFORUM Graduate Scholarship",dead:"Aug 1",link:"https://www.ruforum.org"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Food Security Research Grant",dead:"Jul 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"grant",org:"BMGF",title:"Bill & Melinda Gates Agri Grant",dead:"Sep 1",link:"https://www.gatesfoundation.org"},
+    {type:"training",org:"FAO Kenya",title:"Climate-Smart Agriculture Training",dead:"May 31",link:"https://www.fao.org/kenya"},
+    {type:"training",org:"CIMMYT Africa",title:"Precision Agriculture Training",dead:"Jun 20",link:"https://www.cimmyt.org"},
+    {type:"networking",org:"KENFAP",title:"Kenya Farmers Association Forum",dead:"Aug 15",link:"https://www.kenfap.or.ke"},
+    {type:"networking",org:"EAC",title:"East Africa Agri-Business Summit",dead:"Sep 20",link:"https://www.eac.int"}
+  ]},
+  nursing:     {courses:[{code:"NUR 101",name:"Anatomy for Nurses",y:1,p:80},{code:"NUR 102",name:"Pharmacology",y:1,p:68},{code:"NUR 201",name:"Clinical Nursing Practice",y:2,p:58},{code:"NUR 301",name:"Maternal & Child Health",y:3,p:48}],bodies:["Nursing Council of Kenya (NCK)","Kenya Registered Nurses Assoc.","ICN"],tools:["SPSS","STATA","R","NVivo"],trends:["UHC implementation","Mental health Kenya","Digital health records","Maternal mortality reduction"],opps:[
+    {type:"job",org:"KNH Nairobi",title:"Registered Nurse — General",dead:"Jun 30",link:"https://www.knh.or.ke"},
+    {type:"job",org:"Aga Khan Hospital",title:"Clinical Nurse Specialist",dead:"Jul 15",link:"https://www.agakhanhospitals.org/careers"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Health Sciences Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"NCK Kenya",title:"Nursing Council of Kenya Bursary",dead:"Jul 20",link:"https://www.nursingkenya.or.ke"},
+    {type:"scholarship",org:"Johnson & Johnson",title:"J&J Nursing Scholarship Africa",dead:"Aug 1",link:"https://www.jnj.com/nursing-scholarship"},
+    {type:"grant",org:"USAID Kenya",title:"USAID Maternal Health Research Grant",dead:"Jul 31",link:"https://www.usaid.gov/kenya"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Nursing Practice Research Grant",dead:"Aug 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"training",org:"WHO/MoH Kenya",title:"Emergency Obstetric Care Training",dead:"May 31",link:"https://www.health.go.ke"},
+    {type:"training",org:"Kenya Red Cross",title:"Critical Care Nursing Certificate",dead:"Jun 15",link:"https://www.redcross.or.ke"},
+    {type:"networking",org:"NCK Kenya",title:"Kenya Nursing Summit 2026",dead:"Aug 20",link:"https://www.nursingkenya.or.ke"},
+    {type:"networking",org:"ICN",title:"International Council of Nurses Congress",dead:"Sep 10",link:"https://www.icn.ch"}
+  ]},
+  architecture:{courses:[{code:"ARC 101",name:"Design Fundamentals",y:1,p:85},{code:"ARC 102",name:"Building Technology",y:1,p:72},{code:"ARC 201",name:"Structural Analysis",y:2,p:60},{code:"ARC 301",name:"Urban Design & Planning",y:3,p:50}],bodies:["Architectural Association of Kenya (AAK)","Board of Registration of Architects","RIBA"],tools:["AutoCAD","Revit","SketchUp","Python"],trends:["Affordable housing Kenya","Green architecture","Smart cities Nairobi","BIM adoption Africa"],opps:[
+    {type:"job",org:"NCA Kenya",title:"Graduate Architect — Public Works",dead:"Jun 30",link:"https://www.nca.go.ke"},
+    {type:"job",org:"Symbion International",title:"Junior Architect",dead:"Jul 15",link:"https://www.symbion.com"},
+    {type:"scholarship",org:"NRF Kenya",title:"NRF Built Environment Scholarship",dead:"Jun 30",link:"https://www.nrf.ac.ke"},
+    {type:"scholarship",org:"AAK Kenya",title:"AAK Design Excellence Scholarship",dead:"Jul 20",link:"https://www.aak.or.ke"},
+    {type:"scholarship",org:"Aga Khan Trust",title:"Aga Khan Architecture Award",dead:"Aug 1",link:"https://www.akdn.org/architecture"},
+    {type:"grant",org:"UN-Habitat",title:"UN-Habitat Urban Design Grant",dead:"Jul 31",link:"https://www.unhabitat.org"},
+    {type:"grant",org:"NRF Kenya",title:"NRF Housing Research Grant",dead:"Aug 31",link:"https://www.nrf.ac.ke/grants"},
+    {type:"training",org:"RIBA UK",title:"RIBA Professional Practice Certificate",dead:"May 31",link:"https://www.architecture.com"},
+    {type:"training",org:"Autodesk",title:"Revit BIM Professional Certification",dead:"Jun 15",link:"https://www.autodesk.com/certification"},
+    {type:"networking",org:"AAK Kenya",title:"Nairobi Architecture Biennale 2026",dead:"Aug 20",link:"https://www.aak.or.ke"},
+    {type:"networking",org:"UIA",title:"International Union of Architects Congress",dead:"Sep 15",link:"https://www.uia-architectes.org"}
+  ]},
 };
 
 const TOOLS_INFO={
@@ -1015,9 +1135,9 @@ const OppsView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);const [filter,setFilter]=useState("all");
   const fld=FIELDS[userField];const data=FIELD_DATA[userField];
   const opps=(data&&data.opps)||[];
-  const TC={scholarship:T.ac,job:T.green,training:T.blue,networking:T.purple};
+  const TC={scholarship:T.ac,job:T.green,training:T.blue,networking:T.purple,grant:T.teal};
   const filtered=filter==="all"?opps:opps.filter(o=>o.type===filter);
-  const filterBtns=[["all","All"],["scholarship","Scholarships"],["job","Jobs"],["training","Training"],["networking","Networking"]];
+  const filterBtns=[["all","All"],["scholarship","Scholarships"],["grant","Grants"],["job","Jobs"],["training","Training"],["networking","Networking"]];
   const bodyMatches=[97,90,82];
   return(
     <div>
@@ -1034,7 +1154,7 @@ const OppsView=({userField})=>{
             <Pill text={o.type.toUpperCase()} color={TC[o.type]||T.ac}/>
             <div style={{fontSize:14,fontWeight:600,color:T.t1,margin:"8px 0 4px"}}>{o.title}</div>
             <div style={{fontSize:12,color:T.t3,marginBottom:"0.85rem"}}>{o.org} · Deadline: {o.dead}, 2026</div>
-            <button style={{...s.btnP,fontSize:11,padding:"5px 14px"}}>Apply</button>
+            <a href={o.link||"#"} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"5px 14px",textDecoration:"none",display:"inline-block"}}>Apply →</a>
           </div>
         ))}
       </div>
