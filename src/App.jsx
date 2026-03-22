@@ -898,7 +898,7 @@ const CoursesView=({userField,role,userName})=>{
           ))}
         </div>
         );
-      })())}
+      })()}
 
     </div>
   );
