@@ -1,4 +1,6 @@
 import{useState,useEffect,useRef,createContext,useContext}from"react";
+import{supabase}from"./supabase.js";
+import{askClaude,signIn,signUp,signOut,getProfile,getPendingUsers,updateUserStatus}from"./api.js";
 import{AreaChart,Area,BarChart,Bar,RadarChart,Radar,PolarGrid,PolarAngleAxis,XAxis,YAxis,ResponsiveContainer,Tooltip}from"recharts";
 
 /* AKADIMIA v4.2  ·  "Ujuzi Bila Mipaka"  ·  Knowledge Without Limits */
