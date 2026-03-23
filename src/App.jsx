@@ -2190,25 +2190,50 @@ export default function App(){
   const [resetLoading,setResetLoading]=useState(false);
 
   useEffect(()=>{
-    const hash=window.location.hash;
-    if(hash.includes("type=recovery")){
-      setResetMode(true);
-      return;
-    }
-    const restoreSession=async()=>{
+    const init=async()=>{
       const {supabase}=await import("./supabase.js");
+      
+      // Listen for auth state changes - catches recovery session
+      const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+        if(event==="PASSWORD_RECOVERY"){
+          setResetMode(true);
+          setAuthed(false);
+          return;
+        }
+      });
+
+      // Check URL hash for recovery token
+      const hash=window.location.hash;
+      if(hash.includes("type=recovery")||hash.includes("recovery")){
+        setResetMode(true);
+        return;
+      }
+
+      // Check URL params too (Supabase sometimes uses query params)
+      const params=new URLSearchParams(window.location.search);
+      if(params.get("type")==="recovery"){
+        setResetMode(true);
+        return;
+      }
+
+      // Normal session restore
       const {data:{session}}=await supabase.auth.getSession();
-      if(session){
-        const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
-        if(data&&data.status==="approved"){
-          setRole(data.role||"student");
-          setUserField(data.field||"actuarial");
-          setUserName(data.full_name||session.user.email);
-          setAuthed(true);
+      if(session&&session.user){
+        // Don't restore if it's a recovery session
+        if(session.user.aud==="authenticated"&&!hash.includes("recovery")){
+          const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+          if(data&&data.status==="approved"){
+            setRole(data.role||"student");
+            setUserField(data.field||"actuarial");
+            setUserName(data.full_name||session.user.email);
+            setAuthed(true);
+          }
         }
       }
+
+      return ()=>subscription.unsubscribe();
     };
-    restoreSession();
+    init();
   },[]);
   const flash=(msg,type="success")=>{setToast({msg,type});setTimeout(()=>setToast(null),3500);};
   const handleLogin=(r,f,n)=>{setRole(r||"student");setUserField(f||"actuarial");setUserName(n||"User");setAuthed(true);flash((LS[lang]||LS.en).welcome+", "+(n||"User").split(" ")[0]+"!");};
