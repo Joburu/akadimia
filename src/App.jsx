@@ -2200,8 +2200,7 @@ export default function App(){
 
       if(isRecovery){
         setResetMode(true);
-        // Sign out any existing session so they can't bypass reset screen
-        await supabase.auth.signOut();
+        // Keep recovery session alive - needed for updateUser call
         return;
       }
 
@@ -2210,7 +2209,6 @@ export default function App(){
         if(event==="PASSWORD_RECOVERY"){
           setResetMode(true);
           setAuthed(false);
-          await supabase.auth.signOut();
         }
       });
 
