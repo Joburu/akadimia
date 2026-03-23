@@ -28,7 +28,7 @@ export async function handleSignIn(email, password) {
 
 export async function handleSignUp(email, password, meta) {
   const { data, error } = await supabase.auth.signUp({
-    email, password, options: { data: meta }
+    email, password, options: { data: { ...meta, email } }
   })
   if (error) return { error: error.message }
   return { success: true }

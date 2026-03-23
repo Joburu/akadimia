@@ -1976,12 +1976,23 @@ const AdminView=()=>{
   const approve=async(id)=>{
     const {supabase}=await import("./supabase.js");
     await supabase.from("profiles").update({status:"approved"}).eq("id",id);
+    const user=pending.find(u=>u.id===id);
+    if(user&&user.email){
+      const {sendApprovalEmail}=await import("./email.js");
+      const field=(FIELDS[user.field]&&FIELDS[user.field].name)||user.field||"your field";
+      await sendApprovalEmail(user.email,user.full_name||"Student",field);
+    }
     loadUsers();
   };
 
   const reject=async(id)=>{
     const {supabase}=await import("./supabase.js");
     await supabase.from("profiles").update({status:"rejected"}).eq("id",id);
+    const user=pending.find(u=>u.id===id);
+    if(user&&user.email){
+      const {sendRejectionEmail}=await import("./email.js");
+      await sendRejectionEmail(user.email,user.full_name||"Student");
+    }
     loadUsers();
   };
 
