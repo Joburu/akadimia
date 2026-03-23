@@ -2192,42 +2192,37 @@ export default function App(){
   useEffect(()=>{
     const init=async()=>{
       const {supabase}=await import("./supabase.js");
-      
-      // Listen for auth state changes - catches recovery session
-      const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+
+      // FIRST: check hash BEFORE any Supabase calls
+      const hash=window.location.hash;
+      const params=new URLSearchParams(window.location.search);
+      const isRecovery=hash.includes("type=recovery")||params.get("type")==="recovery";
+
+      if(isRecovery){
+        setResetMode(true);
+        // Sign out any existing session so they can't bypass reset screen
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // Listen for PASSWORD_RECOVERY event
+      const {data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
         if(event==="PASSWORD_RECOVERY"){
           setResetMode(true);
           setAuthed(false);
-          return;
+          await supabase.auth.signOut();
         }
       });
 
-      // Check URL hash for recovery token
-      const hash=window.location.hash;
-      if(hash.includes("type=recovery")||hash.includes("recovery")){
-        setResetMode(true);
-        return;
-      }
-
-      // Check URL params too (Supabase sometimes uses query params)
-      const params=new URLSearchParams(window.location.search);
-      if(params.get("type")==="recovery"){
-        setResetMode(true);
-        return;
-      }
-
-      // Normal session restore
+      // Normal session restore only if not recovery
       const {data:{session}}=await supabase.auth.getSession();
       if(session&&session.user){
-        // Don't restore if it's a recovery session
-        if(session.user.aud==="authenticated"&&!hash.includes("recovery")){
-          const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
-          if(data&&data.status==="approved"){
-            setRole(data.role||"student");
-            setUserField(data.field||"actuarial");
-            setUserName(data.full_name||session.user.email);
-            setAuthed(true);
-          }
+        const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        if(data&&data.status==="approved"){
+          setRole(data.role||"student");
+          setUserField(data.field||"actuarial");
+          setUserName(data.full_name||session.user.email);
+          setAuthed(true);
         }
       }
 
