@@ -330,7 +330,7 @@ const FieldSelector=({selected,onSelect})=>{
 
 const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThemeId})=>{
   const T=useT();const t=useLang();const s=sx(T);
-  const [tab,setTab]=useState("login"),[step,setStep]=useState(1),[loading,setLoading]=useState(false),[authErr,setAuthErr]=useState("");
+  const [tab,setTab]=useState("login"),[step,setStep]=useState(1),[loading,setLoading]=useState(false),[authErr,setAuthErr]=useState(""),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState(""),[forgotMsg,setForgotMsg]=useState("");
   const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[cpass,setCpass]=useState("");
   const [name,setName]=useState(""),[sid,setSid]=useState(""),[role,setRole]=useState("student");
   const [field,setField]=useState("actuarial"),[err,setErr]=useState(""),[done,setDone]=useState(false);
@@ -417,7 +417,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
               </button>
 
               <p style={{textAlign:"center",marginTop:"0.9rem",fontSize:12,color:T.t3}}>
-                <span style={{color:T.ac,cursor:"pointer"}}>Forgot password?</span> · End-to-end encrypted
+                <span style={{color:T.ac,cursor:"pointer"}} onClick={()=>setForgotMode(true)}>Forgot password?</span> · End-to-end encrypted
               </p>
             </div>
           )}
@@ -466,6 +466,31 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
       </div>
     </div>
   );
+      {forgotMode&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+          <div style={{background:T.bg1,borderRadius:16,width:"100%",maxWidth:400,padding:"2rem",border:`1px solid ${T.bd}`}}>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:8}}>Reset Password</div>
+            <div style={{fontSize:12,color:T.t3,marginBottom:"1rem"}}>Enter your email — we'll send a reset link.</div>
+            {forgotMsg?(
+              <div style={{background:rgba(T.green,0.12),border:`1px solid ${rgba(T.green,0.3)}`,color:T.green,borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{forgotMsg}</div>
+            ):(
+              <input style={{...s.input,marginBottom:"1rem"}} placeholder="Your email address" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
+            )}
+            <div style={{display:"flex",gap:8}}>
+              {!forgotMsg&&<button onClick={async()=>{
+                if(!forgotEmail.includes("@")){setForgotMsg("Please enter a valid email.");return;}
+                setLoading(true);
+                const {supabase}=await import("./supabase.js");
+                const {error}=await supabase.auth.resetPasswordForEmail(forgotEmail,{redirectTo:"https://www.akadimia.co.ke"});
+                setLoading(false);
+                if(error){setForgotMsg("Error: "+error.message);}
+                else{setForgotMsg("Reset link sent! Check your email inbox (including spam).");}
+              }} style={{...s.btnP,flex:1}} disabled={loading}>{loading?"Sending...":"Send Reset Link"}</button>}
+              <button onClick={()=>{setForgotMode(false);setForgotEmail("");setForgotMsg("");}} style={{...s.btnS,flex:1}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 };
 
 const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"}];
