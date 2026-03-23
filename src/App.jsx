@@ -2293,7 +2293,7 @@ export default function App(){
                   const {error}=await supabase.auth.updateUser({password:newPass});
                   setResetLoading(false);
                   if(error){setResetMsg("Error: "+error.message);setTimeout(()=>setResetMsg(""),4000);}
-                  else{setResetMsg("Password updated! Redirecting...");setTimeout(()=>{setResetMode(false);window.location.hash="";},2500);}
+                  else{setResetMsg("Password updated! Redirecting to login...");const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setTimeout(()=>{setResetMode(false);setAuthed(false);window.location.hash="";},2000);}
                 }} style={{width:"100%",background:"#d4a017",border:"none",borderRadius:8,padding:"12px",color:"#000",fontSize:14,fontWeight:600,cursor:resetLoading?"not-allowed":"pointer"}} disabled={resetLoading}>{resetLoading?"Updating...":"Set New Password"}</button>
               </>}
             </div>
