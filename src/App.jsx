@@ -2183,7 +2183,18 @@ export default function App(){
   const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
   const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
   useEffect(()=>{loadFonts();},[]);
+  const [resetMode,setResetMode]=useState(false);
+  const [newPass,setNewPass]=useState("");
+  const [newPass2,setNewPass2]=useState("");
+  const [resetMsg,setResetMsg]=useState("");
+  const [resetLoading,setResetLoading]=useState(false);
+
   useEffect(()=>{
+    const hash=window.location.hash;
+    if(hash.includes("type=recovery")){
+      setResetMode(true);
+      return;
+    }
     const restoreSession=async()=>{
       const {supabase}=await import("./supabase.js");
       const {data:{session}}=await supabase.auth.getSession();
@@ -2240,7 +2251,29 @@ export default function App(){
     <ThemeCtx.Provider value={themeId}>
       <LangCtx.Provider value={lang}>
         <Toast n={toast}/>
-        {!authed?(
+        {resetMode?(
+          <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117"}}>
+            <div style={{background:"#1a1f2e",borderRadius:16,width:"100%",maxWidth:420,padding:"2rem",margin:"1rem",border:"1px solid #2a3040"}}>
+              <div style={{fontFamily:"serif",fontSize:22,fontWeight:700,color:"#fff",marginBottom:4}}>AKADIMIA</div>
+              <div style={{fontSize:12,color:"#aaa",marginBottom:"1.5rem"}}>Set your new password</div>
+              {resetMsg&&<div style={{background:resetMsg.includes("Error")?"rgba(239,68,68,0.12)":"rgba(34,197,94,0.12)",border:resetMsg.includes("Error")?"1px solid rgba(239,68,68,0.3)":"1px solid rgba(34,197,94,0.3)",color:resetMsg.includes("Error")?"#ef4444":"#22c55e",borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{resetMsg}</div>}
+              {!resetMsg.includes("updated")&&<>
+                <input type="password" style={{width:"100%",background:"#0d1117",border:"1px solid #2a3040",borderRadius:8,padding:"10px 14px",color:"#fff",fontSize:13,marginBottom:"0.75rem",boxSizing:"border-box"}} placeholder="New password (min 8 characters)" value={newPass} onChange={e=>setNewPass(e.target.value)}/>
+                <input type="password" style={{width:"100%",background:"#0d1117",border:"1px solid #2a3040",borderRadius:8,padding:"10px 14px",color:"#fff",fontSize:13,marginBottom:"1rem",boxSizing:"border-box"}} placeholder="Confirm new password" value={newPass2} onChange={e=>setNewPass2(e.target.value)}/>
+                <button onClick={async()=>{
+                  if(newPass.length<8){setResetMsg("Password must be at least 8 characters.");setTimeout(()=>setResetMsg(""),3000);return;}
+                  if(newPass!==newPass2){setResetMsg("Passwords do not match.");setTimeout(()=>setResetMsg(""),3000);return;}
+                  setResetLoading(true);
+                  const {supabase}=await import("./supabase.js");
+                  const {error}=await supabase.auth.updateUser({password:newPass});
+                  setResetLoading(false);
+                  if(error){setResetMsg("Error: "+error.message);setTimeout(()=>setResetMsg(""),4000);}
+                  else{setResetMsg("Password updated! Redirecting...");setTimeout(()=>{setResetMode(false);window.location.hash="";},2500);}
+                }} style={{width:"100%",background:"#d4a017",border:"none",borderRadius:8,padding:"12px",color:"#000",fontSize:14,fontWeight:600,cursor:resetLoading?"not-allowed":"pointer"}} disabled={resetLoading}>{resetLoading?"Updating...":"Set New Password"}</button>
+              </>}
+            </div>
+          </div>
+        ):!authed?(
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
         ):(
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
