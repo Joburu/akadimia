@@ -466,31 +466,6 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
       </div>
     </div>
   );
-      {forgotMode&&(
-        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
-          <div style={{background:T.bg1,borderRadius:16,width:"100%",maxWidth:400,padding:"2rem",border:`1px solid ${T.bd}`}}>
-            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:8}}>Reset Password</div>
-            <div style={{fontSize:12,color:T.t3,marginBottom:"1rem"}}>Enter your email — we'll send a reset link.</div>
-            {forgotMsg?(
-              <div style={{background:rgba(T.green,0.12),border:`1px solid ${rgba(T.green,0.3)}`,color:T.green,borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{forgotMsg}</div>
-            ):(
-              <input style={{...s.input,marginBottom:"1rem"}} placeholder="Your email address" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
-            )}
-            <div style={{display:"flex",gap:8}}>
-              {!forgotMsg&&<button onClick={async()=>{
-                if(!forgotEmail.includes("@")){setForgotMsg("Please enter a valid email.");return;}
-                setLoading(true);
-                const {supabase}=await import("./supabase.js");
-                const {error}=await supabase.auth.resetPasswordForEmail(forgotEmail,{redirectTo:"https://www.akadimia.co.ke"});
-                setLoading(false);
-                if(error){setForgotMsg("Error: "+error.message);}
-                else{setForgotMsg("Reset link sent! Check your email inbox (including spam).");}
-              }} style={{...s.btnP,flex:1}} disabled={loading}>{loading?"Sending...":"Send Reset Link"}</button>}
-              <button onClick={()=>{setForgotMode(false);setForgotEmail("");setForgotMsg("");}} style={{...s.btnS,flex:1}}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 };
 
 const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"}];
@@ -651,6 +626,31 @@ const DashboardView=({setTab,userName,userField})=>{
           </div>
         </div>
       </div>
+    {forgotMode&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+          <div style={{background:T.bg1,borderRadius:16,width:"100%",maxWidth:420,padding:"2rem",margin:"1rem",border:`1px solid ${T.bd}`}}>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:8}}>Reset Password</div>
+            <div style={{fontSize:12,color:T.t3,marginBottom:"1rem"}}>Enter your email — we'll send a reset link.</div>
+            {forgotMsg?(
+              <div style={{background:rgba(T.green,0.12),border:`1px solid ${rgba(T.green,0.3)}`,color:T.green,borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{forgotMsg}</div>
+            ):(
+              <input style={{...s.input,marginBottom:"1rem"}} placeholder="Your email address" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
+            )}
+            <div style={{display:"flex",gap:8}}>
+              {!forgotMsg&&<button onClick={async()=>{
+                if(!forgotEmail.includes("@")){setForgotMsg("Please enter a valid email.");return;}
+                setLoading(true);
+                const {supabase}=await import("./supabase.js");
+                const {error}=await supabase.auth.resetPasswordForEmail(forgotEmail,{redirectTo:"https://www.akadimia.co.ke"});
+                setLoading(false);
+                if(error){setForgotMsg("Error: "+error.message);}
+                else{setForgotMsg("Reset link sent! Check your email inbox (including spam).");}
+              }} style={{...s.btnP,flex:1}} disabled={loading}>{loading?"Sending...":"Send Reset Link"}</button>}
+              <button onClick={()=>{setForgotMode(false);setForgotEmail("");setForgotMsg("");}} style={{...s.btnS,flex:1}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2243,7 +2243,7 @@ export default function App(){
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
         ):(
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
-            <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={()=>{setAuthed(false);setTab("dashboard");}}/>
+            <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={setThemeId}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
