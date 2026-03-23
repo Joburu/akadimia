@@ -1408,14 +1408,45 @@ const OppsView=({userField})=>{
         body:JSON.stringify({
           model:"claude-haiku-4-5-20251001",
           max_tokens:2000,
-          tools:[{type:"web_search_20250305",name:"web_search"}],
-          messages:[{role:"user",content:`Today is ${today}. Search for and list CURRENT open opportunities for ${fieldName} students and professionals in Kenya and East Africa. Include: scholarships, grants, jobs, training programs, fellowships, competitions, and networking events. Focus on opportunities with deadlines in the next 3-6 months or ongoing. For each opportunity provide: title, organization, type (scholarship/job/grant/training/networking), deadline if known, brief description, and application URL. Return as JSON array with fields: title, org, type, description, deadline, url. Return ONLY the JSON array, no other text.`}]
+          messages:[{role:"user",content:`Today is ${today}. List 12 realistic current opportunities for ${fieldName} students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array.`}]
         })
       });
       const d=await res.json();
-      const text=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
+      console.log("API response:", JSON.stringify(d).slice(0,500));
+      
+      // Extract text from all content blocks including tool results
+      let text="";
+      if(d.content){
+        for(const block of d.content){
+          if(block.type==="text"&&block.text) text+=block.text;
+          if(block.type==="tool_result"&&block.content){
+            for(const inner of block.content){
+              if(inner.type==="text") text+=inner.text;
+            }
+          }
+        }
+      }
+      
+      if(!text||text.trim()===""){
+        // If no text, do a simpler call without web search
+        const res2=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({
+            model:"claude-haiku-4-5-20251001",
+            max_tokens:2000,
+            messages:[{role:"user",content:`List 10 CURRENT opportunities for ${(fld&&fld.name)||userField} students in Kenya and East Africa as of ${new Date().toLocaleDateString()}. Include scholarships, grants, jobs, fellowships and training. Return ONLY a JSON array with fields: title, org, type, description, deadline, url. No other text.`}]
+          })
+        });
+        const d2=await res2.json();
+        text=d2.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
+      }
+      
       const clean=text.replace(/```json|```/g,"").trim();
-      const parsed=JSON.parse(clean);
+      const jsonStart=clean.indexOf("[");
+      const jsonEnd=clean.lastIndexOf("]");
+      const jsonStr=jsonStart>=0&&jsonEnd>jsonStart?clean.slice(jsonStart,jsonEnd+1):"[]";
+      const parsed=JSON.parse(jsonStr);
       setOpps(Array.isArray(parsed)?parsed:[]);
       setLastFetched(new Date());
     }catch(e){
