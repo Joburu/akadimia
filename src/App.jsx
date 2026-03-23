@@ -626,13 +626,13 @@ const DashboardView=({setTab,userName,userField})=>{
           </div>
         </div>
       </div>
-    {forgotMode&&(
+      {forgotMode&&(
         <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
-          <div style={{background:T.bg1,borderRadius:16,width:"100%",maxWidth:420,padding:"2rem",margin:"1rem",border:`1px solid ${T.bd}`}}>
-            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:8}}>Reset Password</div>
-            <div style={{fontSize:12,color:T.t3,marginBottom:"1rem"}}>Enter your email — we'll send a reset link.</div>
+          <div style={{background:"#1a1f2e",borderRadius:16,width:"100%",maxWidth:420,padding:"2rem",margin:"1rem",border:"1px solid #2a3040"}}>
+            <div style={{fontSize:16,fontWeight:700,color:"#ffffff",marginBottom:8}}>Reset Password</div>
+            <div style={{fontSize:12,color:"#888",marginBottom:"1rem"}}>Enter your email and we will send a reset link.</div>
             {forgotMsg?(
-              <div style={{background:rgba(T.green,0.12),border:`1px solid ${rgba(T.green,0.3)}`,color:T.green,borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{forgotMsg}</div>
+              <div style={{background:"rgba(34,197,94,0.12)",border:"1px solid rgba(34,197,94,0.3)",color:"#22c55e",borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:"1rem"}}>{forgotMsg}</div>
             ):(
               <input style={{...s.input,marginBottom:"1rem"}} placeholder="Your email address" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)}/>
             )}
@@ -644,7 +644,7 @@ const DashboardView=({setTab,userName,userField})=>{
                 const {error}=await supabase.auth.resetPasswordForEmail(forgotEmail,{redirectTo:"https://www.akadimia.co.ke"});
                 setLoading(false);
                 if(error){setForgotMsg("Error: "+error.message);}
-                else{setForgotMsg("Reset link sent! Check your email inbox (including spam).");}
+                else{setForgotMsg("Reset link sent! Check your inbox.");}
               }} style={{...s.btnP,flex:1}} disabled={loading}>{loading?"Sending...":"Send Reset Link"}</button>}
               <button onClick={()=>{setForgotMode(false);setForgotEmail("");setForgotMsg("");}} style={{...s.btnS,flex:1}}>Close</button>
             </div>
