@@ -2324,7 +2324,10 @@ export default function App(){
   const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState("en"),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
-  const [tab,setTab]=useState("dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
+  const [tab,setTab]=useState(()=>localStorage.getItem("ak_tab")||"dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
+  const origSetTab=setTab;
+  const persistTab=(t)=>{localStorage.setItem("ak_tab",t);origSetTab(t);};
+  Object.defineProperty(window,"__setTab",{value:persistTab,writable:true});
   const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
   useEffect(()=>{loadFonts();},[]);
   const [resetMode,setResetMode]=useState(false);
@@ -2414,19 +2417,19 @@ export default function App(){
   };
   const T=THEMES[themeId];
   const VIEWS={
-    dashboard:<DashboardView setTab={setTab} userName={userName} userField={userField}/>,
+    dashboard:<DashboardView setTab={persistTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
     exams:<ExamsView userField={userField}/>,
     assignments:<AssignmentsView userField={userField} role={role}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
-    calendar:<CalendarView setTab={setTab}/>,
+    calendar:<CalendarView setTab={persistTab}/>,
     meetings:<MeetingsView/>,
     opps:<OppsView userField={userField}/>,
     analytics:<AnalyticsView userField={userField}/>,
     tools:<ToolsView userField={userField}/>,
     transcript:<TranscriptView userField={userField}/>,
-    peers:<PeersView setTab={setTab} userField={userField}/>,
+    peers:<PeersView setTab={persistTab} userField={userField}/>,
     classroom:<ClassroomView userField={userField}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
@@ -2461,7 +2464,7 @@ export default function App(){
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
         ):(
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
-            <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
+            <Sidebar tab={tab} setTab={persistTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
