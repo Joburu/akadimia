@@ -353,6 +353,7 @@ const FieldSelector=({selected,onSelect})=>{
 const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThemeId})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [tab,setTab]=useState("login"),[step,setStep]=useState(1),[loading,setLoading]=useState(false),[authErr,setAuthErr]=useState(""),[forgotMode,setForgotMode]=useState(false),[forgotEmail,setForgotEmail]=useState(""),[forgotMsg,setForgotMsg]=useState("");
+  const [yearLvl,setYearLvl]=useState(""),[progLevel,setProgLevel]=useState("undergraduate");
   const [email,setEmail]=useState(""),[pass,setPass]=useState(""),[cpass,setCpass]=useState("");
   const [name,setName]=useState(""),[sid,setSid]=useState(""),[role,setRole]=useState("student");
   const [field,setField]=useState("actuarial"),[err,setErr]=useState(""),[done,setDone]=useState(false);
@@ -450,6 +451,29 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
                 <div><label style={s.lbl}>FULL NAME</label><input style={s.input} placeholder="e.g. David Kamau" value={name} onChange={e=>setName(e.target.value)}/></div>
                 <div><label style={s.lbl}>STUDENT / STAFF ID</label><input style={s.input} placeholder="BUC/XXX/2026/001" value={sid} onChange={e=>setSid(e.target.value)}/></div>
               </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"0.75rem"}}>
+                <div><label style={s.lbl}>YEAR / LEVEL</label>
+                  <select style={s.input} value={yearLvl} onChange={e=>setYearLvl(e.target.value)}>
+                    <option value="">Select year...</option>
+                    <option value="Year 1">Year 1</option>
+                    <option value="Year 2">Year 2</option>
+                    <option value="Year 3">Year 3</option>
+                    <option value="Year 4">Year 4</option>
+                    <option value="Masters Sem 1">Masters Sem 1</option>
+                    <option value="Masters Sem 2">Masters Sem 2</option>
+                    <option value="PhD Year 1">PhD Year 1</option>
+                    <option value="PhD Year 2">PhD Year 2</option>
+                    <option value="PhD Year 3+">PhD Year 3+</option>
+                  </select>
+                </div>
+                <div><label style={s.lbl}>PROGRAMME LEVEL</label>
+                  <select style={s.input} value={progLevel} onChange={e=>setProgLevel(e.target.value)}>
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="masters">Masters</option>
+                    <option value="phd">PhD</option>
+                  </select>
+                </div>
+              </div>
               <div style={{marginBottom:"0.75rem"}}>
                 <label style={s.lbl}>INSTITUTIONAL EMAIL</label>
                 <input style={s.input} type="email" placeholder="you@student.buc.edu.ke" value={email} onChange={e=>setEmail(e.target.value)}/>
@@ -475,7 +499,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
                 <button onClick={()=>setStep(1)} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>Back</button>
               </div>
               <FieldSelector selected={field} onSelect={setField}/>
-              <button onClick={async()=>{if(onRealSignUp){setLoading(true);setErr("");const e=await onRealSignUp(email,pass,{full_name:name,student_id:sid,role,field});setLoading(false);if(e){setErr(e);}else{setDone(true);}}else{setDone(true);}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginTop:"1rem"}} disabled={loading}>{loading?"Submitting...":"Submit Registration →"}</button>
+              <button onClick={async()=>{if(onRealSignUp){setLoading(true);setErr("");const e=await onRealSignUp(email,pass,{full_name:name,student_id:sid,role,field,year_level:yearLvl,programme_level:progLevel});setLoading(false);if(e){setErr(e);}else{setDone(true);}}else{setDone(true);}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginTop:"1rem"}} disabled={loading}>{loading?"Submitting...":"Submit Registration →"}</button>
               <p style={{fontSize:11,color:T.t3,textAlign:"center",marginTop:"0.75rem",lineHeight:1.65}}>
                 Registration reviewed by an administrator before activation. Email confirmation sent on approval.
               </p>
@@ -1064,7 +1088,7 @@ const AssignmentsView=({userField,role,userName,userId})=>{
   const [selected,setSelected]=useState(null);
   const [submitting,setSubmitting]=useState(false);
   const [grading,setGrading]=useState(null);
-  const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100});
+  const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});
   const [assignmentFile,setAssignmentFile]=useState(null);
   const assignFileRef=useRef(null);
   const [subComment,setSubComment]=useState("");
@@ -1097,7 +1121,18 @@ const AssignmentsView=({userField,role,userName,userId})=>{
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
     await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
-    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100});setAssignmentFile(null);
+    // Notify relevant students by email
+    try{
+      const query=supabase.from("profiles").select("*").eq("status","approved").eq("role","student").eq("field",userField);
+      const {data:students}=newA.target_year==="all"?await query:await query.eq("year_level",newA.target_year);
+      if(students&&students.length>0){
+        const {sendAssignmentEmail}=await import("./email.js");
+        for(const st of students){
+          if(st.email) await sendAssignmentEmail(st.email,st.full_name||"Student",{...newA,field:userField});
+        }
+      }
+    }catch(e){console.error("Email error:",e);}
+    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});setAssignmentFile(null);
     load();
   };
 
@@ -1154,6 +1189,21 @@ const AssignmentsView=({userField,role,userName,userId})=>{
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
             <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
             <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}>
+            <label style={s.lbl}>TARGET YEAR GROUP</label>
+            <select style={s.input} value={newA.target_year} onChange={e=>setNewA({...newA,target_year:e.target.value})}>
+              <option value="all">All Students (All Years)</option>
+              <option value="Year 1">Year 1 Only</option>
+              <option value="Year 2">Year 2 Only</option>
+              <option value="Year 3">Year 3 Only</option>
+              <option value="Year 4">Year 4 Only</option>
+              <option value="Masters Sem 1">Masters Sem 1</option>
+              <option value="Masters Sem 2">Masters Sem 2</option>
+              <option value="PhD Year 1">PhD Year 1</option>
+              <option value="PhD Year 2">PhD Year 2</option>
+              <option value="PhD Year 3+">PhD Year 3+</option>
+            </select>
           </div>
           <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION / INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
           <div style={{marginBottom:"1rem"}}>
