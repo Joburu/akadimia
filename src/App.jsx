@@ -2554,7 +2554,7 @@ export default function App(){
     dashboard:<DashboardView setTab={persistTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
     exams:<ExamsView userField={userField}/>,
-    assignments:<AssignmentsView userField={userField} role={role}/>,
+    assignments:<AssignmentsView userField={userField} role={role} userName={userName}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
     calendar:<CalendarView setTab={persistTab}/>,
