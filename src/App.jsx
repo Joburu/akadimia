@@ -16,6 +16,10 @@ const THEMES={
   forest:{id:"forest",name:"Msitu Forest",emoji:"🌿",bg0:"#030D07",bg1:"#061209",bg2:"#08180C",bg3:"#0B1F10",bg4:"#0E2715",bg5:"#12301B",ac:"#4ADE80",acL:"#86EFAC",blue:"#60A5FA",teal:"#2DD4BF",purple:"#C084FC",red:"#F87171",green:"#4ADE80",amber:"#FCD34D",cyan:"#22D3EE",t1:"#F0FDF4",t2:"#6EE7B7",t3:"#1B5E3B",bd:"#0D2E16"},
   dusk:{id:"dusk",name:"Usiku Dusk",emoji:"🌙",bg0:"#07030F",bg1:"#0D0618",bg2:"#120821",bg3:"#180A2C",bg4:"#1E0C38",bg5:"#260E46",ac:"#A855F7",acL:"#C084FC",blue:"#60A5FA",teal:"#2DD4BF",purple:"#EC4899",red:"#F87171",green:"#34D399",amber:"#FCD34D",cyan:"#22D3EE",t1:"#F5F0FF",t2:"#9F7ECA",t3:"#4B3075",bd:"#220C42"},
   ocean:{id:"ocean",name:"Bahari Ocean",emoji:"🐋",bg0:"#030B12",bg1:"#061119",bg2:"#091822",bg3:"#0D1F2D",bg4:"#112638",bg5:"#152E43",ac:"#06B6D4",acL:"#22D3EE",blue:"#3B82F6",teal:"#0D9488",purple:"#7C3AED",red:"#F87171",green:"#22C55E",amber:"#FCD34D",cyan:"#67E8F9",t1:"#E0F7FA",t2:"#7CB9C8",t3:"#1C4A5A",bd:"#0E2435"},
+  light:{id:"light",name:"Pearl White",emoji:"☀️",bg0:"#F8F9FC",bg1:"#FFFFFF",bg2:"#F1F3F9",bg3:"#E8ECF4",bg4:"#DDE3EF",bg5:"#D0D8EB",ac:"#2563EB",acL:"#3B82F6",blue:"#1D4ED8",teal:"#0D9488",purple:"#7C3AED",red:"#DC2626",green:"#16A34A",amber:"#D97706",cyan:"#0891B2",t1:"#0F172A",t2:"#475569",t3:"#94A3B8",bd:"#CBD5E1"},
+  rose:{id:"rose",name:"Rose Gold",emoji:"🌸",bg0:"#1A0A0F",bg1:"#240D15",bg2:"#2E101B",bg3:"#3A1422",bg4:"#46192A",bg5:"#531E33",ac:"#FB7185",acL:"#FDA4AF",blue:"#60A5FA",teal:"#2DD4BF",purple:"#C084FC",red:"#F43F5E",green:"#4ADE80",amber:"#FCD34D",cyan:"#22D3EE",t1:"#FFF1F2",t2:"#FCA5A5",t3:"#7F1D1D",bd:"#4C1524"},
+  slate:{id:"slate",name:"Arctic Slate",emoji:"❄️",bg0:"#0C1222",bg1:"#111827",bg2:"#1F2937",bg3:"#374151",bg4:"#4B5563",bg5:"#6B7280",ac:"#38BDF8",acL:"#7DD3FC",blue:"#3B82F6",teal:"#14B8A6",purple:"#8B5CF6",red:"#EF4444",green:"#22C55E",amber:"#F59E0B",cyan:"#06B6D4",t1:"#F9FAFB",t2:"#9CA3AF",t3:"#4B5563",bd:"#374151"},
+  emerald:{id:"emerald",name:"Emerald City",emoji:"💚",bg0:"#021207",bg1:"#03180A",bg2:"#041F0D",bg3:"#062910",bg4:"#083314",bg5:"#0A3E18",ac:"#10B981",acL:"#34D399",blue:"#60A5FA",teal:"#2DD4BF",purple:"#A78BFA",red:"#F87171",green:"#10B981",amber:"#FCD34D",cyan:"#22D3EE",t1:"#ECFDF5",t2:"#6EE7B7",t3:"#065F46",bd:"#064E3B"},
 };
 
 const LANGS={en:{flag:"🇬🇧",name:"English"},sw:{flag:"🇰🇪",name:"Kiswahili"},luo:{flag:"🫙",name:"Dholuo"},kik:{flag:"🏔",name:"Gikuyu"},luh:{flag:"🌾",name:"Luhya"},kal:{flag:"⛰",name:"Kalenjin"},som:{flag:"🌙",name:"Af Soomaali"}};
@@ -428,9 +432,9 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
               </div>
               <div style={{marginBottom:"1.4rem"}}>
                 <label style={s.lbl}>PASSWORD</label>
-                <input style={s.input} type="password" placeholder="..." value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&onLogin("student","actuarial","David Kamau")}/>
+                <input style={s.input} type="password" placeholder="..." value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&onRealLogin&&email&&pass){setLoading(true);setAuthErr("");onRealLogin(email,pass).then(err=>{setLoading(false);if(err)setAuthErr(err);});}}}/>
               </div>
-              <button onClick={async()=>{if(onRealLogin&&email&&pass){setLoading(true);setAuthErr("");const err=await onRealLogin(email,pass);setLoading(false);if(err)setAuthErr(err);}else{onLogin("student","actuarial","David Kamau");}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
+              <button onClick={async()=>{if(onRealLogin&&email&&pass){setLoading(true);setAuthErr("");const err=await onRealLogin(email,pass);setLoading(false);if(err)setAuthErr(err);}else{setAuthErr("Please enter your email and password.");}}} style={{...s.btnP,width:"100%",padding:"12px",fontSize:14,borderRadius:10,marginBottom:14}}>
                 {t("signIn")} →
               </button>
 
@@ -2091,26 +2095,38 @@ const AdminView=()=>{
   useEffect(()=>{loadUsers();},[]);
 
   const approve=async(id)=>{
+    const user=pending.find(u=>u.id===id);
+    // Update UI immediately
+    setPending(p=>p.filter(u=>u.id!==id));
+    if(user) setApproved(a=>[{...user,status:"approved"},...a]);
+    // Update database
     const {supabase}=await import("./supabase.js");
     await supabase.from("profiles").update({status:"approved"}).eq("id",id);
-    const user=pending.find(u=>u.id===id);
+    // Send email
     if(user&&user.email){
-      const {sendApprovalEmail}=await import("./email.js");
-      const field=(FIELDS[user.field]&&FIELDS[user.field].name)||user.field||"your field";
-      await sendApprovalEmail(user.email,user.full_name||"Student",field);
+      try{
+        const {sendApprovalEmail}=await import("./email.js");
+        const field=(FIELDS[user.field]&&FIELDS[user.field].name)||user.field||"your field";
+        await sendApprovalEmail(user.email,user.full_name||"Student",field);
+      }catch(e){console.error("Email error:",e);}
     }
-    loadUsers();
   };
 
   const reject=async(id)=>{
+    const user=pending.find(u=>u.id===id);
+    // Update UI immediately
+    setPending(p=>p.filter(u=>u.id!==id));
+    if(user) setRejected(r=>[{...user,status:"rejected"},...r]);
+    // Update database
     const {supabase}=await import("./supabase.js");
     await supabase.from("profiles").update({status:"rejected"}).eq("id",id);
-    const user=pending.find(u=>u.id===id);
+    // Send email
     if(user&&user.email){
-      const {sendRejectionEmail}=await import("./email.js");
-      await sendRejectionEmail(user.email,user.full_name||"Student");
+      try{
+        const {sendRejectionEmail}=await import("./email.js");
+        await sendRejectionEmail(user.email,user.full_name||"Student");
+      }catch(e){console.error("Email error:",e);}
     }
-    loadUsers();
   };
 
   const changeRole=async(id,role)=>{
@@ -2316,6 +2332,7 @@ export default function App(){
   const [newPass2,setNewPass2]=useState("");
   const [resetMsg,setResetMsg]=useState("");
   const [resetLoading,setResetLoading]=useState(false);
+  const [sessionChecked,setSessionChecked]=useState(false);
 
   useEffect(()=>{
     const init=async()=>{
@@ -2352,6 +2369,7 @@ export default function App(){
         }
       }
 
+      setSessionChecked(true);
       return ()=>subscription.unsubscribe();
     };
     init();
@@ -2397,7 +2415,7 @@ export default function App(){
     <ThemeCtx.Provider value={themeId}>
       <LangCtx.Provider value={lang}>
         <Toast n={toast}/>
-        {resetMode?(
+        {!sessionChecked&&!resetMode?<div style={{minHeight:"100vh",background:"#0d1117"}}/>:resetMode?(
           <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117"}}>
             <div style={{background:"#1a1f2e",borderRadius:16,width:"100%",maxWidth:420,padding:"2rem",margin:"1rem",border:"1px solid #2a3040"}}>
               <div style={{fontFamily:"serif",fontSize:22,fontWeight:700,color:"#fff",marginBottom:4}}>AKADIMIA</div>
