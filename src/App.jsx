@@ -1065,6 +1065,8 @@ const AssignmentsView=({userField,role,userName,userId})=>{
   const [submitting,setSubmitting]=useState(false);
   const [grading,setGrading]=useState(null);
   const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100});
+  const [assignmentFile,setAssignmentFile]=useState(null);
+  const assignFileRef=useRef(null);
   const [subComment,setSubComment]=useState("");
   const [subFile,setSubFile]=useState(null);
   const [gradeFeedback,setGradeFeedback]=useState("");
@@ -1088,8 +1090,14 @@ const AssignmentsView=({userField,role,userName,userId})=>{
     if(!newA.title||!newA.course_code){return;}
     const {supabase}=await import("./supabase.js");
     const {data:{user}}=await supabase.auth.getUser();
-    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id});
-    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100});
+    let fileUrl="";
+    if(assignmentFile){
+      const path=`assignments/${userField}/${Date.now()}_${assignmentFile.name.replace(/\s+/g,"_")}`;
+      const {data:upData}=await supabase.storage.from("course-materials").upload(path,assignmentFile);
+      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+    }
+    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100});setAssignmentFile(null);
     load();
   };
 
@@ -1147,7 +1155,14 @@ const AssignmentsView=({userField,role,userName,userId})=>{
             <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
             <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
           </div>
-          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION / INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION / INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
+          <div style={{marginBottom:"1rem"}}>
+            <label style={s.lbl}>ATTACH ASSIGNMENT FILE (PDF, Word, LaTeX — optional)</label>
+            <div onClick={()=>assignFileRef.current&&assignFileRef.current.click()} style={{border:`2px dashed ${assignmentFile?T.green:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:assignmentFile?T.green:T.t3,fontSize:12}}>
+              {assignmentFile?"✓ "+assignmentFile.name+" ("+(assignmentFile.size/1024/1024).toFixed(1)+"MB)":"Click to attach assignment document"}
+            </div>
+            <input ref={assignFileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.tex,.txt" onChange={e=>setAssignmentFile(e.target.files[0]||null)}/>
+          </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={createAssignment} style={s.btnP}>Create Assignment</button>
             <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
@@ -1180,6 +1195,7 @@ const AssignmentsView=({userField,role,userName,userId})=>{
                       {overdue&&!submitted&&<span style={{background:rgba(T.red,0.15),color:T.red,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>Overdue</span>}
                     </div>
                     {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6,lineHeight:1.6}}>{a.description}</div>}
+                    {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,color:T.ac,marginBottom:6,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:6,padding:"4px 10px",border:`1px solid ${rgba(T.ac,0.3)}`}}>📎 Download Assignment Document</a>}
                     <div style={{fontSize:11,color:T.t3}}>
                       {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short",year:"numeric"})}</span>}
                       <span>Max: {a.max_marks} marks</span>
