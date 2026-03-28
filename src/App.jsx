@@ -1055,68 +1055,202 @@ const ExamsView=({userField})=>{
   );
 };
 
-const AssignmentsView=({userField,role})=>{
-  const T=useT();const t=useLang();const s=sx(T);const [showNew,setShowNew]=useState(false);
-  const fld=FIELDS[userField];const isLec=role==="lecturer"||role==="admin";
-  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
-  const items=[
-    {id:1,title:"Assignment 1 — Fundamentals",course:(courses[0]&&courses[0].code)||"",due:"Mar 25",marks:20,status:"submitted",grade:17,fb:"Good work."},
-    {id:2,title:"Assignment 2 — Applied Analysis",course:(courses[1]&&courses[1].code)||"",due:"Apr 5",marks:25,status:"pending",grade:null,fb:null},
-    {id:3,title:"Research Proposal",course:(courses[2]&&courses[2].code)||"",due:"Apr 15",marks:30,status:"not_started",grade:null,fb:null},
-  ];
+const AssignmentsView=({userField,role,userName,userId})=>{
+  const T=useT();const s=sx(T);
+  const [assignments,setAssignments]=useState([]);
+  const [submissions,setSubmissions]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const [submitting,setSubmitting]=useState(false);
+  const [grading,setGrading]=useState(null);
+  const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100});
+  const [subComment,setSubComment]=useState("");
+  const [subFile,setSubFile]=useState(null);
+  const [gradeFeedback,setGradeFeedback]=useState("");
+  const [gradeMarks,setGradeMarks]=useState("");
+  const fileRef=useRef(null);
+  const isLec=role==="lecturer"||role==="admin";
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false});
+    const {data:subs}=await supabase.from("submissions").select("*").order("submitted_at",{ascending:false});
+    setAssignments(asgn||[]);
+    setSubmissions(subs||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{load();},[userField]);
+
+  const createAssignment=async()=>{
+    if(!newA.title||!newA.course_code){return;}
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id});
+    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100});
+    load();
+  };
+
+  const submitAssignment=async(assignmentId)=>{
+    if(!subFile&&!subComment){return;}
+    setSubmitting(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl="";
+    if(subFile){
+      const path=`submissions/${assignmentId}/${user.id}_${Date.now()}_${subFile.name}`;
+      const {data:upData}=await supabase.storage.from("course-materials").upload(path,subFile);
+      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+    }
+    await supabase.from("submissions").insert({
+      assignment_id:assignmentId,student_id:user.id,student_name:userName,
+      file_url:fileUrl,comment:subComment,status:"submitted"
+    });
+    setSubComment("");setSubFile(null);setSelected(null);
+    load();setSubmitting(false);
+  };
+
+  const gradeSubmission=async(subId)=>{
+    if(!gradeMarks){return;}
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("submissions").update({marks:parseInt(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",subId);
+    setGrading(null);setGradeFeedback("");setGradeMarks("");
+    load();
+  };
+
+  const mySubmission=(aId)=>submissions.find(s=>s.assignment_id===aId&&s.student_name===userName);
+  const asgSubmissions=(aId)=>submissions.filter(s=>s.assignment_id===aId);
+  const isOverdue=(d)=>d&&new Date(d)<new Date();
+
+  if(loading) return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading assignments...</div>;
+
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
         <div>
-          <h1 style={s.h1}>{t("assignments")}</h1>
-          <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Submit, track and review</p>
+          <h1 style={s.h1}>Assignments</h1>
+          <p style={s.sub}>{assignments.length} assignment{assignments.length!==1?"s":""} · {userField}</p>
         </div>
-        {isLec&&<button onClick={()=>setShowNew(!showNew)} style={s.btnP}>+ Issue</button>}
+        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ New Assignment</button>}
       </div>
-      {isLec&&showNew&&(
+
+      {isLec&&showCreate&&(
         <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue New Assignment</div>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create Assignment</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Assignment title"/></div>
-            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
-            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date"/></div>
-            <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" defaultValue="25"/></div>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Risk Theory Problem Set 1" value={newA.title} onChange={e=>setNewA({...newA,title:e.target.value})}/></div>
+            <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} placeholder="e.g. SAC 406" value={newA.course_code} onChange={e=>setNewA({...newA,course_code:e.target.value})}/></div>
           </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Instructions..."/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
+            <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
+          </div>
+          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION / INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
           <div style={{display:"flex",gap:8}}>
-            <button style={s.btnP}>Issue →</button>
-            <button onClick={()=>setShowNew(false)} style={s.btnS}>Cancel</button>
+            <button onClick={createAssignment} style={s.btnP}>Create Assignment</button>
+            <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
           </div>
         </div>
       )}
-      <div style={{display:"grid",gap:10}}>
-        {items.map(a=>{
-          const statusIcon=a.status==="submitted"?"C":a.status==="pending"?"P":"N";
-          const statusBg=a.status==="submitted"?rgba(T.green,0.18):a.status==="pending"?rgba(T.amber,0.18):rgba(T.t3,0.18);
-          return(
-            <div key={a.id} style={s.card}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
-                <div style={{width:44,height:44,background:statusBg,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{statusIcon}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{a.title}</div>
-                  <div style={{fontSize:11,color:T.t3,marginBottom:6}}>{a.course} · Due: {a.due} · {a.marks} marks</div>
-                  {a.grade!==null&&<div style={{fontSize:13,color:T.green}}>Grade: {a.grade}/{a.marks} · {a.fb}</div>}
+
+      {assignments.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>📋</div>
+          <div style={{fontSize:14,color:T.t2,marginBottom:8}}>No assignments yet.</div>
+          {isLec&&<div style={{fontSize:12,color:T.t3}}>Click "+ New Assignment" to create one.</div>}
+        </div>
+      ):(
+        <div style={{display:"grid",gap:12}}>
+          {assignments.map(a=>{
+            const mySub=mySubmission(a.id);
+            const subs=asgSubmissions(a.id);
+            const overdue=isOverdue(a.due_date);
+            const submitted=!!mySub;
+            return(
+              <div key={a.id} style={{...s.card,borderLeft:`3px solid ${submitted?T.green:overdue?T.red:T.ac}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                      <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{a.title}</span>
+                      <span style={{background:rgba(T.ac,0.15),color:T.ac,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>{a.course_code}</span>
+                      {submitted&&<span style={{background:rgba(T.green,0.15),color:T.green,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>✓ Submitted</span>}
+                      {mySub&&mySub.status==="graded"&&<span style={{background:rgba(T.purple,0.15),color:T.purple,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>Graded: {mySub.marks}/{a.max_marks}</span>}
+                      {overdue&&!submitted&&<span style={{background:rgba(T.red,0.15),color:T.red,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>Overdue</span>}
+                    </div>
+                    {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6,lineHeight:1.6}}>{a.description}</div>}
+                    <div style={{fontSize:11,color:T.t3}}>
+                      {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short",year:"numeric"})}</span>}
+                      <span>Max: {a.max_marks} marks</span>
+                      {isLec&&<span style={{marginLeft:12}}>📥 {subs.length} submission{subs.length!==1?"s":""}</span>}
+                    </div>
+                    {mySub&&mySub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:rgba(T.purple,0.1),border:`1px solid ${rgba(T.purple,0.3)}`,borderRadius:8,fontSize:12,color:T.t1}}>💬 Feedback: {mySub.feedback}</div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                    {!isLec&&!submitted&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit →</button>}
+                    {!isLec&&submitted&&mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"5px 12px"}}>View My Submission</a>}
+                    {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={{...s.btnS,fontSize:11}}>View Submissions ({subs.length})</button>}
+                  </div>
                 </div>
-                <div style={{flexShrink:0,display:"flex",gap:8,alignItems:"center"}}>
-                  {a.status==="not_started"&&<button style={{...s.btnP,fontSize:12}}>Start</button>}
-                  {a.status==="pending"&&<button style={{...s.btnP,fontSize:12}}>Submit</button>}
-                  {a.status==="submitted"&&<Pill text="Submitted" color={T.green}/>}
-                  {isLec&&a.status==="submitted"&&<button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>Grade</button>}
-                </div>
+
+                {selected===a.id&&!isLec&&!submitted&&(
+                  <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submit Your Work</div>
+                    <div style={{marginBottom:"0.75rem"}}>
+                      <label style={s.lbl}>UPLOAD FILE (PDF, Word, images)</label>
+                      <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${subFile?T.green:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:subFile?T.green:T.t3,fontSize:12,marginBottom:6}}>
+                        {subFile?"✓ "+subFile.name:"Click to attach file"}
+                      </div>
+                      <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={e=>setSubFile(e.target.files[0]||null)}/>
+                    </div>
+                    <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>COMMENT (optional)</label><textarea style={{...s.input,height:60,resize:"vertical"}} placeholder="Any notes for your lecturer..." value={subComment} onChange={e=>setSubComment(e.target.value)}/></div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={()=>submitAssignment(a.id)} style={s.btnP} disabled={submitting}>{submitting?"Submitting...":"Submit Assignment"}</button>
+                      <button onClick={()=>setSelected(null)} style={s.btnS}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {selected===a.id&&isLec&&subs.length>0&&(
+                  <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submissions ({subs.length})</div>
+                    <div style={{display:"grid",gap:8}}>
+                      {subs.map(sub=>(
+                        <div key={sub.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub.student_name}</div>
+                              <div style={{fontSize:11,color:T.t3}}>{new Date(sub.submitted_at).toLocaleDateString()} · {sub.status}</div>
+                              {sub.comment&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>"{sub.comment}"</div>}
+                              {sub.marks&&<div style={{fontSize:12,color:T.purple,marginTop:4}}>Marks: {sub.marks}/{a.max_marks}</div>}
+                              {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>Feedback: {sub.feedback}</div>}
+                            </div>
+                            <div style={{display:"flex",gap:6,flexShrink:0}}>
+                              {sub.file_url&&<a href={sub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"5px 10px",textDecoration:"none"}}>📄 View</a>}
+                              <button onClick={()=>setGrading(grading===sub.id?null:sub.id)} style={{...s.btnP,fontSize:11,padding:"5px 10px"}}>{sub.status==="graded"?"Re-grade":"Grade"}</button>
+                            </div>
+                          </div>
+                          {grading===sub.id&&(
+                            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"end"}}>
+                              <div><label style={s.lbl}>MARKS /{a.max_marks}</label><input style={s.input} type="number" placeholder="0" value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)}/></div>
+                              <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} placeholder="Comments for student..." value={gradeFeedback} onChange={e=>setGradeFeedback(e.target.value)}/></div>
+                              <button onClick={()=>gradeSubmission(sub.id)} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Save</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
-
 const ResearchView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [mode,setMode]=useState("list"),[checking,setCk]=useState(false),[res,setRes]=useState(null);
