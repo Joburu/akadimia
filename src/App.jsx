@@ -549,7 +549,7 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
         {nav.map(item=>{
           const active=tab===item.id;
           return(
-            <button key={item.id} onClick={()=>setTabPersist(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,border:"none",marginBottom:1,background:active?`linear-gradient(135deg,${rgba(T.ac,0.18)},${rgba(T.ac,0.07)})`:"transparent",color:active?T.ac:T.t2,fontSize:12,fontWeight:active?600:400,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",borderLeft:active?`2px solid ${T.ac}`:"2px solid transparent",transition:"all 0.15s"}}>
+            <button key={item.id} onClick={()=>setTab(item.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:8,border:"none",marginBottom:1,background:active?`linear-gradient(135deg,${rgba(T.ac,0.18)},${rgba(T.ac,0.07)})`:"transparent",color:active?T.ac:T.t2,fontSize:12,fontWeight:active?600:400,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",borderLeft:active?`2px solid ${T.ac}`:"2px solid transparent",transition:"all 0.15s"}}>
               <span style={{fontSize:14,flexShrink:0}}>{item.icon}</span>
               {open&&<span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{L[item.id]||item.id}</span>}
             </button>
@@ -669,7 +669,7 @@ const DashboardView=({setTab,userName,userField})=>{
           <div style={s.acCard}>
             <div style={{fontSize:10,color:T.ac,letterSpacing:0.8,marginBottom:6}}>AI SUGGESTION</div>
             <p style={{fontSize:12,color:T.t1,lineHeight:1.65,margin:"0 0 10px"}}>Consider joining <strong style={{color:T.ac}}>{(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies)[0]||fld.name+" body"}</strong> this semester.</p>
-            <button onClick={()=>setTabPersist("transcript")} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View Career Plan</button>
+            <button onClick={()=>setTab("transcript")} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View Career Plan</button>
           </div>
         </div>
       </div>
@@ -1329,7 +1329,7 @@ const CalendarView=({setTab})=>{
                   </div>
                 </div>
               ))}
-              {evOn(sel).some(e=>e.type==="meeting")&&<button onClick={()=>setTabPersist("meetings")} style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Join Meeting</button>}
+              {evOn(sel).some(e=>e.type==="meeting")&&<button onClick={()=>setTab("meetings")} style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Join Meeting</button>}
             </div>
           ):<div style={s.card}><div style={{fontSize:12,color:T.t2}}>Click a date to see events.</div></div>}
           <div style={s.card}>
@@ -1886,7 +1886,7 @@ const PeersView=({setTab,userField})=>{
           <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:4}}>AI Peer Match</div>
           <div style={{fontSize:12,color:T.t1,lineHeight:1.6}}>Amara Osei (Rank #1) is your top recommended peer. Akinyi needs help with Statistics — you can mentor her and earn peer-teaching recognition.</div>
         </div>
-        <button onClick={()=>setTabPersist("meetings")} style={{...s.btnP,flexShrink:0}}>Schedule Session</button>
+        <button onClick={()=>setTab("meetings")} style={{...s.btnP,flexShrink:0}}>Schedule Session</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
         {peers.map((p,i)=>(
@@ -1913,7 +1913,7 @@ const PeersView=({setTab,userField})=>{
             )}
             <div style={{display:"flex",gap:8}}>
               <button style={{...s.btnS,flex:1,fontSize:11,padding:"6px"}}>Message</button>
-              <button onClick={()=>setTabPersist("meetings")} style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Meet</button>
+              <button onClick={()=>setTab("meetings")} style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Meet</button>
             </div>
           </div>
         ))}
@@ -2414,19 +2414,19 @@ export default function App(){
   };
   const T=THEMES[themeId];
   const VIEWS={
-    dashboard:<DashboardView setTab={setTabPersist} userName={userName} userField={userField}/>,
+    dashboard:<DashboardView setTab={setTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
     exams:<ExamsView userField={userField}/>,
     assignments:<AssignmentsView userField={userField} role={role}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
-    calendar:<CalendarView setTab={setTabPersist}/>,
+    calendar:<CalendarView setTab={setTab}/>,
     meetings:<MeetingsView/>,
     opps:<OppsView userField={userField}/>,
     analytics:<AnalyticsView userField={userField}/>,
     tools:<ToolsView userField={userField}/>,
     transcript:<TranscriptView userField={userField}/>,
-    peers:<PeersView setTab={setTabPersist} userField={userField}/>,
+    peers:<PeersView setTab={setTab} userField={userField}/>,
     classroom:<ClassroomView userField={userField}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
@@ -2461,7 +2461,7 @@ export default function App(){
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
         ):(
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
-            <Sidebar tab={tab} setTab={setTabPersist} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
+            <Sidebar tab={tab} setTab={setTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
