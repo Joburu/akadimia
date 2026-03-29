@@ -1546,8 +1546,8 @@ Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`
       const parsed=JSON.parse(clean.slice(jsonStart,jsonEnd+1));
       setResult(parsed);
     }catch(e){
-      setError("Analysis failed. Please try again.");
-      console.error(e);
+      setError("Analysis failed: "+e.message+". Please try again.");
+      console.error("Research analysis error:",e);
     }
     setLoading(false);
   };
