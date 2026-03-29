@@ -1492,48 +1492,246 @@ const AssignmentsView=({userField,role,userName,userId})=>{
   );
 };
 const ResearchView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);
-  const [mode,setMode]=useState("list"),[checking,setCk]=useState(false),[res,setRes]=useState(null);
-  const fld=FIELDS[userField];
-  const items=[
-    {id:1,title:"Applied Research in "+(fld&&fld.name),author:"Student A",type:"Undergraduate",status:"Under Review",sim:8,ai:4},
-    {id:2,title:"Emerging Trends — African Context",author:"Student B",type:"Masters",status:"Approved",sim:12,ai:7},
-    {id:3,title:"Longitudinal Study",author:"Dr. Researcher",type:"PhD",status:"Revisions",sim:19,ai:3},
-  ];
-  const run=()=>{setCk(true);setRes(null);setTimeout(()=>{setCk(false);setRes({sim:Math.floor(Math.random()*14)+3,ai:Math.floor(Math.random()*9)+2,words:8420,pages:42});},3000);};
-  const modeBtns=[["list","Submissions"],["submit","New Submission"],["check","Plagiarism Check"]];
+  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
+  const [mode,setMode]=useState("check");
+  const [file,setFile]=useState(null);
+  const [text,setText]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [result,setResult]=useState(null);
+  const [error,setError]=useState("");
+  const fileRef=useRef(null);
+  const modeBtns=[{id:"check",label:"Plagiarism & AI Check"},{id:"submit",label:"Submit Research"},{id:"library",label:"Research Library"}];
+
+  const analyzeText=async(content)=>{
+    setLoading(true);setError("");setResult(null);
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:2000,
+          messages:[{role:"user",content:`You are an expert academic integrity analyst with the accuracy of Turnitin and GPTZero combined. Analyze the following academic text and provide a detailed assessment.
+
+TEXT TO ANALYZE:
+"""
+${content.slice(0,8000)}
+"""
+
+Provide your analysis as a JSON object with these exact fields:
+{
+  "similarity_index": <number 0-100, estimated plagiarism similarity percentage>,
+  "ai_content_percentage": <number 0-100, percentage likely AI-generated>,
+  "human_content_percentage": <number 0-100, percentage likely human-written>,
+  "word_count": <number>,
+  "sentence_count": <number>,
+  "readability_score": <number 0-100, Flesch reading ease>,
+  "readability_label": <"Very Easy"|"Easy"|"Fairly Easy"|"Standard"|"Fairly Difficult"|"Difficult"|"Very Difficult">,
+  "ai_indicators": [<list of specific phrases or patterns that suggest AI generation>],
+  "originality_indicators": [<list of specific phrases or patterns that suggest human/original writing>],
+  "suspicious_sections": [<list of sentences that may be copied or AI-generated>],
+  "overall_verdict": <"Likely Original"|"Possibly AI-Assisted"|"Likely AI-Generated"|"Potentially Plagiarized">,
+  "confidence": <number 0-100>,
+  "recommendations": [<list of specific actionable improvements>],
+  "summary": <2-3 sentence overall assessment>
+}
+
+Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`}]
+        })
+      });
+      const d=await res.json();
+      const txt=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
+      const clean=txt.replace(/```json|```/g,"").trim();
+      const jsonStart=clean.indexOf("{");const jsonEnd=clean.lastIndexOf("}");
+      const parsed=JSON.parse(clean.slice(jsonStart,jsonEnd+1));
+      setResult(parsed);
+    }catch(e){
+      setError("Analysis failed. Please try again.");
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  const handleFile=async(f)=>{
+    setFile(f);
+    if(f.type==="text/plain"){
+      const reader=new FileReader();
+      reader.onload=e=>setText(e.target.result);
+      reader.readAsText(f);
+    } else {
+      setText(`[File uploaded: ${f.name} — paste text below for analysis or use the text area]`);
+    }
+  };
+
+  const verdictColor=(v)=>{
+    if(v==="Likely Original") return T.green;
+    if(v==="Possibly AI-Assisted") return T.amber;
+    if(v==="Likely AI-Generated"||v==="Potentially Plagiarized") return T.red;
+    return T.t2;
+  };
+
+  const ScoreRing=({value,label,color})=>(
+    <div style={{textAlign:"center",padding:"1rem"}}>
+      <div style={{position:"relative",width:80,height:80,margin:"0 auto 8px"}}>
+        <svg viewBox="0 0 80 80" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="40" cy="40" r="32" fill="none" stroke={T.bg3} strokeWidth="8"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke={color} strokeWidth="8"
+            strokeDasharray={`${2*Math.PI*32}`}
+            strokeDashoffset={`${2*Math.PI*32*(1-value/100)}`}
+            strokeLinecap="round"/>
+        </svg>
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:16,fontWeight:700,color}}>{value}%</div>
+      </div>
+      <div style={{fontSize:11,color:T.t2,fontWeight:500}}>{label}</div>
+    </div>
+  );
+
   return(
     <div>
       <h1 style={s.h1}>{t("research")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Submit · Evaluate · Plagiarism and AI detection</p>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Plagiarism detection · AI content analysis · Academic integrity</p>
       <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
         {modeBtns.map(mb=>(
-          <button key={mb[0]} onClick={()=>setMode(mb[0])} style={{...(mode===mb[0]?s.btnP:s.btnS),fontSize:12,padding:"8px 16px"}}>{mb[1]}</button>
+          <button key={mb.id} onClick={()=>setMode(mb.id)} style={{...(mode===mb.id?s.btnP:s.btnS),fontSize:12}}>{mb.label}</button>
         ))}
       </div>
-      {mode==="list"&&(
-        <div style={{display:"grid",gap:10}}>
-          {items.map(r=>(
-            <div key={r.id} style={s.card}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-                <div>
-                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{r.title}</div>
-                  <div style={{fontSize:12,color:T.t3}}>{r.author} · {r.type}</div>
-                </div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <Pill text={r.status} color={r.status==="Approved"?T.green:r.status==="Revisions"?T.amber:T.blue}/>
-                  <Pill text={"Sim: "+r.sim+"%"} color={r.sim<20?T.green:T.red}/>
-                  <Pill text={"AI: "+r.ai+"%"} color={r.ai<15?T.green:T.amber}/>
-                </div>
+
+      {mode==="check"&&(
+        <div>
+          {!result&&!loading&&(
+            <div style={s.card}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload or Paste Your Text</div>
+              <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${file?T.green:T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",cursor:"pointer",color:file?T.green:T.t3,marginBottom:"1rem",fontSize:12,transition:"all 0.2s"}}>
+                {file?(
+                  <div>
+                    <div style={{fontSize:24,marginBottom:4}}>✓</div>
+                    <div style={{fontWeight:500}}>{file.name}</div>
+                    <div style={{fontSize:11,marginTop:4}}>({(file.size/1024).toFixed(0)} KB)</div>
+                  </div>
+                ):(
+                  <div>
+                    <div style={{fontSize:32,marginBottom:8}}>📄</div>
+                    <div style={{fontWeight:500,marginBottom:4}}>Click to upload PDF, DOCX, or TXT</div>
+                    <div style={{fontSize:11}}>Max 10MB — or paste text below</div>
+                  </div>
+                )}
               </div>
-              <div style={{display:"flex",gap:8,marginTop:"0.75rem"}}>
-                <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View</button>
-                <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>Comments</button>
+              <input ref={fileRef} type="file" style={{display:"none"}} accept=".txt,.pdf,.doc,.docx" onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/>
+              <div style={{marginBottom:"1rem"}}>
+                <label style={s.lbl}>PASTE TEXT FOR ANALYSIS</label>
+                <textarea style={{...s.input,height:160,resize:"vertical",fontSize:12,lineHeight:1.6}} placeholder="Paste your essay, research paper, or any academic text here..." value={text} onChange={e=>setText(e.target.value)}/>
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <button onClick={()=>text.trim().length>50?analyzeText(text):setError("Please provide at least 50 characters of text to analyze.")} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={loading||!text.trim()}>
+                  {loading?"Analyzing...":"🔍 Analyze Text"}
+                </button>
+                <span style={{fontSize:11,color:T.t3}}>Powered by Claude AI · Results in 10-20 seconds</span>
+              </div>
+              {error&&<div style={{marginTop:8,fontSize:12,color:T.red}}>{error}</div>}
+            </div>
+          )}
+
+          {loading&&(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:40,marginBottom:16}}>🔍</div>
+              <div style={{fontSize:16,fontWeight:600,color:T.t1,marginBottom:8}}>Analyzing your text...</div>
+              <div style={{fontSize:12,color:T.t3,marginBottom:"1.5rem"}}>Checking for plagiarism patterns, AI indicators, and readability</div>
+              <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+                {["Scanning for similarity","Detecting AI patterns","Measuring readability","Generating report"].map((s,i)=>(
+                  <div key={i} style={{background:T.bg3,borderRadius:20,padding:"4px 12px",fontSize:11,color:T.t2}}>⟳ {s}</div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {result&&!loading&&(
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+                <h2 style={{...s.h1,marginBottom:0}}>Analysis Report</h2>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setResult(null);setFile(null);setText("");}} style={s.btnS}>New Analysis</button>
+                </div>
+              </div>
+
+              <div style={{...s.card,borderLeft:`4px solid ${verdictColor(result.overall_verdict)}`,marginBottom:"1rem"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+                  <div>
+                    <div style={{fontSize:11,color:T.t3,marginBottom:4}}>OVERALL VERDICT</div>
+                    <div style={{fontSize:20,fontWeight:700,color:verdictColor(result.overall_verdict)}}>{result.overall_verdict}</div>
+                    <div style={{fontSize:12,color:T.t2,marginTop:4}}>{result.summary}</div>
+                  </div>
+                  <div style={{background:T.bg3,borderRadius:8,padding:"8px 16px",textAlign:"center"}}>
+                    <div style={{fontSize:11,color:T.t3}}>CONFIDENCE</div>
+                    <div style={{fontSize:22,fontWeight:700,color:T.ac}}>{result.confidence}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1rem"}}>
+                <div style={s.card}>
+                  <ScoreRing value={result.similarity_index} label="Similarity Index" color={result.similarity_index>30?T.red:result.similarity_index>15?T.amber:T.green}/>
+                </div>
+                <div style={s.card}>
+                  <ScoreRing value={result.ai_content_percentage} label="AI Content" color={result.ai_content_percentage>50?T.red:result.ai_content_percentage>25?T.amber:T.green}/>
+                </div>
+                <div style={s.card}>
+                  <ScoreRing value={result.human_content_percentage} label="Human Written" color={result.human_content_percentage>70?T.green:result.human_content_percentage>50?T.amber:T.red}/>
+                </div>
+                <div style={s.card}>
+                  <ScoreRing value={result.readability_score} label={result.readability_label||"Readability"} color={T.blue}/>
+                </div>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+                <div style={s.card}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Document Stats</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    {[["Words",result.word_count],["Sentences",result.sentence_count]].map(([k,v])=>(
+                      <div key={k} style={{background:T.bg3,borderRadius:6,padding:"8px 10px"}}>
+                        <div style={{fontSize:10,color:T.t3}}>{k.toUpperCase()}</div>
+                        <div style={{fontSize:16,fontWeight:600,color:T.t1}}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={s.card}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Recommendations</div>
+                  <div style={{display:"grid",gap:6}}>
+                    {(result.recommendations||[]).slice(0,3).map((r,i)=>(
+                      <div key={i} style={{fontSize:11,color:T.t2,display:"flex",gap:6}}>
+                        <span style={{color:T.ac,flexShrink:0}}>→</span>{r}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {result.suspicious_sections&&result.suspicious_sections.length>0&&(
+                <div style={{...s.card,marginBottom:"1rem"}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.red,marginBottom:8}}>⚠ Flagged Sections</div>
+                  <div style={{display:"grid",gap:6}}>
+                    {result.suspicious_sections.slice(0,5).map((sec,i)=>(
+                      <div key={i} style={{background:rgba(T.red,0.08),border:`1px solid ${rgba(T.red,0.2)}`,borderRadius:6,padding:"8px 10px",fontSize:11,color:T.t1,lineHeight:1.5,fontStyle:"italic"}}>"{sec}"</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.ai_indicators&&result.ai_indicators.length>0&&(
+                <div style={s.card}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.amber,marginBottom:8}}>🤖 AI Writing Indicators</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                    {result.ai_indicators.slice(0,6).map((ind,i)=>(
+                      <span key={i} style={{background:rgba(T.amber,0.12),color:T.amber,borderRadius:6,padding:"3px 10px",fontSize:11}}>{ind}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
+
       {mode==="submit"&&(
         <div style={s.card}>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>New Research Submission</div>
@@ -1548,50 +1746,17 @@ const ResearchView=({userField})=>{
           <button style={s.btnP}>Submit</button>
         </div>
       )}
-      {mode==="check"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div style={s.card}>
-            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload for Analysis</div>
-            <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"2rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem"}}>
-              <div style={{fontSize:32,marginBottom:8}}>D</div>
-              <div style={{fontSize:12}}>Drop PDF or DOCX here</div>
-            </div>
-            {[["Turnitin","70M+ academic documents"],["GPTZero","ChatGPT/Claude/Gemini detection"],["Readability","Word count, pages, Flesch score"]].map(item=>(
-              <div key={item[0]} style={{display:"flex",gap:8,marginBottom:8}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:T.ac,marginTop:5,flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:12,color:T.t1,fontWeight:500}}>{item[0]}</div>
-                  <div style={{fontSize:11,color:T.t3}}>{item[1]}</div>
-                </div>
-              </div>
-            ))}
-            <button onClick={run} style={{...s.btnP,width:"100%"}} disabled={checking}>{checking?"Analysing...":"Run Analysis"}</button>
-          </div>
-          <div style={s.card}>
-            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Results</div>
-            {!res&&!checking&&<div style={{textAlign:"center",color:T.t3,fontSize:13,padding:"2rem"}}>Upload to see results.</div>}
-            {checking&&<div style={{textAlign:"center",padding:"2rem"}}><div style={{fontSize:32,marginBottom:12}}>...</div><div style={{fontSize:13,color:T.t2}}>Running analysis...</div></div>}
-            {res&&(
-              <div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"1rem"}}>
-                  {[["Similarity",res.sim,res.sim<20?T.green:T.red,"Turnitin"],["AI Content",res.ai,res.ai<15?T.green:T.amber,"GPTZero"]].map(item=>(
-                    <div key={item[0]} style={{...s.card,background:rgba(item[2],0.12),padding:"1rem",textAlign:"center"}}>
-                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:item[2]}}>{item[1]}%</div>
-                      <div style={{fontSize:11,color:T.t2}}>{item[0]} ({item[3]})</div>
-                      <Pill text={item[1]<(item[0]==="Similarity"?20:15)?"PASS":"REVIEW"} color={item[1]<(item[0]==="Similarity"?20:15)?T.green:T.red}/>
-                    </div>
-                  ))}
-                </div>
-                <div style={{fontSize:12,color:T.t2}}>{res.words.toLocaleString()} words · {res.pages} pages</div>
-              </div>
-            )}
-          </div>
+
+      {mode==="library"&&(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>📚</div>
+          <div style={{fontSize:14,color:T.t2}}>Research library coming soon.</div>
+          <div style={{fontSize:12,color:T.t3,marginTop:4}}>Browse and share research papers within AKADIMIA.</div>
         </div>
       )}
     </div>
   );
 };
-
 const AIView=({lang,userField})=>{
   const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
   const [msgs,setMsgs]=useState([{role:"bot",text:`Karibu! I'm EduBot, AKADIMIA's AI tutor. I specialise in ${(fld&&fld.name)}. Ask me anything about your coursework, assignments, research or career — available 24/7!`}]);
