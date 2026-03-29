@@ -1601,7 +1601,7 @@ Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`
           {!result&&!loading&&(
             <div style={s.card}>
               <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload or Paste Your Text</div>
-              <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${file?T.green:T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",cursor:"pointer",color:file?T.green:T.t3,marginBottom:"1rem",fontSize:12,transition:"all 0.2s"}}>
+              <div style={{border:`2px dashed ${file?T.green:T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",color:file?T.green:T.t3,marginBottom:"1rem",fontSize:12,transition:"all 0.2s"}}>
                 {file?(
                   <div>
                     <div style={{fontSize:24,marginBottom:4}}>✓</div>
@@ -1611,12 +1611,15 @@ Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`
                 ):(
                   <div>
                     <div style={{fontSize:32,marginBottom:8}}>📄</div>
-                    <div style={{fontWeight:500,marginBottom:4}}>Click to upload PDF, DOCX, or TXT</div>
-                    <div style={{fontSize:11}}>Max 10MB — or paste text below</div>
+                    <div style={{fontWeight:500,marginBottom:4}}>Upload PDF, DOCX, or TXT</div>
+                    <div style={{fontSize:11,marginBottom:12}}>Max 10MB — or paste text below</div>
                   </div>
                 )}
+                <label style={{...s.btnS,cursor:"pointer",display:"inline-block",fontSize:12,padding:"7px 18px"}}>
+                  {file?"Change File":"Choose File"}
+                  <input type="file" style={{display:"none"}} accept=".txt,.pdf,.doc,.docx" onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/>
+                </label>
               </div>
-              <input ref={fileRef} type="file" style={{display:"none"}} accept=".txt,.pdf,.doc,.docx" onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/>
               <div style={{marginBottom:"1rem"}}>
                 <label style={s.lbl}>PASTE TEXT FOR ANALYSIS</label>
                 <textarea style={{...s.input,height:160,resize:"vertical",fontSize:12,lineHeight:1.6}} placeholder="Paste your essay, research paper, or any academic text here..." value={text} onChange={e=>setText(e.target.value)}/>
