@@ -607,7 +607,8 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
   );
 };
 
-const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId})=>{
+const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId,notifs,setNotifs})=>{
+  const [showNotifs,setShowNotifs]=useState(false);
   const T=useT();const t=useLang();
   const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings")};
   const langOpts=Object.entries(LANGS);
@@ -628,8 +629,32 @@ const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId})=>{
         {themeOpts.map(th=><option key={th.id} value={th.id}>{th.emoji}</option>)}
       </select>
       <div style={{position:"relative"}}>
-        <button style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"5px 9px",color:T.t2,cursor:"pointer",fontSize:14}}>B</button>
-        <div style={{position:"absolute",top:-3,right:-3,width:15,height:15,background:T.red,borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>4</div>
+        <button onClick={()=>setShowNotifs(n=>!n)} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"5px 9px",color:T.t2,cursor:"pointer",fontSize:14}}>🔔</button>
+        {notifs.length>0&&<div style={{position:"absolute",top:-3,right:-3,width:15,height:15,background:T.red,borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>{notifs.length}</div>}
+        {showNotifs&&(
+          <div style={{position:"absolute",top:36,right:0,width:300,background:T.bg1,border:`1px solid ${T.bd}`,borderRadius:10,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",zIndex:100,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${T.bd}`,fontSize:12,fontWeight:600,color:T.t1,display:"flex",justifyContent:"space-between"}}>
+              <span>Notifications</span>
+              <button onClick={()=>{setNotifs([]);setShowNotifs(false);}} style={{background:"none",border:"none",color:T.t3,cursor:"pointer",fontSize:11}}>Clear all</button>
+            </div>
+            {notifs.length===0?(
+              <div style={{padding:"1.5rem",textAlign:"center",color:T.t3,fontSize:12}}>No new notifications</div>
+            ):(
+              <div style={{maxHeight:300,overflowY:"auto"}}>
+                {notifs.map((n,i)=>(
+                  <div key={i} style={{padding:"10px 14px",borderBottom:`1px solid ${T.bd}`,display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:16,flexShrink:0}}>{n.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,color:T.t1,fontWeight:500}}>{n.title}</div>
+                      <div style={{fontSize:11,color:T.t3}}>{n.body}</div>
+                      <div style={{fontSize:10,color:T.t3,marginTop:2}}>{n.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -639,7 +664,20 @@ const DashboardView=({setTab,userName,userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const fld=FIELDS[userField]||FIELDS.actuarial;
   const cs=((FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[]).slice(0,4);
-  const deadlines=[["Assignment 2 ("+fld.name+")","Tomorrow",true],["Mid-Semester Exam","In 3 days",true],["Research Draft","In 2 weeks",false]];
+  const [assignments,setAssignments]=useState([]);
+  const [materials,setMaterials]=useState([]);
+  useEffect(()=>{
+    const load=async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(5);
+      const {data:mats}=await supabase.from("course_materials").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(3);
+      setAssignments(asgn||[]);
+      setMaterials(mats||[]);
+    };
+    load();
+  },[userField]);
+  const upcoming=assignments.filter(a=>a.due_date&&new Date(a.due_date)>=new Date()).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)).slice(0,3);
+  const overdue=assignments.filter(a=>a.due_date&&new Date(a.due_date)<new Date());
   const schedule=[["8:00 AM","Morning Lecture",T.teal],["2:00 PM","Tutorial",T.blue],["4:00 PM","Study Group",T.purple]];
   return(
     <div>
@@ -682,13 +720,29 @@ const DashboardView=({setTab,userName,userField})=>{
       </div>
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12}}>
         <div style={s.card}>
-          <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:10}}>Upcoming Deadlines</div>
-          {deadlines.map((d,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
-              <span style={{fontSize:12,color:T.t1}}>{d[0]}</span>
-              <Pill text={d[1]} color={d[2]?T.red:T.amber}/>
-            </div>
-          ))}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.t1}}>Upcoming Assignments</div>
+            <button onClick={()=>setTab("assignments")} style={{...s.btnS,fontSize:10,padding:"3px 8px"}}>View All</button>
+          </div>
+          {upcoming.length===0?(
+            <div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>No upcoming assignments</div>
+          ):(
+            upcoming.map((a,i)=>{
+              const daysLeft=Math.ceil((new Date(a.due_date)-new Date())/(1000*60*60*24));
+              const label=daysLeft===0?"Today":daysLeft===1?"Tomorrow":daysLeft<0?"Overdue":"In "+daysLeft+" days";
+              const color=daysLeft<0?T.red:daysLeft<=2?T.amber:T.green;
+              return(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
+                  <div>
+                    <div style={{fontSize:12,color:T.t1}}>{a.title}</div>
+                    <div style={{fontSize:10,color:T.t3}}>{a.course_code}</div>
+                  </div>
+                  <Pill text={label} color={color}/>
+                </div>
+              );
+            })
+          )}
+          {overdue.length>0&&<div style={{fontSize:11,color:T.red,marginTop:8}}>⚠ {overdue.length} overdue assignment{overdue.length>1?"s":""}</div>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={s.card}>
@@ -2542,6 +2596,8 @@ export default function App(){
   const [offline,setOffline]=useState(false),[toast,setToast]=useState(null);
   useEffect(()=>{loadFonts();},[]);
   const [resetMode,setResetMode]=useState(false);
+  const [notifs,setNotifs]=useState([]);
+  const addNotif=(icon,title,body)=>setNotifs(n=>[{icon,title,body,time:new Date().toLocaleTimeString()},...n].slice(0,20));
   const [newPass,setNewPass]=useState("");
   const [newPass2,setNewPass2]=useState("");
   const [resetMsg,setResetMsg]=useState("");
@@ -2677,7 +2733,7 @@ export default function App(){
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
             <Sidebar tab={tab} setTab={persistTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-              <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
+              <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} notifs={notifs} setNotifs={setNotifs}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
                 {VIEWS[tab]||VIEWS.dashboard}
               </div></div>
