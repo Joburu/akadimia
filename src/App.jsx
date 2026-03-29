@@ -732,7 +732,7 @@ const DashboardView=({setTab,userName,userField})=>{
         <StatCard label="New Materials" value={materials.length} sub="Recently uploaded" color={T.purple} icon="📂"/>
       </div>
 
-      {showStocks&&(stocks.length>0||newsLoading)&&(
+      {showStocks&&(
         <div style={{...s.card,marginBottom:"1.25rem"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{fontSize:13,fontWeight:600,color:T.t1}}>📈 NSE Market Today</div>
@@ -2767,7 +2767,7 @@ export default function App(){
         setAuthed(false);setRole("student");setUserName("");
         localStorage.removeItem("ak_tab");
         flash("Session expired. Please sign in again.","error");
-      },30*60*1000);
+      },5*60*1000);
     };
     const events=["mousemove","keydown","click","scroll","touchstart"];
     events.forEach(e=>window.addEventListener(e,reset));
