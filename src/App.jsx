@@ -1558,8 +1558,39 @@ Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`
       const reader=new FileReader();
       reader.onload=e=>setText(e.target.result);
       reader.readAsText(f);
+    } else if(f.type==="application/pdf"){
+      // Read PDF as base64 and send to Claude for extraction
+      const reader=new FileReader();
+      reader.onload=async(e)=>{
+        const base64=e.target.result.split(",")[1];
+        setLoading(true);
+        try{
+          const res=await fetch("https://api.anthropic.com/v1/messages",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+            body:JSON.stringify({
+              model:"claude-sonnet-4-20250514",
+              max_tokens:4000,
+              messages:[{role:"user",content:[
+                {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
+                {type:"text",text:"Extract and return ALL the text content from this PDF document. Return only the raw text, preserving paragraphs. No summaries, no comments."}
+              ]}]
+            })
+          });
+          const d=await res.json();
+          const extracted=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"";
+          setText(extracted);
+        }catch(e){
+          setText("");
+          setError("Could not read PDF. Please paste the text manually.");
+        }
+        setLoading(false);
+      };
+      reader.readAsDataURL(f);
     } else {
-      setText(`[File uploaded: ${f.name} — paste text below for analysis or use the text area]`);
+      // For Word docs, ask user to paste text
+      setText("");
+      setError("For Word documents, please copy and paste the text into the text area below.");
     }
   };
 
