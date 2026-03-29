@@ -732,6 +732,33 @@ const DashboardView=({setTab,userName,userField})=>{
         <StatCard label="New Materials" value={materials.length} sub="Recently uploaded" color={T.purple} icon="📂"/>
       </div>
 
+      {showStocks&&(stocks.length>0||newsLoading)&&(
+        <div style={{...s.card,marginBottom:"1.25rem"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1}}>📈 NSE Market Today</div>
+            <span style={{fontSize:10,color:T.t3}}>Nairobi Securities Exchange · Live</span>
+          </div>
+          {newsLoading?(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              {[1,2,3,4].map(i=><div key={i} style={{height:70,background:T.bg3,borderRadius:8}}/>)}
+            </div>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
+              {stocks.map((st,i)=>{
+                const up=parseFloat(st.changePercent)>=0;
+                return(
+                  <div key={i} style={{background:T.bg3,borderRadius:8,padding:"8px 10px",borderLeft:`3px solid ${up?T.green:T.red}`}}>
+                    <div style={{fontSize:11,fontWeight:700,color:T.t1}}>{st.symbol}</div>
+                    <div style={{fontSize:10,color:T.t3,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{st.name}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:T.t1}}>KES {st.price}</div>
+                    <div style={{fontSize:10,color:up?T.green:T.red}}>{up?"▲":"▼"} {st.changePercent}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
         <div style={s.card}>
           <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Performance Trend</div>
@@ -746,19 +773,27 @@ const DashboardView=({setTab,userName,userField})=>{
           </ResponsiveContainer>
         </div>
         <div style={s.card}>
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Course Progress</div>
-          {cs.map((c,i)=>{
-            const barColor=c.p>=80?T.green:c.p>=50?T.amber:T.red;
-            return(
-              <div key={i} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
-                  <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginRight:8}}>{c.code} — {c.name.slice(0,26)}{c.name.length>26?"...":""}</span>
-                  <span style={{fontWeight:600,color:barColor,flexShrink:0}}>{c.p}%</span>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.85rem"}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1}}>Recent Materials</div>
+            <button onClick={()=>setTab("courses")} style={{...s.btnS,fontSize:10,padding:"3px 8px"}}>View All</button>
+          </div>
+          {materials.length===0?(
+            <div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>No materials uploaded yet</div>
+          ):(
+            materials.map((m,i)=>{
+              const icon=m.file_type&&m.file_type.includes("pdf")?"📕":m.file_type&&m.file_type.includes("video")?"🎬":m.file_type&&m.file_type.includes("audio")?"🎧":"📄";
+              return(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<materials.length-1?`1px solid ${T.bd}`:"none"}}>
+                  <span style={{fontSize:16}}>{icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,color:T.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</div>
+                    <div style={{fontSize:10,color:T.t3}}>{m.course_code} · {new Date(m.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <a href={m.file_url} target="_blank" rel="noreferrer" style={{fontSize:10,color:T.ac,textDecoration:"none",flexShrink:0}}>Open →</a>
                 </div>
-                <Prog val={c.p} color={barColor}/>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -807,27 +842,7 @@ const DashboardView=({setTab,userName,userField})=>{
         </div>
       </div>
 
-      {showStocks&&stocks.length>0&&(
-        <div style={{...s.card,marginBottom:"1.25rem"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1}}>📈 NSE Market Today</div>
-            <span style={{fontSize:10,color:T.t3}}>Nairobi Securities Exchange</span>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
-            {stocks.map((st,i)=>{
-              const up=parseFloat(st.changePercent)>=0;
-              return(
-                <div key={i} style={{background:T.bg3,borderRadius:8,padding:"8px 10px",borderLeft:`3px solid ${up?T.green:T.red}`}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.t1}}>{st.symbol}</div>
-                  <div style={{fontSize:10,color:T.t3,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{st.name}</div>
-                  <div style={{fontSize:13,fontWeight:600,color:T.t1}}>KES {st.price}</div>
-                  <div style={{fontSize:10,color:up?T.green:T.red}}>{up?"▲":"▼"} {st.changePercent}%</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+
 
       <div style={s.card}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
