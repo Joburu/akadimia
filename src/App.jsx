@@ -20,6 +20,7 @@ const THEMES={
   rose:{id:"rose",name:"Rose Gold",emoji:"🌸",bg0:"#1A0A0F",bg1:"#240D15",bg2:"#2E101B",bg3:"#3A1422",bg4:"#46192A",bg5:"#531E33",ac:"#FB7185",acL:"#FDA4AF",blue:"#60A5FA",teal:"#2DD4BF",purple:"#C084FC",red:"#F43F5E",green:"#4ADE80",amber:"#FCD34D",cyan:"#22D3EE",t1:"#FFF1F2",t2:"#FCA5A5",t3:"#7F1D1D",bd:"#4C1524"},
   slate:{id:"slate",name:"Arctic Slate",emoji:"❄️",bg0:"#0C1222",bg1:"#111827",bg2:"#1F2937",bg3:"#374151",bg4:"#4B5563",bg5:"#6B7280",ac:"#38BDF8",acL:"#7DD3FC",blue:"#3B82F6",teal:"#14B8A6",purple:"#8B5CF6",red:"#EF4444",green:"#22C55E",amber:"#F59E0B",cyan:"#06B6D4",t1:"#F9FAFB",t2:"#9CA3AF",t3:"#4B5563",bd:"#374151"},
   emerald:{id:"emerald",name:"Emerald City",emoji:"💚",bg0:"#021207",bg1:"#03180A",bg2:"#041F0D",bg3:"#062910",bg4:"#083314",bg5:"#0A3E18",ac:"#10B981",acL:"#34D399",blue:"#60A5FA",teal:"#2DD4BF",purple:"#A78BFA",red:"#F87171",green:"#10B981",amber:"#FCD34D",cyan:"#22D3EE",t1:"#ECFDF5",t2:"#6EE7B7",t3:"#065F46",bd:"#064E3B"},
+  kenya:{id:"kenya",name:"Kenyan Sunset",emoji:"🇰🇪",bg0:"#1A0A00",bg1:"#221200",bg2:"#2C1800",bg3:"#3A2000",bg4:"#4A2800",bg5:"#5C3200",ac:"#CE1126",acL:"#E8304A",blue:"#006600",teal:"#228B22",purple:"#8B4513",red:"#CE1126",green:"#006600",amber:"#FFD700",cyan:"#228B22",t1:"#FFF8F0",t2:"#D4956A",t3:"#8B5E3C",bd:"#5C3200"},
 };
 
 const LANGS={en:{flag:"🇬🇧",name:"English"},sw:{flag:"🇰🇪",name:"Kiswahili"},luo:{flag:"🌊",name:"Dholuo"},kik:{flag:"🏔",name:"Gikuyu"},luh:{flag:"🌾",name:"Luhya"},kal:{flag:"⛰",name:"Kalenjin"},som:{flag:"🌙",name:"Af Soomaali"},fr:{flag:"🇫🇷",name:"Français"},ar:{flag:"🇸🇦",name:"العربية"},zh:{flag:"🇨🇳",name:"中文"},ja:{flag:"🇯🇵",name:"日本語"},es:{flag:"🇪🇸",name:"Español"},zu:{flag:"🇿🇦",name:"IsiZulu"}};
@@ -254,7 +255,7 @@ const PENDING_REGS=[
 
 const ThemeCtx=createContext("navy"),LangCtx=createContext("en");
 const useT=()=>THEMES[useContext(ThemeCtx)];
-const useLang=()=>{const l=useContext(LangCtx);return k=>(LS[l]||LS_STUB)[k]||LS.en[k]||k;};
+const useLang=()=>{const l=useContext(LangCtx);return k=>(LS[l]||LS.en)[k]||LS.en[k]||k;};
 
 const loadFonts=()=>{
   if(document.getElementById("ak-f"))return;
@@ -666,6 +667,11 @@ const DashboardView=({setTab,userName,userField})=>{
   const cs=((FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[]).slice(0,4);
   const [assignments,setAssignments]=useState([]);
   const [materials,setMaterials]=useState([]);
+  const [news,setNews]=useState([]);
+  const [stocks,setStocks]=useState([]);
+  const [newsLoading,setNewsLoading]=useState(false);
+  const showStocks=["actuarial","business","economics","appstats","appliedmaths","puremaths","entrepreneurship"].includes(userField);
+
   useEffect(()=>{
     const load=async()=>{
       const {supabase}=await import("./supabase.js");
@@ -676,29 +682,66 @@ const DashboardView=({setTab,userName,userField})=>{
     };
     load();
   },[userField]);
+
+  useEffect(()=>{
+    const loadNews=async()=>{
+      setNewsLoading(true);
+      try{
+        const fieldName=(fld&&fld.name)||userField;
+        const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
+        const res=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({
+            model:"claude-haiku-4-5-20251001",
+            max_tokens:1000,
+            tools:[{type:"web_search_20250305",name:"web_search"}],
+            messages:[{role:"user",content:`Today is ${today}. Search for 4 current news stories relevant to ${fieldName} students in Kenya and East Africa. ${showStocks?"Also find current NSE (Nairobi Securities Exchange) top stock prices today.":""} Return ONLY a JSON object with two arrays: "news" (each item: headline, summary 1 sentence, source, url) and "stocks" (each item: symbol, name, price, change, changePercent - use real NSE data if available, otherwise skip). No markdown.`}]
+          })
+        });
+        const d=await res.json();
+        let text="";
+        if(d.content){for(const b of d.content){if(b.type==="text")text+=b.text;}}
+        const clean=text.replace(/```json|```/g,"").trim();
+        const jsonStart=clean.indexOf("{");const jsonEnd=clean.lastIndexOf("}");
+        if(jsonStart>=0&&jsonEnd>jsonStart){
+          const parsed=JSON.parse(clean.slice(jsonStart,jsonEnd+1));
+          setNews(parsed.news||[]);
+          setStocks(parsed.stocks||[]);
+        }
+      }catch(e){console.error(e);}
+      setNewsLoading(false);
+    };
+    loadNews();
+  },[userField]);
+
   const upcoming=assignments.filter(a=>a.due_date&&new Date(a.due_date)>=new Date()).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)).slice(0,3);
   const overdue=assignments.filter(a=>a.due_date&&new Date(a.due_date)<new Date());
   const schedule=[["8:00 AM","Morning Lecture",T.teal],["2:00 PM","Tutorial",T.blue],["4:00 PM","Study Group",T.purple]];
+  const perfData=[{w:"W1",sc:67},{w:"W2",sc:72},{w:"W3",sc:69},{w:"W4",sc:74},{w:"W5",sc:78},{w:"W6",sc:75},{w:"W7",sc:82},{w:"W8",sc:88}];
+
   return(
     <div>
       <h1 style={s.h1}>{t("welcome")}, {userName.split(" ")[0]}</h1>
       <p style={s.sub}><span style={{...s.tag(fld.color),marginRight:8}}>{fld.icon} {fld.name}</span>Semester 1, 2026 · AKADIMIA</p>
+
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
         <StatCard label="GPA" value="3.5" sub="Above average" color={T.green} icon="🎯"/>
         <StatCard label="Active Courses" value={cs.length} sub="This semester" color={T.blue} icon="📚"/>
-        <StatCard label="Pending Tasks" value="3" sub="Assignments & exams" color={T.amber} icon="📋"/>
-        <StatCard label="Class Rank" value="#3" sub="Out of 42 students" color={T.ac} icon="🏆"/>
+        <StatCard label="Pending Tasks" value={upcoming.length+overdue.length} sub="Assignments due" color={upcoming.length+overdue.length>0?T.amber:T.green} icon="📋"/>
+        <StatCard label="New Materials" value={materials.length} sub="Recently uploaded" color={T.purple} icon="📂"/>
       </div>
+
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
         <div style={s.card}>
           <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Performance Trend</div>
-          <ResponsiveContainer width="100%" height={150}>
-            <AreaChart data={TREND_DATA}>
-              <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.ac} stopOpacity={0.35}/><stop offset="95%" stopColor={T.ac} stopOpacity={0}/></linearGradient></defs>
-              <XAxis dataKey="w" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} domain={[50,100]}/>
-              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
-              <Area type="monotone" dataKey="sc" stroke={T.ac} fill="url(#ag)" strokeWidth={2} dot={{fill:T.ac,r:3}}/>
+          <ResponsiveContainer width="100%" height={120}>
+            <AreaChart data={perfData}>
+              <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.ac} stopOpacity={0.3}/><stop offset="95%" stopColor={T.ac} stopOpacity={0}/></linearGradient></defs>
+              <XAxis dataKey="w" tick={{fontSize:9,fill:T.t3}} axisLine={false} tickLine={false}/>
+              <YAxis domain={[50,100]} tick={{fontSize:9,fill:T.t3}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:6,fontSize:11}} labelStyle={{color:T.t2}}/>
+              <Area type="monotone" dataKey="sc" stroke={T.ac} fill="url(#pg)" strokeWidth={2} dot={{fill:T.ac,r:3}}/>
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -718,7 +761,8 @@ const DashboardView=({setTab,userName,userField})=>{
           })}
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12}}>
+
+      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12,marginBottom:"1.25rem"}}>
         <div style={s.card}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div style={{fontSize:12,fontWeight:600,color:T.t1}}>Upcoming Assignments</div>
@@ -757,16 +801,66 @@ const DashboardView=({setTab,userName,userField})=>{
           </div>
           <div style={s.acCard}>
             <div style={{fontSize:10,color:T.ac,letterSpacing:0.8,marginBottom:6}}>AI SUGGESTION</div>
-            <p style={{fontSize:12,color:T.t1,lineHeight:1.65,margin:"0 0 10px"}}>Consider joining <strong style={{color:T.ac}}>{(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies)[0]||fld.name+" body"}</strong> this semester.</p>
+            <p style={{fontSize:12,color:T.t1,lineHeight:1.65,margin:"0 0 10px"}}>Consider joining <strong style={{color:T.ac}}>{(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies&&FIELD_DATA[userField].bodies[0])||fld.name+" body"}</strong> this semester.</p>
             <button onClick={()=>setTab("transcript")} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View Career Plan</button>
           </div>
         </div>
       </div>
 
+      {showStocks&&stocks.length>0&&(
+        <div style={{...s.card,marginBottom:"1.25rem"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1}}>📈 NSE Market Today</div>
+            <span style={{fontSize:10,color:T.t3}}>Nairobi Securities Exchange</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+            {stocks.map((st,i)=>{
+              const up=parseFloat(st.changePercent)>=0;
+              return(
+                <div key={i} style={{background:T.bg3,borderRadius:8,padding:"8px 10px",borderLeft:`3px solid ${up?T.green:T.red}`}}>
+                  <div style={{fontSize:11,fontWeight:700,color:T.t1}}>{st.symbol}</div>
+                  <div style={{fontSize:10,color:T.t3,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{st.name}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:T.t1}}>KES {st.price}</div>
+                  <div style={{fontSize:10,color:up?T.green:T.red}}>{up?"▲":"▼"} {st.changePercent}%</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div style={s.card}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1}}>🌍 Current Affairs — {fld.name}</div>
+          {newsLoading&&<span style={{fontSize:11,color:T.t3}}>Loading...</span>}
+        </div>
+        {newsLoading?(
+          <div style={{display:"grid",gap:8}}>
+            {[1,2,3].map(i=><div key={i} style={{height:60,background:T.bg3,borderRadius:8,animation:"pulse 1.5s infinite"}}/>)}
+          </div>
+        ):news.length===0?(
+          <div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>Loading current affairs...</div>
+        ):(
+          <div style={{display:"grid",gap:10}}>
+            {news.map((n,i)=>(
+              <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:i<news.length-1?`1px solid ${T.bd}`:"none"}}>
+                <div style={{width:4,background:T.ac,borderRadius:2,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:4,lineHeight:1.4}}>{n.headline}</div>
+                  <div style={{fontSize:11,color:T.t2,lineHeight:1.5,marginBottom:4}}>{n.summary}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:10,color:T.t3}}>{n.source}</span>
+                    {n.url&&n.url.startsWith("http")&&<a href={n.url} target="_blank" rel="noreferrer" style={{fontSize:10,color:T.ac,textDecoration:"none"}}>Read more →</a>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-
 const CoursesView=({userField,role,userName})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [open,setOpen]=useState(null);
