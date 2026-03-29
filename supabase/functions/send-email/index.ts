@@ -14,6 +14,13 @@ serve(async (req) => {
     const { to, subject, html } = await req.json()
     const RESEND_KEY = Deno.env.get('RESEND_API_KEY')
 
+    if (!RESEND_KEY) {
+      return new Response(JSON.stringify({ error: 'RESEND_API_KEY not set' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
