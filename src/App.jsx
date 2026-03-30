@@ -278,18 +278,6 @@ const sx=T=>({
   sub:{color:T.t2,fontSize:13,margin:"0 0 1.5rem"},
 });
 
-const Logo=({size=44})=>{
-  const T=useT();
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 52" fill="none">
-      <path d="M24 4L4 42H12L24 18L36 42H44L24 4Z" fill={T.ac} opacity="0.95"/>
-      <path d="M24 20L16 38H32L24 20Z" fill={T.bg0}/>
-      <rect x="8" y="28" width="32" height="4" rx="2" fill={T.acL} opacity="0.9"/>
-      <path d="M24 2C22 5 20 8 22 11C22.8 12.2 25.2 12.2 26 11C28 8 26 5 24 2Z" fill={T.acL}/>
-      <path d="M24 5C23 7 22.5 9 23.5 10.5C24 11 24.5 10.5 24.5 9C25 7.5 24.5 6 24 5Z" fill={T.bg1} opacity="0.5"/>
-    </svg>
-  );
-};
 
 const Prog=({val,color})=>{
   const T=useT();
@@ -562,9 +550,9 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
         <div style={{width:38,height:38,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <Logo size={28}/>
+          <img src="/logo2.png" alt="A" style={{height:36,width:36,objectFit:"contain"}}/>
         </div>
-        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}><img src="/logo2.png" alt="AKADIMIA" style={{height:32,width:32,objectFit:"contain",marginRight:8}}/>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
+        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}><img src="/logo2.png" alt="AKADIMIA" style={{height:44,width:44,objectFit:"contain",marginRight:8}}/>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
       </div>
       {open&&fld&&(
         <div style={{padding:"0.5rem 0.75rem"}}>
