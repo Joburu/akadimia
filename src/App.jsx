@@ -419,11 +419,8 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
       <div style={{width:tab==="register"&&step===2?700:480,position:"relative",zIndex:1,maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{textAlign:"center",marginBottom:"2rem"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:14,marginBottom:10}}>
-            <div style={{width:58,height:58,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:15,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 0 36px ${rgba(T.ac,0.45)}`}}>
-              <Logo size={42}/>
-            </div>
             <div style={{textAlign:"left"}}>
-              <img src="/logo.png" alt="AKADIMIA" style={{height:90,width:90,objectFit:"contain",marginBottom:8,display:"block",borderRadius:12}}/>
+              <img src="/logo.png" alt="AKADIMIA" style={{height:110,width:110,objectFit:"contain",marginBottom:8,display:"block"}}/>
               <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:30,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
               <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5}}>Ujuzi Bila Mipaka — Every Field. Every Student. One Platform.</div>
             </div>
