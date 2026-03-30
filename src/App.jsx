@@ -408,7 +408,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
         <div style={{textAlign:"center",marginBottom:"2rem"}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:10}}>
             <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
-              <img src="/logo2.png" alt="AKADIMIA" style={{height:100,width:100,objectFit:"contain"}}/>
+              <img src="/logo2.png" alt="AKADIMIA" style={{height:130,width:130,objectFit:"contain"}}/>
               <div>
                 <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:36,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
                 <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5,marginBottom:2}}>Ujuzi Bila Mipaka</div>
