@@ -423,7 +423,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
               <Logo size={42}/>
             </div>
             <div style={{textAlign:"left"}}>
-              <img src="/logo.png" alt="AKADIMIA" style={{height:80,width:80,objectFit:"contain",marginBottom:8,display:"block"}}/>
+              <img src="/logo.png" alt="AKADIMIA" style={{height:90,width:90,objectFit:"contain",marginBottom:8,display:"block",borderRadius:12}}/>
               <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:30,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
               <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5}}>Ujuzi Bila Mipaka — Every Field. Every Student. One Platform.</div>
             </div>
@@ -564,7 +564,7 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
         <div style={{width:38,height:38,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <Logo size={28}/>
         </div>
-        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}><img src="/logo.png" alt="AKADIMIA" style={{height:36,width:36,objectFit:"contain",borderRadius:4,marginRight:8}}/>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
+        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}><img src="/logo.png" alt="AKADIMIA" style={{height:34,width:34,objectFit:"contain",borderRadius:8,marginRight:8}}/>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
       </div>
       {open&&fld&&(
         <div style={{padding:"0.5rem 0.75rem"}}>
