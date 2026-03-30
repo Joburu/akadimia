@@ -1137,979 +1137,218 @@ const CoursesView=({userField,role,userName})=>{
     </div>
   );
 };
-const ExamsView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);
-  const [active,setActive]=useState(false),[answers,setAnswers]=useState({}),[result,setResult]=useState(null),[timer,setTimer]=useState(900);
-  const tmr=useRef(null);const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
-  useEffect(()=>{
-    if(active){tmr.current=setInterval(()=>setTimer(prev=>{if(prev<=1){clearInterval(tmr.current);submit();return 0;}return prev-1;}),1000);}
-    return()=>clearInterval(tmr.current);
-  },[active]);
-  const QS=[
-    {id:1,q:"A probability density function (PDF) is best described as:",opts:["Can take negative values","Area under curve equals 1","Equals the CDF","Only for discrete variables"],ans:1,marks:5,expl:"The defining property of any PDF is that the total area integrates to exactly 1."},
-    {id:2,q:"Which measure is most resistant to outliers?",opts:["Mean","Variance","Median","Standard deviation"],ans:2,marks:5,expl:"The median is the middle value, unaffected by extreme values."},
-    {id:3,q:"By the Central Limit Theorem (n=100), the sampling distribution of the mean is:",opts:["Uniform","Binomial","Approximately Normal","Exponential"],ans:2,marks:5,expl:"For large n, CLT guarantees the sampling distribution approaches normality."},
-  ];
-  const submit=()=>{
-    clearInterval(tmr.current);
-    let sc=0,mx=0;
-    const d=QS.map(q=>{mx+=q.marks;const ok=answers[q.id]===q.ans;if(ok)sc+=q.marks;return{...q,chosen:answers[q.id],ok};});
-    setResult({score:sc,max:mx,pct:Math.round(sc/mx*100),detail:d});
-    setActive(false);
-  };
-  const fmt=sec=>String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
-  if(active)return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
-        <div>
-          <h1 style={{...s.h1,margin:0}}>Mid-Semester Examination</h1>
-          <p style={{...s.sub,margin:0}}>{(courses[0]&&courses[0].name)||(fld&&fld.name)}</p>
-        </div>
-        <div style={{textAlign:"center",background:timer<120?rgba(T.red,0.2):T.bg2,border:`1px solid ${timer<120?T.red:T.bd}`,borderRadius:12,padding:"10px 20px"}}>
-          <div style={{fontSize:10,color:T.t3}}>TIME</div>
-          <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:22,fontWeight:700,color:timer<120?T.red:T.ac}}>{fmt(timer)}</div>
-        </div>
-      </div>
-      {QS.map((q,qi)=>(
-        <div key={q.id} style={{...s.card,marginBottom:12}}>
-          <div style={{fontSize:12,color:T.t3,marginBottom:8}}>Q{qi+1} · {q.marks} marks</div>
-          <div style={{fontSize:14,fontWeight:500,color:T.t1,marginBottom:"1rem",lineHeight:1.65}}>{q.q}</div>
-          {q.opts.map((opt,oi)=>{
-            const sel=answers[q.id]===oi;
-            return(
-              <div key={oi} onClick={()=>setAnswers(a=>({...a,[q.id]:oi}))} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,marginBottom:6,border:`1px solid ${sel?T.ac:T.bd}`,background:sel?rgba(T.ac,0.12):T.bg3,cursor:"pointer"}}>
-                <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${sel?T.ac:T.t3}`,background:sel?T.ac:"transparent",flexShrink:0}}/>
-                <span style={{fontSize:13,color:T.t1}}>{opt}</span>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      <button onClick={submit} style={{...s.btnP,padding:"12px 32px",fontSize:14}}>Submit</button>
-    </div>
-  );
-  if(result)return(
-    <div>
-      <div style={{...s.acCard,textAlign:"center",marginBottom:"1.5rem"}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:700,color:result.pct>=70?T.green:result.pct>=50?T.amber:T.red}}>{result.pct}%</div>
-        <div style={{fontSize:14,color:T.t1,marginTop:4}}>{result.score}/{result.max} marks · {result.pct>=70?"PASS":"FAIL"}</div>
-      </div>
-      {result.detail.map((q,qi)=>(
-        <div key={q.id} style={{...s.card,marginBottom:10,borderLeft:`3px solid ${q.ok?T.green:T.red}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-            <span style={{fontSize:12,color:T.t1,fontWeight:500}}>Q{qi+1}: {q.q.slice(0,55)}...</span>
-            <Pill text={q.ok?"+"+q.marks:"+0"} color={q.ok?T.green:T.red}/>
-          </div>
-          <div style={{fontSize:12,color:T.t2}}>
-            <span style={{color:q.ok?T.green:T.red}}>Your answer: {q.opts[q.chosen]||"-"}</span>
-            {!q.ok&&<span style={{color:T.green,marginLeft:16}}>Correct: {q.opts[q.ans]}</span>}
-          </div>
-          <div style={{fontSize:11,color:T.t3,marginTop:6,fontStyle:"italic"}}>{q.expl}</div>
-        </div>
-      ))}
-      <button onClick={()=>{setResult(null);setAnswers({});setTimer(900);}} style={s.btnS}>Back to Exams</button>
-    </div>
-  );
-  const examList=[
-    {title:"Mid-Semester Examination",code:(courses[0]&&courses[0].code)||"",date:"Mar 21, 2026",dur:"45 min",status:"open",total:20,score:null},
-    {title:"CAT 2 Assessment",code:(courses[1]&&courses[1].code)||"",date:"Mar 24, 2026",dur:"30 min",status:"upcoming",total:30,score:null},
-    {title:"CAT 1 — Completed",code:(courses[0]&&courses[0].code)||"",date:"Mar 10, 2026",dur:"30 min",status:"done",total:20,score:17},
-  ];
-  return(
-    <div>
-      <h1 style={s.h1}>{t("exams")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Scheduled exams and CATs</p>
-      <div style={{display:"grid",gap:12}}>
-        {examList.map((ex,i)=>(
-          <div key={i} style={{...s.card,display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:46,height:46,background:ex.status==="open"?rgba(T.green,0.18):ex.status==="done"?rgba(T.t3,0.18):rgba(T.amber,0.18),borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
-              {ex.status==="open"?"E":ex.status==="done"?"C":"S"}
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{ex.title}</div>
-              <div style={{fontSize:11,color:T.t3,marginTop:3}}>{ex.code} · {ex.date} · {ex.dur} · {ex.total} marks</div>
-              {ex.score!==null&&<div style={{fontSize:12,color:T.green,marginTop:3}}>Score: {ex.score}/{ex.total} ({Math.round(ex.score/ex.total*100)}%)</div>}
-            </div>
-            {ex.status==="open"&&<button onClick={()=>{setActive(true);setAnswers({});setTimer(900);setResult(null);}} style={s.btnP}>Start</button>}
-            {ex.status==="upcoming"&&<Pill text="Scheduled" color={T.amber}/>}
-            {ex.status==="done"&&<Pill text="Done" color={T.green}/>}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const AssignmentsView=({userField,role,userName,userId})=>{
-  const T=useT();const s=sx(T);
-  const [assignments,setAssignments]=useState([]);
+const ExamsView=({userField,role,userName})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [exams,setExams]=useState([]);
   const [submissions,setSubmissions]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
-  const [selected,setSelected]=useState(null);
-  const [submitting,setSubmitting]=useState(false);
-  const [grading,setGrading]=useState(null);
-  const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});
-  const [assignmentFile,setAssignmentFile]=useState(null);
-  const assignFileRef=useRef(null);
-  const [subComment,setSubComment]=useState("");
-  const [subFile,setSubFile]=useState(null);
-  const [gradeFeedback,setGradeFeedback]=useState("");
-  const [gradeMarks,setGradeMarks]=useState("");
-  const fileRef=useRef(null);
+  const [activeExam,setActiveExam]=useState(null);
+  const [timeLeft,setTimeLeft]=useState(0);
+  const [answers,setAnswers]=useState({});
+  const [submitted,setSubmitted]=useState(false);
+  const [newE,setNewE]=useState({title:"",course_code:"",duration_minutes:60,total_marks:100,instructions:"",target_year:"all",questions:[]});
+  const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5});
   const isLec=role==="lecturer"||role==="admin";
+  const timerRef=useRef(null);
 
   const load=async()=>{
     setLoading(true);
     const {supabase}=await import("./supabase.js");
-    const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false});
-    const {data:subs}=await supabase.from("submissions").select("*").order("submitted_at",{ascending:false});
-    setAssignments(asgn||[]);
-    setSubmissions(subs||[]);
-    setLoading(false);
+    const {data:ex}=await supabase.from("exams").select("*").eq("field",userField).order("created_at",{ascending:false});
+    const {data:subs}=await supabase.from("exam_submissions").select("*");
+    setExams(ex||[]);setSubmissions(subs||[]);setLoading(false);
   };
-
   useEffect(()=>{load();},[userField]);
 
-  const createAssignment=async()=>{
-    if(!newA.title||!newA.course_code){return;}
-    const {supabase}=await import("./supabase.js");
-    const {data:{user}}=await supabase.auth.getUser();
-    let fileUrl="";
-    if(assignmentFile){
-      const path=`assignments/${userField}/${Date.now()}_${assignmentFile.name.replace(/\s+/g,"_")}`;
-      const {data:upData}=await supabase.storage.from("course-materials").upload(path,assignmentFile);
-      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+  useEffect(()=>{
+    if(activeExam&&timeLeft>0){
+      timerRef.current=setInterval(()=>setTimeLeft(t=>{if(t<=1){clearInterval(timerRef.current);submitExam();return 0;}return t-1;}),1000);
     }
-    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
-    // Notify relevant students by email
-    try{
-      const query=supabase.from("profiles").select("*").eq("status","approved").eq("role","student").eq("field",userField);
-      const {data:students}=newA.target_year==="all"?await query:await query.eq("year_level",newA.target_year);
-      if(students&&students.length>0){
-        const {sendAssignmentEmail}=await import("./email.js");
-        for(const st of students){
-          if(st.email) await sendAssignmentEmail(st.email,st.full_name||"Student",{...newA,field:userField});
-        }
-      }
-    }catch(e){console.error("Email error:",e);}
-    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});setAssignmentFile(null);
-    load();
+    return()=>clearInterval(timerRef.current);
+  },[activeExam]);
+
+  const startExam=async(exam)=>{
+    setActiveExam(exam);
+    setTimeLeft(exam.duration_minutes*60);
+    setAnswers({});setSubmitted(false);
   };
 
-  const submitAssignment=async(assignmentId)=>{
-    if(!subFile&&!subComment){return;}
-    setSubmitting(true);
+  const submitExam=async()=>{
+    if(!activeExam)return;
+    clearInterval(timerRef.current);
     const {supabase}=await import("./supabase.js");
     const {data:{user}}=await supabase.auth.getUser();
-    let fileUrl="";
-    if(subFile){
-      const path=`submissions/${assignmentId}/${user.id}_${Date.now()}_${subFile.name}`;
-      const {data:upData}=await supabase.storage.from("course-materials").upload(path,subFile);
-      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
-    }
-    await supabase.from("submissions").insert({
-      assignment_id:assignmentId,student_id:user.id,student_name:userName,
-      file_url:fileUrl,comment:subComment,status:"submitted"
+    await supabase.from("exam_submissions").insert({
+      exam_id:activeExam.id,student_id:user.id,student_name:userName,
+      answers,status:"submitted",submitted_at:new Date().toISOString()
     });
-    setSubComment("");setSubFile(null);setSelected(null);
-    load();setSubmitting(false);
+    setSubmitted(true);setActiveExam(null);load();
   };
 
-  const gradeSubmission=async(subId)=>{
-    if(!gradeMarks){return;}
+  const createExam=async()=>{
+    if(!newE.title)return;
     const {supabase}=await import("./supabase.js");
-    await supabase.from("submissions").update({marks:parseInt(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",subId);
-    setGrading(null);setGradeFeedback("");setGradeMarks("");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("exams").insert({...newE,field:userField,created_by:user.id});
+    setShowCreate(false);setNewE({title:"",course_code:"",duration_minutes:60,total_marks:100,instructions:"",target_year:"all",questions:[]});
     load();
   };
 
-  const mySubmission=(aId)=>submissions.find(s=>s.assignment_id===aId&&s.student_name===userName);
-  const asgSubmissions=(aId)=>submissions.filter(s=>s.assignment_id===aId);
-  const isOverdue=(d)=>d&&new Date(d)<new Date();
+  const addQuestion=()=>{
+    setNewE(e=>({...e,questions:[...e.questions,{...newQ,id:Date.now()}]}));
+    setNewQ({text:"",type:"mcq",options:["","","",""],marks:5});
+  };
 
-  if(loading) return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading assignments...</div>;
+  const fmt=(s)=>`${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+  const mySub=(eId)=>submissions.find(s=>s.student_name===userName&&s.exam_id===eId);
+
+  if(activeExam){
+    const qs=activeExam.questions||[];
+    return(
+      <div>
+        <div style={{...s.card,marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1}}>{activeExam.title}</div>
+            <div style={{fontSize:12,color:T.t3}}>{activeExam.course_code} · {activeExam.total_marks} marks</div>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:28,fontWeight:700,color:timeLeft<300?T.red:T.ac,fontFamily:"monospace"}}>{fmt(timeLeft)}</div>
+            <div style={{fontSize:10,color:T.t3}}>TIME REMAINING</div>
+          </div>
+        </div>
+        {activeExam.instructions&&<div style={{...s.card,marginBottom:"1rem",fontSize:12,color:T.t2,lineHeight:1.6}}><strong>Instructions:</strong> {activeExam.instructions}</div>}
+        {qs.length===0?(
+          <div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>
+            <div style={{fontSize:32,marginBottom:8}}>📝</div>
+            <div>This exam has no questions yet. Submit when ready.</div>
+          </div>
+        ):(
+          qs.map((q,i)=>(
+            <div key={q.id||i} style={{...s.card,marginBottom:"0.75rem"}}>
+              <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>{i+1}. {q.text} <span style={{fontSize:11,color:T.t3}}>({q.marks} marks)</span></div>
+              {q.type==="mcq"?(
+                <div style={{display:"grid",gap:6}}>
+                  {(q.options||[]).filter(o=>o).map((opt,j)=>(
+                    <div key={j} onClick={()=>setAnswers(a=>({...a,[q.id||i]:j}))} style={{padding:"8px 12px",borderRadius:8,border:`1px solid ${answers[q.id||i]===j?T.ac:T.bd}`,background:answers[q.id||i]===j?rgba(T.ac,0.15):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>
+                      {String.fromCharCode(65+j)}. {opt}
+                    </div>
+                  ))}
+                </div>
+              ):(
+                <textarea style={{...s.input,height:80,resize:"vertical",fontSize:12}} placeholder="Type your answer here..." value={answers[q.id||i]||""} onChange={e=>setAnswers(a=>({...a,[q.id||i]:e.target.value}))}/>
+              )}
+            </div>
+          ))
+        )}
+        <div style={{display:"flex",gap:8,marginTop:"1rem"}}>
+          <button onClick={submitExam} style={s.btnP}>Submit Exam</button>
+          <button onClick={()=>{clearInterval(timerRef.current);setActiveExam(null);}} style={s.btnS}>Exit</button>
+        </div>
+      </div>
+    );
+  }
+
+  if(submitted) return(
+    <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+      <div style={{fontSize:48,marginBottom:12}}>✅</div>
+      <div style={{fontSize:18,fontWeight:600,color:T.green,marginBottom:8}}>Exam Submitted!</div>
+      <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem"}}>Your answers have been recorded. Results will be published by your lecturer.</div>
+      <button onClick={()=>{setSubmitted(false);load();}} style={s.btnP}>Back to Exams</button>
+    </div>
+  );
 
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
         <div>
-          <h1 style={s.h1}>Assignments</h1>
-          <p style={s.sub}>{assignments.length} assignment{assignments.length!==1?"s":""} · {userField}</p>
+          <h1 style={s.h1}>Exams</h1>
+          <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>{exams.length} exam{exams.length!==1?"s":""} available</p>
         </div>
-        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ New Assignment</button>}
+        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ Create Exam</button>}
       </div>
 
       {isLec&&showCreate&&(
         <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create Assignment</div>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create Exam</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Risk Theory Problem Set 1" value={newA.title} onChange={e=>setNewA({...newA,title:e.target.value})}/></div>
-            <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} placeholder="e.g. SAC 406" value={newA.course_code} onChange={e=>setNewA({...newA,course_code:e.target.value})}/></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
-            <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}>
-            <label style={s.lbl}>TARGET YEAR GROUP</label>
-            <select style={s.input} value={newA.target_year} onChange={e=>setNewA({...newA,target_year:e.target.value})}>
-              <option value="all">All Students (All Years)</option>
-              <option value="Year 1">Year 1 Only</option>
-              <option value="Year 2">Year 2 Only</option>
-              <option value="Year 3">Year 3 Only</option>
-              <option value="Year 4">Year 4 Only</option>
-              <option value="Masters Sem 1">Masters Sem 1</option>
-              <option value="Masters Sem 2">Masters Sem 2</option>
-              <option value="PhD Year 1">PhD Year 1</option>
-              <option value="PhD Year 2">PhD Year 2</option>
-              <option value="PhD Year 3+">PhD Year 3+</option>
-            </select>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION / INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
-          <div style={{marginBottom:"1rem"}}>
-            <label style={s.lbl}>ATTACH ASSIGNMENT FILE (PDF, Word, LaTeX — optional)</label>
-            <div onClick={()=>assignFileRef.current&&assignFileRef.current.click()} style={{border:`2px dashed ${assignmentFile?T.green:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:assignmentFile?T.green:T.t3,fontSize:12}}>
-              {assignmentFile?"✓ "+assignmentFile.name+" ("+(assignmentFile.size/1024/1024).toFixed(1)+"MB)":"Click to attach assignment document"}
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} value={newE.title} onChange={e=>setNewE({...newE,title:e.target.value})} placeholder="e.g. SAC 406 Final Exam"/></div>
+            <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} value={newE.course_code} onChange={e=>setNewE({...newE,course_code:e.target.value})} placeholder="e.g. SAC 406"/></div>
+            <div><label style={s.lbl}>DURATION (MIN)</label><input style={s.input} type="number" value={newE.duration_minutes} onChange={e=>setNewE({...newE,duration_minutes:parseInt(e.target.value)||60})}/></div>
+            <div><label style={s.lbl}>TOTAL MARKS</label><input style={s.input} type="number" value={newE.total_marks} onChange={e=>setNewE({...newE,total_marks:parseInt(e.target.value)||100})}/></div>
+            <div><label style={s.lbl}>TARGET YEAR</label>
+              <select style={s.input} value={newE.target_year} onChange={e=>setNewE({...newE,target_year:e.target.value})}>
+                {["all","Year 1","Year 2","Year 3","Year 4","Masters Sem 1","Masters Sem 2","PhD Year 1","PhD Year 2","PhD Year 3+"].map(v=><option key={v} value={v}>{v==="all"?"All Students":v}</option>)}
+              </select>
             </div>
-            <input ref={assignFileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.tex,.txt" onChange={e=>setAssignmentFile(e.target.files[0]||null)}/>
+          </div>
+          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,height:60,resize:"vertical"}} value={newE.instructions} onChange={e=>setNewE({...newE,instructions:e.target.value})} placeholder="Exam instructions..."/></div>
+          <div style={{...s.card,background:T.bg3,marginBottom:"1rem"}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Add Questions ({newE.questions.length} added)</div>
+            <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>QUESTION TEXT</label><input style={s.input} value={newQ.text} onChange={e=>setNewQ({...newQ,text:e.target.value})} placeholder="Enter question..."/></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"0.75rem"}}>
+              <div><label style={s.lbl}>TYPE</label>
+                <select style={s.input} value={newQ.type} onChange={e=>setNewQ({...newQ,type:e.target.value})}>
+                  <option value="mcq">Multiple Choice</option>
+                  <option value="essay">Essay / Open</option>
+                </select>
+              </div>
+              <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" value={newQ.marks} onChange={e=>setNewQ({...newQ,marks:parseInt(e.target.value)||5})}/></div>
+            </div>
+            {newQ.type==="mcq"&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"0.75rem"}}>
+                {newQ.options.map((opt,i)=>(
+                  <div key={i}><label style={s.lbl}>OPTION {String.fromCharCode(65+i)}</label><input style={s.input} value={opt} onChange={e=>{const ops=[...newQ.options];ops[i]=e.target.value;setNewQ({...newQ,options:ops});}} placeholder={`Option ${String.fromCharCode(65+i)}`}/></div>
+                ))}
+              </div>
+            )}
+            <button onClick={addQuestion} style={s.btnS} disabled={!newQ.text}>+ Add Question</button>
+            {newE.questions.length>0&&(
+              <div style={{marginTop:"0.75rem",display:"grid",gap:4}}>
+                {newE.questions.map((q,i)=>(
+                  <div key={i} style={{fontSize:11,color:T.t2,padding:"4px 8px",background:T.bg4,borderRadius:4}}>
+                    {i+1}. {q.text} ({q.marks}m) — {q.type}
+                    <button onClick={()=>setNewE(e=>({...e,questions:e.questions.filter((_,j)=>j!==i)}))} style={{background:"none",border:"none",color:T.red,cursor:"pointer",marginLeft:8,fontSize:11}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={createAssignment} style={s.btnP}>Create Assignment</button>
+            <button onClick={createExam} style={s.btnP}>Create Exam</button>
             <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
           </div>
         </div>
       )}
 
-      {assignments.length===0?(
-        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>📋</div>
-          <div style={{fontSize:14,color:T.t2,marginBottom:8}}>No assignments yet.</div>
-          {isLec&&<div style={{fontSize:12,color:T.t3}}>Click "+ New Assignment" to create one.</div>}
-        </div>
-      ):(
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading exams...</div>:
+      exams.length===0?<div style={{...s.card,textAlign:"center",padding:"3rem"}}><div style={{fontSize:40,marginBottom:12}}>✏️</div><div style={{fontSize:14,color:T.t2}}>No exams yet.</div></div>:(
         <div style={{display:"grid",gap:12}}>
-          {assignments.map(a=>{
-            const mySub=mySubmission(a.id);
-            const subs=asgSubmissions(a.id);
-            const overdue=isOverdue(a.due_date);
-            const submitted=!!mySub;
+          {exams.map(ex=>{
+            const sub=mySub(ex.id);
+            const subs=submissions.filter(s=>s.exam_id===ex.id);
             return(
-              <div key={a.id} style={{...s.card,borderLeft:`3px solid ${submitted?T.green:overdue?T.red:T.ac}`}}>
+              <div key={ex.id} style={{...s.card,borderLeft:`3px solid ${sub?T.green:T.ac}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
-                      <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{a.title}</span>
-                      <span style={{background:rgba(T.ac,0.15),color:T.ac,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>{a.course_code}</span>
-                      {submitted&&<span style={{background:rgba(T.green,0.15),color:T.green,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>✓ Submitted</span>}
-                      {mySub&&mySub.status==="graded"&&<span style={{background:rgba(T.purple,0.15),color:T.purple,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>Graded: {mySub.marks}/{a.max_marks}</span>}
-                      {overdue&&!submitted&&<span style={{background:rgba(T.red,0.15),color:T.red,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>Overdue</span>}
+                      <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{ex.title}</span>
+                      <span style={{background:rgba(T.ac,0.15),color:T.ac,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>{ex.course_code}</span>
+                      {sub&&<span style={{background:rgba(T.green,0.15),color:T.green,borderRadius:4,padding:"1px 8px",fontSize:10}}>✓ Submitted</span>}
+                      {sub&&sub.marks&&<span style={{background:rgba(T.purple,0.15),color:T.purple,borderRadius:4,padding:"1px 8px",fontSize:10}}>Score: {sub.marks}/{ex.total_marks}</span>}
                     </div>
-                    {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6,lineHeight:1.6}}>{a.description}</div>}
-                    {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,color:T.ac,marginBottom:6,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:6,padding:"4px 10px",border:`1px solid ${rgba(T.ac,0.3)}`}}>📎 Download Assignment Document</a>}
                     <div style={{fontSize:11,color:T.t3}}>
-                      {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short",year:"numeric"})}</span>}
-                      <span>Max: {a.max_marks} marks</span>
-                      {isLec&&<span style={{marginLeft:12}}>📥 {subs.length} submission{subs.length!==1?"s":""}</span>}
+                      <span style={{marginRight:12}}>⏱ {ex.duration_minutes} min</span>
+                      <span style={{marginRight:12}}>📊 {ex.total_marks} marks</span>
+                      <span style={{marginRight:12}}>❓ {(ex.questions||[]).length} questions</span>
+                      {isLec&&<span>👥 {subs.length} submitted</span>}
                     </div>
-                    {mySub&&mySub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:rgba(T.purple,0.1),border:`1px solid ${rgba(T.purple,0.3)}`,borderRadius:8,fontSize:12,color:T.t1}}>💬 Feedback: {mySub.feedback}</div>}
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
-                    {!isLec&&!submitted&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit →</button>}
-                    {!isLec&&submitted&&mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"5px 12px"}}>View My Submission</a>}
-                    {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={{...s.btnS,fontSize:11}}>View Submissions ({subs.length})</button>}
-                  </div>
-                </div>
-
-                {selected===a.id&&!isLec&&!submitted&&(
-                  <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
-                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submit Your Work</div>
-                    <div style={{marginBottom:"0.75rem"}}>
-                      <label style={s.lbl}>UPLOAD FILE (PDF, Word, images)</label>
-                      <div onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:`2px dashed ${subFile?T.green:T.bd}`,borderRadius:8,padding:"0.75rem",textAlign:"center",cursor:"pointer",color:subFile?T.green:T.t3,fontSize:12,marginBottom:6}}>
-                        {subFile?"✓ "+subFile.name:"Click to attach file"}
-                      </div>
-                      <input ref={fileRef} type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={e=>setSubFile(e.target.files[0]||null)}/>
-                    </div>
-                    <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>COMMENT (optional)</label><textarea style={{...s.input,height:60,resize:"vertical"}} placeholder="Any notes for your lecturer..." value={subComment} onChange={e=>setSubComment(e.target.value)}/></div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>submitAssignment(a.id)} style={s.btnP} disabled={submitting}>{submitting?"Submitting...":"Submit Assignment"}</button>
-                      <button onClick={()=>setSelected(null)} style={s.btnS}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-
-                {selected===a.id&&isLec&&subs.length>0&&(
-                  <div style={{marginTop:"1rem",borderTop:`1px solid ${T.bd}`,paddingTop:"1rem"}}>
-                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submissions ({subs.length})</div>
-                    <div style={{display:"grid",gap:8}}>
-                      {subs.map(sub=>(
-                        <div key={sub.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-                            <div style={{flex:1}}>
-                              <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub.student_name}</div>
-                              <div style={{fontSize:11,color:T.t3}}>{new Date(sub.submitted_at).toLocaleDateString()} · {sub.status}</div>
-                              {sub.comment&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>"{sub.comment}"</div>}
-                              {sub.marks&&<div style={{fontSize:12,color:T.purple,marginTop:4}}>Marks: {sub.marks}/{a.max_marks}</div>}
-                              {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>Feedback: {sub.feedback}</div>}
-                            </div>
-                            <div style={{display:"flex",gap:6,flexShrink:0}}>
-                              {sub.file_url&&<a href={sub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"5px 10px",textDecoration:"none"}}>📄 View</a>}
-                              <button onClick={()=>setGrading(grading===sub.id?null:sub.id)} style={{...s.btnP,fontSize:11,padding:"5px 10px"}}>{sub.status==="graded"?"Re-grade":"Grade"}</button>
-                            </div>
-                          </div>
-                          {grading===sub.id&&(
-                            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"end"}}>
-                              <div><label style={s.lbl}>MARKS /{a.max_marks}</label><input style={s.input} type="number" placeholder="0" value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)}/></div>
-                              <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} placeholder="Comments for student..." value={gradeFeedback} onChange={e=>setGradeFeedback(e.target.value)}/></div>
-                              <button onClick={()=>gradeSubmission(sub.id)} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Save</button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-const ResearchView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
-  const [mode,setMode]=useState("check");
-  const [file,setFile]=useState(null);
-  const [text,setText]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [result,setResult]=useState(null);
-  const [error,setError]=useState("");
-  const fileRef=useRef(null);
-  const modeBtns=[{id:"check",label:"Plagiarism & AI Check"},{id:"submit",label:"Submit Research"},{id:"library",label:"Research Library"}];
-
-  const analyzeText=async(content)=>{
-    setLoading(true);setError("");setResult(null);
-    try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:2000,
-          messages:[{role:"user",content:`You are an expert academic integrity analyst with the accuracy of Turnitin and GPTZero combined. Analyze the following academic text and provide a detailed assessment.
-
-TEXT TO ANALYZE:
-"""
-${content.slice(0,8000)}
-"""
-
-Provide your analysis as a JSON object with these exact fields:
-{
-  "similarity_index": <number 0-100, estimated plagiarism similarity percentage>,
-  "ai_content_percentage": <number 0-100, percentage likely AI-generated>,
-  "human_content_percentage": <number 0-100, percentage likely human-written>,
-  "word_count": <number>,
-  "sentence_count": <number>,
-  "readability_score": <number 0-100, Flesch reading ease>,
-  "readability_label": <"Very Easy"|"Easy"|"Fairly Easy"|"Standard"|"Fairly Difficult"|"Difficult"|"Very Difficult">,
-  "ai_indicators": [<list of specific phrases or patterns that suggest AI generation>],
-  "originality_indicators": [<list of specific phrases or patterns that suggest human/original writing>],
-  "suspicious_sections": [<list of sentences that may be copied or AI-generated>],
-  "overall_verdict": <"Likely Original"|"Possibly AI-Assisted"|"Likely AI-Generated"|"Potentially Plagiarized">,
-  "confidence": <number 0-100>,
-  "recommendations": [<list of specific actionable improvements>],
-  "summary": <2-3 sentence overall assessment>
-}
-
-Be thorough, accurate and specific. Return ONLY the JSON object, no other text.`}]
-        })
-      });
-      const d=await res.json();
-      const txt=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
-      const clean=txt.replace(/```json|```/g,"").trim();
-      const jsonStart=clean.indexOf("{");const jsonEnd=clean.lastIndexOf("}");
-      const parsed=JSON.parse(clean.slice(jsonStart,jsonEnd+1));
-      setResult(parsed);
-    }catch(e){
-      setError("Analysis failed: "+e.message+". Please try again.");
-      console.error("Research analysis error:",e);
-    }
-    setLoading(false);
-  };
-
-  const handleFile=async(f)=>{
-    setFile(f);
-    if(f.type==="text/plain"){
-      const reader=new FileReader();
-      reader.onload=e=>setText(e.target.result);
-      reader.readAsText(f);
-    } else if(f.type==="application/pdf"){
-      // Read PDF as base64 and send to Claude for extraction
-      const reader=new FileReader();
-      reader.onload=async(e)=>{
-        const base64=e.target.result.split(",")[1];
-        setLoading(true);
-        try{
-          const res=await fetch("https://api.anthropic.com/v1/messages",{
-            method:"POST",
-            headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-            body:JSON.stringify({
-              model:"claude-sonnet-4-20250514",
-              max_tokens:4000,
-              messages:[{role:"user",content:[
-                {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
-                {type:"text",text:"Extract and return ALL the text content from this PDF document. Return only the raw text, preserving paragraphs. No summaries, no comments."}
-              ]}]
-            })
-          });
-          const d=await res.json();
-          const extracted=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"";
-          setText(extracted);
-        }catch(e){
-          setText("");
-          setError("Could not read PDF. Please paste the text manually.");
-        }
-        setLoading(false);
-      };
-      reader.readAsDataURL(f);
-    } else {
-      // For Word docs, ask user to paste text
-      setText("");
-      setError("For Word documents, please copy and paste the text into the text area below.");
-    }
-  };
-
-  const verdictColor=(v)=>{
-    if(v==="Likely Original") return T.green;
-    if(v==="Possibly AI-Assisted") return T.amber;
-    if(v==="Likely AI-Generated"||v==="Potentially Plagiarized") return T.red;
-    return T.t2;
-  };
-
-  const ScoreRing=({value,label,color})=>(
-    <div style={{textAlign:"center",padding:"1rem"}}>
-      <div style={{position:"relative",width:80,height:80,margin:"0 auto 8px"}}>
-        <svg viewBox="0 0 80 80" style={{transform:"rotate(-90deg)"}}>
-          <circle cx="40" cy="40" r="32" fill="none" stroke={T.bg3} strokeWidth="8"/>
-          <circle cx="40" cy="40" r="32" fill="none" stroke={color} strokeWidth="8"
-            strokeDasharray={`${2*Math.PI*32}`}
-            strokeDashoffset={`${2*Math.PI*32*(1-value/100)}`}
-            strokeLinecap="round"/>
-        </svg>
-        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:16,fontWeight:700,color}}>{value}%</div>
-      </div>
-      <div style={{fontSize:11,color:T.t2,fontWeight:500}}>{label}</div>
-    </div>
-  );
-
-  return(
-    <div>
-      <h1 style={s.h1}>{t("research")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Plagiarism detection · AI content analysis · Academic integrity</p>
-      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-        {modeBtns.map(mb=>(
-          <button key={mb.id} onClick={()=>setMode(mb.id)} style={{...(mode===mb.id?s.btnP:s.btnS),fontSize:12}}>{mb.label}</button>
-        ))}
-      </div>
-
-      {mode==="check"&&(
-        <div>
-          {!result&&!loading&&(
-            <div style={s.card}>
-              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload or Paste Your Text</div>
-              <div style={{border:`2px dashed ${file?T.green:T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",color:file?T.green:T.t3,marginBottom:"1rem",fontSize:12,transition:"all 0.2s"}}>
-                {file?(
-                  <div>
-                    <div style={{fontSize:24,marginBottom:4}}>✓</div>
-                    <div style={{fontWeight:500}}>{file.name}</div>
-                    <div style={{fontSize:11,marginTop:4}}>({(file.size/1024).toFixed(0)} KB)</div>
-                  </div>
-                ):(
-                  <div>
-                    <div style={{fontSize:32,marginBottom:8}}>📄</div>
-                    <div style={{fontWeight:500,marginBottom:4}}>Upload PDF, DOCX, or TXT</div>
-                    <div style={{fontSize:11,marginBottom:12}}>Max 10MB — or paste text below</div>
-                  </div>
-                )}
-                <label style={{...s.btnS,cursor:"pointer",display:"inline-block",fontSize:12,padding:"7px 18px"}}>
-                  {file?"Change File":"Choose File"}
-                  <input type="file" style={{display:"none"}} accept=".txt,.pdf,.doc,.docx" onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/>
-                </label>
-              </div>
-              <div style={{marginBottom:"1rem"}}>
-                <label style={s.lbl}>PASTE TEXT FOR ANALYSIS</label>
-                <textarea style={{...s.input,height:160,resize:"vertical",fontSize:12,lineHeight:1.6}} placeholder="Paste your essay, research paper, or any academic text here..." value={text} onChange={e=>setText(e.target.value)}/>
-              </div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <button onClick={()=>text.trim().length>50?analyzeText(text):setError("Please provide at least 50 characters of text to analyze.")} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={loading||!text.trim()}>
-                  {loading?"Analyzing...":"🔍 Analyze Text"}
-                </button>
-                <span style={{fontSize:11,color:T.t3}}>Powered by Claude AI · Results in 10-20 seconds</span>
-              </div>
-              {error&&<div style={{marginTop:8,fontSize:12,color:T.red}}>{error}</div>}
-            </div>
-          )}
-
-          {loading&&(
-            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-              <div style={{fontSize:40,marginBottom:16}}>🔍</div>
-              <div style={{fontSize:16,fontWeight:600,color:T.t1,marginBottom:8}}>Analyzing your text...</div>
-              <div style={{fontSize:12,color:T.t3,marginBottom:"1.5rem"}}>Checking for plagiarism patterns, AI indicators, and readability</div>
-              <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-                {["Scanning for similarity","Detecting AI patterns","Measuring readability","Generating report"].map((s,i)=>(
-                  <div key={i} style={{background:T.bg3,borderRadius:20,padding:"4px 12px",fontSize:11,color:T.t2}}>⟳ {s}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {result&&!loading&&(
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
-                <h2 style={{...s.h1,marginBottom:0}}>Analysis Report</h2>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{setResult(null);setFile(null);setText("");}} style={s.btnS}>New Analysis</button>
-                </div>
-              </div>
-
-              <div style={{...s.card,borderLeft:`4px solid ${verdictColor(result.overall_verdict)}`,marginBottom:"1rem"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
-                  <div>
-                    <div style={{fontSize:11,color:T.t3,marginBottom:4}}>OVERALL VERDICT</div>
-                    <div style={{fontSize:20,fontWeight:700,color:verdictColor(result.overall_verdict)}}>{result.overall_verdict}</div>
-                    <div style={{fontSize:12,color:T.t2,marginTop:4}}>{result.summary}</div>
-                  </div>
-                  <div style={{background:T.bg3,borderRadius:8,padding:"8px 16px",textAlign:"center"}}>
-                    <div style={{fontSize:11,color:T.t3}}>CONFIDENCE</div>
-                    <div style={{fontSize:22,fontWeight:700,color:T.ac}}>{result.confidence}%</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1rem"}}>
-                <div style={s.card}>
-                  <ScoreRing value={result.similarity_index} label="Similarity Index" color={result.similarity_index>30?T.red:result.similarity_index>15?T.amber:T.green}/>
-                </div>
-                <div style={s.card}>
-                  <ScoreRing value={result.ai_content_percentage} label="AI Content" color={result.ai_content_percentage>50?T.red:result.ai_content_percentage>25?T.amber:T.green}/>
-                </div>
-                <div style={s.card}>
-                  <ScoreRing value={result.human_content_percentage} label="Human Written" color={result.human_content_percentage>70?T.green:result.human_content_percentage>50?T.amber:T.red}/>
-                </div>
-                <div style={s.card}>
-                  <ScoreRing value={result.readability_score} label={result.readability_label||"Readability"} color={T.blue}/>
-                </div>
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
-                <div style={s.card}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Document Stats</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    {[["Words",result.word_count],["Sentences",result.sentence_count]].map(([k,v])=>(
-                      <div key={k} style={{background:T.bg3,borderRadius:6,padding:"8px 10px"}}>
-                        <div style={{fontSize:10,color:T.t3}}>{k.toUpperCase()}</div>
-                        <div style={{fontSize:16,fontWeight:600,color:T.t1}}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={s.card}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Recommendations</div>
-                  <div style={{display:"grid",gap:6}}>
-                    {(result.recommendations||[]).slice(0,3).map((r,i)=>(
-                      <div key={i} style={{fontSize:11,color:T.t2,display:"flex",gap:6}}>
-                        <span style={{color:T.ac,flexShrink:0}}>→</span>{r}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {result.suspicious_sections&&result.suspicious_sections.length>0&&(
-                <div style={{...s.card,marginBottom:"1rem"}}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.red,marginBottom:8}}>⚠ Flagged Sections</div>
-                  <div style={{display:"grid",gap:6}}>
-                    {result.suspicious_sections.slice(0,5).map((sec,i)=>(
-                      <div key={i} style={{background:rgba(T.red,0.08),border:`1px solid ${rgba(T.red,0.2)}`,borderRadius:6,padding:"8px 10px",fontSize:11,color:T.t1,lineHeight:1.5,fontStyle:"italic"}}>"{sec}"</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {result.ai_indicators&&result.ai_indicators.length>0&&(
-                <div style={s.card}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.amber,marginBottom:8}}>🤖 AI Writing Indicators</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                    {result.ai_indicators.slice(0,6).map((ind,i)=>(
-                      <span key={i} style={{background:rgba(T.amber,0.12),color:T.amber,borderRadius:6,padding:"3px 10px",fontSize:11}}>{ind}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {mode==="submit"&&(
-        <div style={s.card}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>New Research Submission</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Research title"/></div>
-            <div><label style={s.lbl}>AUTHOR(S)</label><input style={s.input} placeholder="All authors"/></div>
-            <div><label style={s.lbl}>SUPERVISOR</label><input style={s.input} placeholder="Supervisor name"/></div>
-            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{["Undergraduate Project","Masters Dissertation","PhD Thesis","Conference Paper"].map(v=><option key={v}>{v}</option>)}</select></div>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>ABSTRACT</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Summary..."/></div>
-          <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"1.5rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem",fontSize:12}}>Upload PDF or DOCX · Max 50MB</div>
-          <button style={s.btnP}>Submit</button>
-        </div>
-      )}
-
-      {mode==="library"&&(
-        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>📚</div>
-          <div style={{fontSize:14,color:T.t2}}>Research library coming soon.</div>
-          <div style={{fontSize:12,color:T.t3,marginTop:4}}>Browse and share research papers within AKADIMIA.</div>
-        </div>
-      )}
-    </div>
-  );
-};
-const AIView=({lang,userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
-  const [msgs,setMsgs]=useState([{role:"bot",text:`Karibu! I'm EduBot, AKADIMIA's AI tutor. I specialise in ${(fld&&fld.name)}. Ask me anything about your coursework, assignments, research or career — available 24/7!`}]);
-  const [inp,setInp]=useState(""),[loading,setL]=useState(false);const scrollRef=useRef(null);
-  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[msgs]);
-  const R={
-    assignment:`For ${(fld&&fld.name)} assignments: read the rubric carefully, break work into sections, cite all sources properly, and review before submission.`,
-    exam:`Exam prep for ${(fld&&fld.name)}: review past papers for patterns, make concise notes, practice timed questions, and form study groups.`,
-    career:`Strong career paths in ${(fld&&fld.name)} in East Africa include: ${(FIELD_DATA[userField]&&FIELD_DATA[userField].bodies).slice(0,2).join(", ")}. Joining a professional body early builds your network.`,
-    research:`Strong research needs: clear problem statement, justified methodology, honest limitations, and conclusions tied to objectives.`,
-    trend:`Current trends in ${(fld&&fld.name)}: ${(FIELD_DATA[userField]&&FIELD_DATA[userField].trends)?.join(" · ")}.`,
-    default:`Great question about ${(fld&&fld.name)}! Could you give more context — which course is this for, and is it for an assignment, exam, or research?`,
-  };
-  const send=async()=>{
-    if(!inp.trim())return;
-    const q=inp.trim();setInp("");setL(true);setMsgs(m=>[...m,{role:"user",text:q}]);
-    try {
-      const {askClaude}=await import("./api.js");
-      const reply=await askClaude(q,fld?.name||"Actuarial Science",lang);
-      setMsgs(m=>[...m,{role:"bot",text:reply}]);
-    } catch(e) {
-      const key=Object.keys(R).find(k=>q.toLowerCase().includes(k))||"default";
-      setMsgs(m=>[...m,{role:"bot",text:R[key]}]);
-    }
-    setL(false);
-  };
-  const topicBtns=["Assignment help","Exam prep","Career guidance","Emerging trends","Research tips"];
-  return(
-    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
-      <h1 style={s.h1}>EduBot — AI Tutor</h1>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:"0.75rem",flexWrap:"wrap"}}>
-        <Pill text={(fld&&fld.icon)+" "+(fld&&fld.name)} color={(fld&&fld.color)||T.teal}/>
-        <Pill text={(LANGS[lang]&&LANGS[lang].name)} color={T.teal}/>
-        <Pill text="Anthropic Claude" color={T.purple}/>
-        <Pill text="24/7" color={T.green}/>
-      </div>
-      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
-        {topicBtns.map(tp=><button key={tp} onClick={()=>setInp(tp)} style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>{tp}</button>)}
-      </div>
-      <div ref={scrollRef} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,paddingBottom:"0.5rem"}}>
-        {msgs.map((m,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
-            {m.role==="bot"&&<div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${T.ac},${T.acL})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginRight:8,marginTop:4}}>AI</div>}
-            <div style={{maxWidth:"75%",background:m.role==="user"?`linear-gradient(135deg,${rgba(T.ac,0.25)},${rgba(T.ac,0.12)})`:T.bg3,border:`1px solid ${m.role==="user"?rgba(T.ac,0.3):T.bd}`,borderRadius:m.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",fontSize:13,color:T.t1,lineHeight:1.65}}>
-              {m.role==="bot"?<ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{m.text}</ReactMarkdown>:m.text}
-            </div>
-          </div>
-        ))}
-        {loading&&(
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:`linear-gradient(135deg,${T.ac},${T.acL})`,display:"flex",alignItems:"center",justifyContent:"center"}}>AI</div>
-            <div style={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:18,padding:"12px 18px"}}>
-              <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.t3}}/>)}</div>
-            </div>
-          </div>
-        )}
-      </div>
-      <div style={{display:"flex",gap:8,paddingTop:"0.75rem",borderTop:`1px solid ${T.bd}`}}>
-        <input style={{...s.input,flex:1}} placeholder={t("ask")} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}/>
-        <button onClick={send} style={{...s.btnP,flexShrink:0,padding:"9px 20px"}}>{t("send")}</button>
-      </div>
-    </div>
-  );
-};
-
-const CalendarView=({setTab})=>{
-  const T=useT();const t=useLang();const s=sx(T);const [sel,setSel]=useState(null);const today=20;
-  const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const cells=[...Array(6).fill(null),...Array(31).fill(0).map((_,i)=>i+1)];
-  const evOn=d=>CAL_EVENTS.filter(e=>e.d===d);
-  return(
-    <div>
-      <h1 style={s.h1}>{t("calendar")}</h1>
-      <p style={s.sub}>March 2026 · Academic schedule · Deadlines · Classes</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:12}}>
-        <div style={s.card}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
-            <button style={{...s.btnS,fontSize:12,padding:"5px 12px"}}>Feb</button>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:600,color:T.t1}}>March 2026</span>
-            <button style={{...s.btnS,fontSize:12,padding:"5px 12px"}}>Apr</button>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:8}}>
-            {DAYS.map(d=><div key={d} style={{textAlign:"center",fontSize:10,color:T.t3,padding:"4px 0",fontWeight:500}}>{d}</div>)}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
-            {cells.map((d,i)=>{
-              if(!d)return <div key={i}/>;
-              const evs=evOn(d);const isT=d===today;const isS=d===sel;
-              return(
-                <div key={i} onClick={()=>setSel(d===sel?null:d)} style={{minHeight:50,background:isS?rgba(T.ac,0.18):isT?rgba(T.blue,0.2):T.bg3,border:`1px solid ${isS?T.ac:isT?T.blue:T.bd}`,borderRadius:7,padding:"4px 3px",cursor:"pointer"}}>
-                  <div style={{fontSize:11,fontWeight:isT||isS?700:400,color:isT?T.blue:isS?T.ac:T.t2,textAlign:"center",marginBottom:2}}>{d}</div>
-                  {evs.slice(0,2).map((ev,ei)=><div key={ei} style={{width:"100%",height:3,borderRadius:2,background:ev.col,marginBottom:2}}/>)}
-                  {evs.length>2&&<div style={{fontSize:8,color:T.t3,textAlign:"center"}}>+{evs.length-2}</div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {sel?(
-            <div style={s.card}>
-              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>{sel} March {sel===today&&<Pill text="Today" color={T.blue}/>}</div>
-              {evOn(sel).length===0?<div style={{fontSize:12,color:T.t3}}>No events.</div>:evOn(sel).map((ev,i)=>(
-                <div key={i} style={{display:"flex",gap:10,padding:"9px 0",borderBottom:`1px solid ${T.bd}`}}>
-                  <div style={{width:32,height:32,borderRadius:7,background:rgba(ev.col,0.18),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>E</div>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{ev.label}</div>
-                    <div style={{fontSize:11,color:T.t3,marginTop:2}}>{ev.time}</div>
-                  </div>
-                </div>
-              ))}
-              {evOn(sel).some(e=>e.type==="meeting")&&<button onClick={()=>setTab("meetings")} style={{...s.btnP,width:"100%",marginTop:"0.75rem",fontSize:12}}>Join Meeting</button>}
-            </div>
-          ):<div style={s.card}><div style={{fontSize:12,color:T.t2}}>Click a date to see events.</div></div>}
-          <div style={s.card}>
-            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Coming Up</div>
-            {CAL_EVENTS.filter(e=>e.d>=today).slice(0,5).map((ev,i)=>(
-              <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:ev.col,flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:11,color:T.t1}}>{ev.label}</div>
-                  <div style={{fontSize:10,color:T.t3}}>Mar {ev.d} · {ev.time}</div>
-                </div>
-              </div>
-            ))}
-            <button style={{...s.btnS,width:"100%",fontSize:11,marginTop:"0.5rem"}}>+ Add Event</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const MeetingsView=()=>{
-  const T=useT();const t=useLang();const s=sx(T);const [showSched,setShowSched]=useState(false);
-  const PC={zoom:"#2D8CFF",meet:"#0F9D58",teams:"#6264A7"};
-  const TC={class:T.teal,research:T.purple,peer:T.blue,industry:T.green,admin:T.amber};
-  const durOpts=["30 min","1 hour","1.5 hours","2 hours"];
-  const platOpts=["Zoom","Google Meet","Teams"];
-  const typeOpts=["Class","Research","Peer","Industry","Admin"];
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
-        <div><h1 style={s.h1}>{t("meetings")}</h1><p style={s.sub}>Zoom · Google Meet · Microsoft Teams</p></div>
-        <button onClick={()=>setShowSched(!showSched)} style={s.btnP}>+ Schedule</button>
-      </div>
-      {showSched&&(
-        <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Schedule Meeting</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Title"/></div>
-            <div><label style={s.lbl}>DATE</label><input style={s.input} type="date"/></div>
-            <div><label style={s.lbl}>TIME</label><input style={s.input} type="time"/></div>
-            <div><label style={s.lbl}>DURATION</label><select style={s.input}>{durOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-            <div><label style={s.lbl}>PLATFORM</label><select style={s.input}>{platOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{typeOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>PARTICIPANTS</label><input style={s.input} placeholder="name@buc.ke, ..."/></div>
-          <div style={{display:"flex",gap:8}}>
-            <button style={s.btnP}>Create &amp; Invite</button>
-            <button onClick={()=>setShowSched(false)} style={s.btnS}>Cancel</button>
-          </div>
-        </div>
-      )}
-      <div style={{display:"grid",gap:10}}>
-        {MEETINGS.map(m=>(
-          <div key={m.id} style={s.card}>
-            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-              <div style={{width:42,height:42,borderRadius:10,background:rgba(PC[m.platform],0.18),border:`1px solid ${rgba(PC[m.platform],0.35)}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>M</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
-                  <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{m.title}</span>
-                  <Pill text={m.type} color={TC[m.type]}/>
-                  {m.rec&&<Pill text="Recorded" color={T.cyan}/>}
-                </div>
-                <div style={{display:"flex",gap:"1rem",fontSize:11,color:T.t3}}>
-                  <span>{m.host}</span><span>{m.date}</span><span>{m.time}</span><span>{m.dur}</span>
-                </div>
-              </div>
-              <a href="#" style={{...s.btnP,textDecoration:"none",fontSize:12,padding:"7px 14px",background:`linear-gradient(135deg,${PC[m.platform]},${PC[m.platform]}cc)`,flexShrink:0}}>Join</a>
-            </div>
-            <div style={{display:"flex",gap:8,marginTop:"0.75rem",paddingTop:"0.75rem",borderTop:`1px solid ${T.bd}`}}>
-              {["Add to Calendar","Copy Link","Email Invite"].map(a=>(
-                <button key={a} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>{a}</button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const OppsView=({userField})=>{
-  const T=useT();const s=sx(T);const fld=FIELDS[userField];
-  const [opps,setOpps]=useState([]);
-  const [loading,setLoading]=useState(false);
-  const [filter,setFilter]=useState("all");
-  const [lastFetched,setLastFetched]=useState(null);
-  const [error,setError]=useState("");
-
-  const fetchOpps=async()=>{
-    setLoading(true);setError("");
-    try{
-      const fieldName=(fld&&fld.name)||userField;
-      const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({
-          model:"claude-haiku-4-5-20251001",
-          max_tokens:2000,
-          messages:[{role:"user",content:`Today is ${today}. List 12 realistic current opportunities for ${fieldName} students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array.`}]
-        })
-      });
-      const d=await res.json();
-      console.log("API response:", JSON.stringify(d).slice(0,500));
-      
-      // Extract text from all content blocks including tool results
-      let text="";
-      if(d.content){
-        for(const block of d.content){
-          if(block.type==="text"&&block.text) text+=block.text;
-          if(block.type==="tool_result"&&block.content){
-            for(const inner of block.content){
-              if(inner.type==="text") text+=inner.text;
-            }
-          }
-        }
-      }
-      
-      if(!text||text.trim()===""){
-        // If no text, do a simpler call without web search
-        const res2=await fetch("https://api.anthropic.com/v1/messages",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-          body:JSON.stringify({
-            model:"claude-haiku-4-5-20251001",
-            max_tokens:2000,
-            messages:[{role:"user",content:`List 10 CURRENT opportunities for ${(fld&&fld.name)||userField} students in Kenya and East Africa as of ${new Date().toLocaleDateString()}. Include scholarships, grants, jobs, fellowships and training. Return ONLY a JSON array with fields: title, org, type, description, deadline, url. No other text.`}]
-          })
-        });
-        const d2=await res2.json();
-        text=d2.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
-      }
-      
-      const clean=text.replace(/```json|```/g,"").trim();
-      const jsonStart=clean.indexOf("[");
-      const jsonEnd=clean.lastIndexOf("]");
-      const jsonStr=jsonStart>=0&&jsonEnd>jsonStart?clean.slice(jsonStart,jsonEnd+1):"[]";
-      const parsed=JSON.parse(jsonStr);
-      setOpps(Array.isArray(parsed)?parsed:[]);
-      setLastFetched(new Date());
-    }catch(e){
-      setError("Could not fetch opportunities. Please try again.");
-      console.error(e);
-    }
-    setLoading(false);
-  };
-
-  useEffect(()=>{fetchOpps();},[userField]);
-
-  const types=["all","scholarship","grant","job","training","networking","fellowship"];
-  const filtered=filter==="all"?opps:opps.filter(o=>(o.type||"").toLowerCase().includes(filter));
-  const typeColor={scholarship:T.ac,grant:T.teal,job:T.green,training:T.blue,networking:T.purple,fellowship:T.amber};
-
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
-        <div>
-          <h1 style={s.h1}>Opportunities</h1>
-          <p style={s.sub}>
-            <span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>
-            {lastFetched?`Last updated: ${lastFetched.toLocaleTimeString()}`:"Loading current opportunities..."}
-          </p>
-        </div>
-        <button onClick={fetchOpps} style={{...s.btnP,fontSize:12,padding:"8px 16px"}} disabled={loading}>
-          {loading?"🔄 Searching...":"🔄 Refresh"}
-        </button>
-      </div>
-
-      <div style={{display:"flex",gap:6,marginBottom:"1.25rem",flexWrap:"wrap"}}>
-        {types.map(type=>(
-          <button key={type} onClick={()=>setFilter(type)} style={{...(filter===type?s.btnP:s.btnS),fontSize:11,padding:"5px 12px",textTransform:"capitalize"}}>
-            {type==="all"?"All":type}
-          </button>
-        ))}
-      </div>
-
-      {error&&<div style={{...s.card,color:T.red,textAlign:"center",padding:"1.5rem"}}>{error} <button onClick={fetchOpps} style={{...s.btnS,marginLeft:8,fontSize:11}}>Retry</button></div>}
-
-      {loading&&(
-        <div style={{display:"grid",gap:10}}>
-          {[1,2,3,4].map(i=>(
-            <div key={i} style={{...s.card,background:T.bg3,animation:"pulse 1.5s infinite"}}>
-              <div style={{height:16,background:T.bg4,borderRadius:4,width:"60%",marginBottom:8}}/>
-              <div style={{height:12,background:T.bg4,borderRadius:4,width:"40%",marginBottom:8}}/>
-              <div style={{height:12,background:T.bg4,borderRadius:4,width:"80%"}}/>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading&&!error&&filtered.length===0&&(
-        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>🌍</div>
-          <div style={{fontSize:14,color:T.t2}}>No {filter==="all"?"":filter} opportunities found. Try refreshing.</div>
-        </div>
-      )}
-
-      {!loading&&filtered.length>0&&(
-        <div style={{display:"grid",gap:10}}>
-          {filtered.map((o,i)=>{
-            const tc=typeColor[(o.type||"").toLowerCase()]||T.t2;
-            return(
-              <div key={i} style={{...s.card,borderLeft:`3px solid ${tc}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
-                      <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{o.title}</span>
-                      <span style={{background:rgba(tc,0.15),color:tc,borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{o.type||"opportunity"}</span>
-                    </div>
-                    <div style={{fontSize:12,color:T.ac,fontWeight:500,marginBottom:4}}>{o.org}</div>
-                    <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:o.deadline?6:0}}>{o.description}</div>
-                    {o.deadline&&<div style={{fontSize:11,color:T.amber}}>⏰ Deadline: {o.deadline}</div>}
+                    {ex.instructions&&<div style={{fontSize:12,color:T.t2,marginTop:6}}>{ex.instructions}</div>}
+                    {sub&&sub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:rgba(T.purple,0.1),border:`1px solid ${rgba(T.purple,0.3)}`,borderRadius:8,fontSize:12,color:T.t1}}>💬 {sub.feedback}</div>}
                   </div>
                   <div style={{flexShrink:0}}>
-                    {o.url&&o.url!=="N/A"&&o.url.startsWith("http")?(
-                      <a href={o.url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"6px 14px",textDecoration:"none",display:"inline-block"}}>Apply →</a>
-                    ):(
-                      <button onClick={()=>{}} style={{...s.btnS,fontSize:11,padding:"6px 14px",opacity:0.5}} disabled>No Link</button>
-                    )}
+                    {!isLec&&!sub&&<button onClick={()=>startExam(ex)} style={s.btnP}>Start Exam →</button>}
+                    {isLec&&subs.length>0&&<button onClick={()=>setActiveExam(activeExam?.id===ex.id?null:ex)} style={s.btnS}>View ({subs.length})</button>}
                   </div>
                 </div>
               </div>
@@ -2117,11 +1356,279 @@ const OppsView=({userField})=>{
           })}
         </div>
       )}
+    </div>
+  );
+};
+const CalendarView=({setTab,role,userField})=>{
+  const T=useT();const s=sx(T);
+  const [events,setEvents]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [newEv,setNewEv]=useState({title:"",description:"",event_type:"general",start_time:"",end_time:"",location:"",meeting_link:""});
+  const isLec=role==="lecturer"||role==="admin";
+  const types=["general","exam","assignment","meeting","holiday","workshop"];
 
-      {!loading&&filtered.length>0&&(
-        <div style={{...s.card,marginTop:"1rem",textAlign:"center",padding:"0.75rem"}}>
-          <span style={{fontSize:11,color:T.t3}}>🤖 Opportunities sourced by AI web search · Always verify details on official websites · </span>
-          <button onClick={fetchOpps} style={{...s.btnS,fontSize:10,padding:"3px 8px",marginLeft:4}}>Refresh for latest</button>
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("calendar_events").select("*").order("start_time",{ascending:true});
+    setEvents(data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const create=async()=>{
+    if(!newEv.title||!newEv.start_time)return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("calendar_events").insert({...newEv,field:userField,created_by:user.id});
+    setShowCreate(false);setNewEv({title:"",description:"",event_type:"general",start_time:"",end_time:"",location:"",meeting_link:""});
+    load();
+  };
+
+  const del=async(id)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("calendar_events").delete().eq("id",id);
+    load();
+  };
+
+  const typeColor={general:T.blue,exam:T.red,assignment:T.amber,meeting:T.green,holiday:T.purple,workshop:T.teal};
+  const upcoming=events.filter(e=>new Date(e.start_time)>=new Date());
+  const past=events.filter(e=>new Date(e.start_time)<new Date());
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div><h1 style={s.h1}>Calendar</h1><p style={s.sub}>{upcoming.length} upcoming events</p></div>
+        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ Add Event</button>}
+      </div>
+
+      {isLec&&showCreate&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>New Calendar Event</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} value={newEv.title} onChange={e=>setNewEv({...newEv,title:e.target.value})} placeholder="Event title"/></div>
+            <div><label style={s.lbl}>TYPE</label>
+              <select style={s.input} value={newEv.event_type} onChange={e=>setNewEv({...newEv,event_type:e.target.value})}>
+                {types.map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+              </select>
+            </div>
+            <div><label style={s.lbl}>START DATE & TIME</label><input style={s.input} type="datetime-local" value={newEv.start_time} onChange={e=>setNewEv({...newEv,start_time:e.target.value})}/></div>
+            <div><label style={s.lbl}>END DATE & TIME</label><input style={s.input} type="datetime-local" value={newEv.end_time} onChange={e=>setNewEv({...newEv,end_time:e.target.value})}/></div>
+            <div><label style={s.lbl}>LOCATION (optional)</label><input style={s.input} value={newEv.location} onChange={e=>setNewEv({...newEv,location:e.target.value})} placeholder="e.g. Room 204, Online"/></div>
+            <div><label style={s.lbl}>MEETING LINK (optional)</label><input style={s.input} value={newEv.meeting_link} onChange={e=>setNewEv({...newEv,meeting_link:e.target.value})} placeholder="https://zoom.us/..."/></div>
+          </div>
+          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:60,resize:"vertical"}} value={newEv.description} onChange={e=>setNewEv({...newEv,description:e.target.value})} placeholder="Details..."/></div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={create} style={s.btnP}>Save Event</button>
+            <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading...</div>:(
+        <div>
+          {upcoming.length>0&&(
+            <div style={{marginBottom:"1.5rem"}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.t3,letterSpacing:0.8,marginBottom:"0.75rem"}}>UPCOMING</div>
+              <div style={{display:"grid",gap:8}}>
+                {upcoming.map(ev=>{
+                  const color=typeColor[ev.event_type]||T.blue;
+                  const dt=new Date(ev.start_time);
+                  return(
+                    <div key={ev.id} style={{...s.card,display:"flex",gap:16,alignItems:"flex-start",borderLeft:`3px solid ${color}`}}>
+                      <div style={{textAlign:"center",minWidth:48,background:T.bg3,borderRadius:8,padding:"6px 8px"}}>
+                        <div style={{fontSize:11,color:T.t3}}>{dt.toLocaleString("en-KE",{month:"short"}).toUpperCase()}</div>
+                        <div style={{fontSize:22,fontWeight:700,color:T.t1,lineHeight:1}}>{dt.getDate()}</div>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                          <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{ev.title}</span>
+                          <span style={{background:rgba(color,0.15),color,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{ev.event_type}</span>
+                        </div>
+                        <div style={{fontSize:11,color:T.t3,marginBottom:ev.description?4:0}}>
+                          🕐 {dt.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}
+                          {ev.end_time&&` — ${new Date(ev.end_time).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}`}
+                          {ev.location&&<span style={{marginLeft:8}}>📍 {ev.location}</span>}
+                        </div>
+                        {ev.description&&<div style={{fontSize:12,color:T.t2}}>{ev.description}</div>}
+                        {ev.meeting_link&&<a href={ev.meeting_link} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,color:T.green,textDecoration:"none",marginTop:4,background:rgba(T.green,0.1),borderRadius:6,padding:"3px 10px",border:`1px solid ${rgba(T.green,0.3)}`}}>🔗 Join Meeting</a>}
+                      </div>
+                      {isLec&&<button onClick={()=>del(ev.id)} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:16,padding:4}}>✕</button>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {past.length>0&&(
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:T.t3,letterSpacing:0.8,marginBottom:"0.75rem"}}>PAST EVENTS</div>
+              <div style={{display:"grid",gap:8}}>
+                {past.slice(0,5).map(ev=>{
+                  const color=typeColor[ev.event_type]||T.blue;
+                  const dt=new Date(ev.start_time);
+                  return(
+                    <div key={ev.id} style={{...s.card,display:"flex",gap:16,alignItems:"center",opacity:0.6,borderLeft:`3px solid ${color}`}}>
+                      <div style={{textAlign:"center",minWidth:48}}>
+                        <div style={{fontSize:10,color:T.t3}}>{dt.toLocaleString("en-KE",{month:"short"}).toUpperCase()}</div>
+                        <div style={{fontSize:18,fontWeight:700,color:T.t2,lineHeight:1}}>{dt.getDate()}</div>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:500,color:T.t2}}>{ev.title}</div>
+                        <div style={{fontSize:11,color:T.t3,textTransform:"capitalize"}}>{ev.event_type}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {events.length===0&&(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📅</div>
+              <div style={{fontSize:14,color:T.t2}}>No events yet.</div>
+              {isLec&&<div style={{fontSize:12,color:T.t3,marginTop:4}}>Click "+ Add Event" to create the first event.</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+const MeetingsView=({role,userField,userName})=>{
+  const T=useT();const s=sx(T);
+  const [meetings,setMeetings]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [newM,setNewM]=useState({title:"",description:"",meeting_link:"",platform:"zoom",scheduled_at:"",duration_minutes:60});
+  const isLec=role==="lecturer"||role==="admin";
+  const platforms=["zoom","google_meet","teams","youtube","other"];
+  const platformIcon={zoom:"📹",google_meet:"🎥",teams:"💼",youtube:"▶️",other:"🔗"};
+  const platformLabel={zoom:"Zoom",google_meet:"Google Meet",teams:"Microsoft Teams",youtube:"YouTube Live",other:"Other"};
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("meetings").select("*").order("scheduled_at",{ascending:true});
+    setMeetings(data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const create=async()=>{
+    if(!newM.title||!newM.meeting_link||!newM.scheduled_at)return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("meetings").insert({...newM,field:userField,created_by:user.id});
+    setShowCreate(false);
+    setNewM({title:"",description:"",meeting_link:"",platform:"zoom",scheduled_at:"",duration_minutes:60});
+    load();
+  };
+
+  const now=new Date();
+  const live=meetings.filter(m=>{
+    const st=new Date(m.scheduled_at);
+    const en=new Date(st.getTime()+m.duration_minutes*60000);
+    return st<=now&&en>=now;
+  });
+  const upcoming=meetings.filter(m=>new Date(m.scheduled_at)>now);
+  const past=meetings.filter(m=>new Date(new Date(m.scheduled_at).getTime()+m.duration_minutes*60000)<now);
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div>
+          <h1 style={s.h1}>Live Classes</h1>
+          <p style={s.sub}>{live.length>0?<span style={{color:T.red,fontWeight:600}}>Live now: {live.length}</span>:`${upcoming.length} upcoming`}</p>
+        </div>
+        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ Schedule Class</button>}
+      </div>
+
+      {isLec&&showCreate&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:"1px solid "+T.ac+"44"}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Schedule Live Class</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} value={newM.title} onChange={e=>setNewM({...newM,title:e.target.value})} placeholder="e.g. Risk Theory Lecture 5"/></div>
+            <div><label style={s.lbl}>PLATFORM</label>
+              <select style={s.input} value={newM.platform} onChange={e=>setNewM({...newM,platform:e.target.value})}>
+                {platforms.map(p=><option key={p} value={p}>{platformLabel[p]}</option>)}
+              </select>
+            </div>
+            <div><label style={s.lbl}>DATE AND TIME</label><input style={s.input} type="datetime-local" value={newM.scheduled_at} onChange={e=>setNewM({...newM,scheduled_at:e.target.value})}/></div>
+            <div><label style={s.lbl}>DURATION (MIN)</label><input style={s.input} type="number" value={newM.duration_minutes} onChange={e=>setNewM({...newM,duration_minutes:parseInt(e.target.value)||60})}/></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>MEETING LINK</label><input style={s.input} value={newM.meeting_link} onChange={e=>setNewM({...newM,meeting_link:e.target.value})} placeholder="https://zoom.us/j/..."/></div>
+          <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:60,resize:"vertical"}} value={newM.description} onChange={e=>setNewM({...newM,description:e.target.value})} placeholder="What will be covered..."/></div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={create} style={s.btnP}>Schedule Class</button>
+            <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading...</div>:(
+        <div>
+          {live.length>0&&(
+            <div style={{marginBottom:"1.5rem"}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.red,letterSpacing:0.8,marginBottom:"0.75rem"}}>LIVE NOW</div>
+              {live.map(m=>(
+                <div key={m.id} style={{...s.card,borderLeft:"3px solid "+T.red,marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:15,fontWeight:600,color:T.t1,marginBottom:4}}>{m.title}</div>
+                      <div style={{fontSize:11,color:T.t3}}>{platformLabel[m.platform]} · {m.duration_minutes} min</div>
+                      {m.description&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>{m.description}</div>}
+                    </div>
+                    <a href={m.meeting_link} target="_blank" rel="noreferrer" style={{...s.btnP,textDecoration:"none",fontSize:13,padding:"10px 20px"}}>Join Now</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {upcoming.length>0&&(
+            <div style={{marginBottom:"1.5rem"}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.t3,letterSpacing:0.8,marginBottom:"0.75rem"}}>UPCOMING</div>
+              {upcoming.map(m=>{
+                const dt=new Date(m.scheduled_at);
+                return(
+                  <div key={m.id} style={{...s.card,borderLeft:"3px solid "+T.green,marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>{m.title}</div>
+                        <div style={{fontSize:11,color:T.t3}}>
+                          {platformLabel[m.platform]} · {dt.toLocaleDateString("en-KE")} · {dt.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})} · {m.duration_minutes} min
+                        </div>
+                        {m.description&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>{m.description}</div>}
+                      </div>
+                      <a href={m.meeting_link} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"6px 14px"}}>Open Link</a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {past.length>0&&(
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:T.t3,letterSpacing:0.8,marginBottom:"0.75rem"}}>PAST</div>
+              {past.slice(0,5).map(m=>(
+                <div key={m.id} style={{...s.card,opacity:0.5,marginBottom:6,display:"flex",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:13,color:T.t2}}>{m.title}</div>
+                    <div style={{fontSize:11,color:T.t3}}>{new Date(m.scheduled_at).toLocaleDateString("en-KE")} · {platformLabel[m.platform]}</div>
+                  </div>
+                  <span style={{fontSize:11,color:T.t3}}>Ended</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {meetings.length===0&&(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📹</div>
+              <div style={{fontSize:14,color:T.t2}}>No classes scheduled yet.</div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2428,60 +1935,67 @@ const TranscriptView=({userField})=>{
     </div>
   );
 };
-const PeersView=({setTab,userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
-  const peers=[
-    {name:"Amara Osei",year:3,gpa:3.8,rank:1,strong:["Advanced Theory","Research"],weak:[]},
-    {name:"Fatima Hassan",year:2,gpa:2.7,rank:24,strong:["Communication"],weak:["Core Modules"]},
-    {name:"Brian Mutua",year:3,gpa:3.2,rank:8,strong:["Practical Skills","IT"],weak:["Theory"]},
-    {name:"Akinyi Otieno",year:2,gpa:2.5,rank:30,strong:["Fieldwork"],weak:["Statistics"]},
-  ];
+const PeersView=({setTab,userField,userName})=>{
+  const T=useT();const s=sx(T);
+  const [peers,setPeers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState("all");
+  const fld=FIELDS[userField];
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("profiles").select("full_name,field,year_level,programme_level,role").eq("status","approved").neq("full_name",userName);
+    setPeers(data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const filtered=filter==="field"?peers.filter(p=>p.field===userField):filter==="year"?peers.filter(p=>p.field===userField):peers;
+  const getInitials=(n)=>n?n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():"??";
+  const fieldColors=Object.fromEntries(Object.entries(FIELDS).map(([k,v])=>[k,v.color]));
+
   return(
     <div>
-      <h1 style={s.h1}>{t("peers")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>AI-matched study partners</p>
-      <div style={{...s.acCard,marginBottom:"1.25rem",display:"flex",gap:12,alignItems:"center"}}>
-        <div style={{fontSize:32}}>H</div>
-        <div style={{flex:1}}>
-          <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:4}}>AI Peer Match</div>
-          <div style={{fontSize:12,color:T.t1,lineHeight:1.6}}>Amara Osei (Rank #1) is your top recommended peer. Akinyi needs help with Statistics — you can mentor her and earn peer-teaching recognition.</div>
-        </div>
-        <button onClick={()=>setTab("meetings")} style={{...s.btnP,flexShrink:0}}>Schedule Session</button>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-        {peers.map((p,i)=>(
-          <div key={i} style={s.card}>
-            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:"0.85rem"}}>
-              <Av name={p.name} size={42} bg={p.rank<=5?T.ac:p.rank<=15?T.blue:T.purple}/>
-              <div>
-                <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{p.name}</div>
-                <div style={{fontSize:11,color:T.t3}}>Year {p.year} · GPA {p.gpa} · Rank #{p.rank}</div>
-              </div>
-              {p.rank<=5&&<Pill text="Top 5" color={T.ac}/>}
-            </div>
-            {p.strong.length>0&&(
-              <div style={{marginBottom:6,display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:10,color:T.green,fontWeight:600}}>STRONG: </span>
-                {p.strong.map(x=><span key={x} style={sx(T).tag(T.green)}>{x}</span>)}
-              </div>
-            )}
-            {p.weak.length>0&&(
-              <div style={{marginBottom:"0.85rem",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-                <span style={{fontSize:10,color:T.red,fontWeight:600}}>NEEDS HELP: </span>
-                {p.weak.map(x=><span key={x} style={sx(T).tag(T.red)}>{x}</span>)}
-              </div>
-            )}
-            <div style={{display:"flex",gap:8}}>
-              <button style={{...s.btnS,flex:1,fontSize:11,padding:"6px"}}>Message</button>
-              <button onClick={()=>setTab("meetings")} style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Meet</button>
-            </div>
-          </div>
+      <h1 style={s.h1}>Peer Network</h1>
+      <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
+
+      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+        {[["all","All Students"],["field","My Field"],["year","Same Year"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setFilter(id)} style={{...(filter===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
         ))}
       </div>
+
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading peers...</div>:(
+        <div>
+          <div style={{fontSize:12,color:T.t3,marginBottom:"0.75rem"}}>{filtered.length} student{filtered.length!==1?"s":""} found</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+            {filtered.map((p,i)=>{
+              const fc=fieldColors[p.field]||T.ac;
+              const peerFld=FIELDS[p.field];
+              return(
+                <div key={i} style={{...s.card,textAlign:"center",padding:"1.25rem"}}>
+                  <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,"+fc+"44,"+fc+"22)",border:"2px solid "+fc+"55",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px",fontSize:18,fontWeight:700,color:fc}}>
+                    {getInitials(p.full_name)}
+                  </div>
+                  <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:4}}>{p.full_name}</div>
+                  <div style={{fontSize:11,color:fc,marginBottom:4}}>{peerFld?peerFld.icon+" "+peerFld.name:p.field}</div>
+                  {p.year_level&&<div style={{fontSize:10,color:T.t3,marginBottom:8}}>{p.year_level}</div>}
+                  <div style={{display:"inline-block",background:rgba(fc,0.12),color:fc,borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:500,textTransform:"capitalize"}}>{p.role||"student"}</div>
+                </div>
+              );
+            })}
+          </div>
+          {filtered.length===0&&(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:40,marginBottom:12}}>👥</div>
+              <div style={{fontSize:14,color:T.t2}}>No peers found for this filter.</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
-
 const ClassroomView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [ltab,setLtab]=useState("courses"),[showNew,setShowNew]=useState(false);
@@ -2981,12 +2495,12 @@ export default function App(){
   const VIEWS={
     dashboard:<DashboardView setTab={persistTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
-    exams:<ExamsView userField={userField}/>,
+    exams:<ExamsView userField={userField} role={role} userName={userName}/>,
     assignments:<AssignmentsView userField={userField} role={role} userName={userName}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
     calendar:<CalendarView setTab={persistTab}/>,
-    meetings:<MeetingsView/>,
+    meetings:<MeetingsView role={role} userField={userField} userName={userName}/>,
     opps:<OppsView userField={userField}/>,
     analytics:<AnalyticsView userField={userField}/>,
     tools:<ToolsView userField={userField}/>,
