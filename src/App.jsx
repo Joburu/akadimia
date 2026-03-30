@@ -419,14 +419,14 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
       <div style={{width:tab==="register"&&step===2?700:480,position:"relative",zIndex:1,maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{textAlign:"center",marginBottom:"2rem"}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:6}}>
-              <img src="/logo2.png" alt="AKADIMIA" style={{height:72,width:72,objectFit:"contain"}}/>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:4}}>
+              <img src="/logo2.png" alt="AKADIMIA" style={{height:90,width:90,objectFit:"contain"}}/>
               <div>
-                <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:34,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
-                <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5}}>Ujuzi Bila Mipaka</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:36,color:T.t1,letterSpacing:5}}>AKADIMIA</div>
+                <div style={{fontSize:11,color:T.ac,fontStyle:"italic",letterSpacing:1.5,marginBottom:2}}>Ujuzi Bila Mipaka</div>
+                <div style={{fontSize:11,color:T.t3,letterSpacing:0.5}}>Every Field. Every Student. One Platform.</div>
               </div>
             </div>
-            <div style={{fontSize:11,color:T.t3,letterSpacing:0.5}}>Every Field. Every Student. One Platform.</div>
           </div>
         </div>
         <div style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:18,padding:"2rem",boxShadow:"0 32px 80px rgba(0,0,0,0.7)"}}>
