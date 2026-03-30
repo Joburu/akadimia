@@ -549,10 +549,8 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
   return(
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
-        <div style={{width:38,height:38,background:`linear-gradient(135deg,${T.ac},${T.acL})`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <img src="/logo2.png" alt="A" style={{height:48,width:48,objectFit:"contain"}}/>
-        </div>
-        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}><img src="/logo2.png" alt="AKADIMIA" style={{height:52,width:52,objectFit:"contain",marginRight:10}}/>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
+        <img src="/logo2.png" alt="AKADIMIA" style={{height:52,width:52,objectFit:"contain",flexShrink:0}}/>
+        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
       </div>
       {open&&fld&&(
         <div style={{padding:"0.5rem 0.75rem"}}>
