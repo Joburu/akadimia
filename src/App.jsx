@@ -2995,6 +2995,10 @@ const AdminView=()=>{
       )}
       {atab==="security"&&(
         <div style={{...s.card}}>
+          <div style={{marginBottom:"1.5rem",padding:"1rem",background:rgba(T.green,0.08),border:"1px solid "+rgba(T.green,0.25),borderRadius:8}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:6}}>🔒 Data Protection — Kenya Data Protection Act 2019</div>
+            <div style={{fontSize:12,color:T.t2,lineHeight:1.8}}>AKADIMIA collects and processes personal data including name, email, student ID, field of study, year level, submitted assignments and exam responses. This data is used solely for academic administration. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). Data is stored on Supabase EU-West servers. Users may request deletion via their institution administrator. AKADIMIA does not sell or share personal data with third parties.</div>
+          </div>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Security Controls</div>
           <div style={{display:"grid",gap:8}}>
             {secControls.map((sc,i)=>(
