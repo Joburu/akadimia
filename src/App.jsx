@@ -2246,73 +2246,183 @@ const OppsView=({userField})=>{
   );
 };
 
-const AnalyticsView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);
-  const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
-  const RADAR=courses.map(c=>({s:c.code.replace(" ","").slice(0,6),you:c.p}));
-  const BAR=courses.map(c=>({sub:c.code.slice(0,6),you:c.p,avg:Math.max(30,c.p-10)}));
-  const strong=courses.filter(c=>c.p>=75);
-  const weak=courses.filter(c=>c.p<60);
+const AnalyticsView=({userField,userName,role})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [loading,setLoading]=useState(false);
+  const [score,setScore]=useState(null);
+  const [error,setError]=useState("");
+  const [certMode,setCertMode]=useState(false);
+  const [certData,setCertData]=useState({course:"",grade:"",date:new Date().toISOString().slice(0,10)});
+
+  const generateScore=async()=>{
+    setLoading(true);setError("");setScore(null);
+    try{
+      const {supabase}=await import("./supabase.js");
+      const {data:{user}}=await supabase.auth.getUser();
+      const [{data:subs},{data:exSubs},{data:profile}]=await Promise.all([
+        supabase.from("submissions").select("*").eq("student_name",userName),
+        supabase.from("exam_submissions").select("*").eq("student_name",userName),
+        supabase.from("profiles").select("*").eq("id",user.id).single()
+      ]);
+      const gradedAssignments=(subs||[]).filter(s=>s.status==="graded");
+      const gradedExams=(exSubs||[]).filter(s=>s.marks!=null);
+      const avgAssignment=gradedAssignments.length>0?gradedAssignments.reduce((a,s)=>a+(s.marks||0),0)/gradedAssignments.length:0;
+      const avgExam=gradedExams.length>0?gradedExams.reduce((a,s)=>a+(s.marks||0),0)/gradedExams.length:0;
+      const fieldName=(fld&&fld.name)||userField;
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,
+          messages:[{role:"user",content:"You are a career readiness analyst for Kenyan university graduates. Assess this student's employability.\n\nStudent: "+userName+"\nField: "+fieldName+"\nYear Level: "+(profile?.year_level||"Unknown")+"\nAssignments submitted: "+(subs||[]).length+"\nAssignments graded: "+gradedAssignments.length+"\nAvg assignment score: "+avgAssignment.toFixed(1)+"%\nExams taken: "+(exSubs||[]).length+"\nExams graded: "+gradedExams.length+"\nAvg exam score: "+avgExam.toFixed(1)+"%\n\nReturn ONLY this JSON: {\"overall_score\":NUMBER_0_100,\"grade\":\"A/B/C/D\",\"label\":\"Career Ready/Developing/Needs Work\",\"academic_score\":NUMBER,\"engagement_score\":NUMBER,\"skills_score\":NUMBER,\"strengths\":[\"STRING\",\"STRING\",\"STRING\"],\"gaps\":[\"STRING\",\"STRING\",\"STRING\"],\"top_roles\":[\"STRING\",\"STRING\",\"STRING\"],\"next_steps\":[\"STRING\",\"STRING\",\"STRING\"]}"}]})
+      });
+      const d=await res.json();
+      const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
+      const clean=raw.replace(/```json|```/g,"").trim();
+      const parsed=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
+      setScore(parsed);
+    }catch(e){setError("Could not generate score. Please try again.");}
+    setLoading(false);
+  };
+
+  const generateCertificate=()=>{
+    if(!certData.course)return;
+    const html=`<!DOCTYPE html><html><head><title>Certificate — AKADIMIA</title><style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:Georgia,serif;background:#f8f5f0;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+      .cert{width:800px;background:#fff;border:12px solid #D4A017;padding:60px;text-align:center;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.15);}
+      .cert::before{content:"";position:absolute;inset:8px;border:2px solid #D4A017;pointer-events:none;}
+      .logo{font-size:32px;font-weight:700;letter-spacing:4px;color:#1a1a2e;margin-bottom:4px;}
+      .tagline{font-size:12px;color:#D4A017;font-style:italic;margin-bottom:32px;}
+      .cert-title{font-size:14px;color:#666;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;}
+      .cert-of{font-size:42px;color:#D4A017;font-style:italic;margin-bottom:24px;}
+      .student-name{font-size:36px;font-weight:700;color:#1a1a2e;border-bottom:2px solid #D4A017;display:inline-block;padding-bottom:8px;margin-bottom:24px;}
+      .cert-body{font-size:16px;color:#333;line-height:1.8;margin-bottom:32px;}
+      .course-name{font-size:22px;font-weight:700;color:#1a1a2e;font-style:italic;}
+      .grade-box{display:inline-block;background:#1a1a2e;color:#D4A017;padding:8px 24px;border-radius:4px;font-size:18px;font-weight:700;margin:12px 0;}
+      .sig-section{display:flex;justify-content:space-between;margin-top:48px;}
+      .sig-line{text-align:center;width:200px;}
+      .sig-bar{border-top:1px solid #333;padding-top:8px;font-size:12px;color:#666;}
+      .seal{font-size:48px;margin:16px 0;}
+      .cert-date{font-size:13px;color:#888;margin-top:24px;}
+      .footer-note{font-size:10px;color:#aaa;margin-top:16px;}
+      @media print{body{background:#fff;} .no-print{display:none;}}
+    </style></head><body>
+    <div class="cert">
+      <div class="logo">AKADIMIA</div>
+      <div class="tagline">Ujuzi Bila Mipaka — Every Field. Every Student. One Platform.</div>
+      <div class="cert-title">This is to certify that</div>
+      <div class="student-name">${certData.name||userName}</div>
+      <div class="cert-body">has successfully completed the course</div>
+      <div class="course-name">${certData.course}</div>
+      <div class="cert-body">with the following result:</div>
+      <div class="grade-box">Grade: ${certData.grade||"PASS"}</div>
+      <div class="cert-body">in the field of <strong>${(fld&&fld.name)||userField}</strong></div>
+      <div class="seal">🏛️</div>
+      <div class="sig-section">
+        <div class="sig-line"><div class="sig-bar">Platform Administrator<br>AKADIMIA</div></div>
+        <div class="sig-line"><div style="font-size:22px;color:#D4A017;margin-bottom:4px;">AKADIMIA</div><div class="sig-bar">Verified Digital Certificate</div></div>
+        <div class="sig-line"><div class="sig-bar">Date Issued<br>${new Date(certData.date).toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"})}</div></div>
+      </div>
+      <div class="cert-date">Certificate ID: AKD-${Date.now().toString(36).toUpperCase()} | Verify at akadimia.co.ke</div>
+      <div class="footer-note">This certificate was issued by AKADIMIA Academic Platform. Data protected under Kenya Data Protection Act 2019.</div>
+    </div>
+    <div class="no-print" style="position:fixed;bottom:20px;right:20px;">
+      <button onclick="window.print()" style="background:#D4A017;color:#000;border:none;padding:12px 28px;border-radius:6px;font-size:15px;cursor:pointer;font-weight:700;">Print / Save PDF</button>
+    </div>
+    </body></html>`;
+    const win=window.open("","_blank");
+    win.document.write(html);
+    win.document.close();
+  };
+
+  const scoreColor=(n)=>n>=75?T.green:n>=50?T.amber:T.red;
+  const ScoreArc=({value,label,color})=>(
+    <div style={{textAlign:"center"}}>
+      <div style={{position:"relative",width:72,height:72,margin:"0 auto 6px"}}>
+        <svg viewBox="0 0 72 72" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="36" cy="36" r="28" fill="none" stroke={T.bg3} strokeWidth="7"/>
+          <circle cx="36" cy="36" r="28" fill="none" stroke={color} strokeWidth="7" strokeDasharray={String(2*Math.PI*28)} strokeDashoffset={String(2*Math.PI*28*(1-(value||0)/100))} strokeLinecap="round"/>
+        </svg>
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:14,fontWeight:700,color}}>{value||0}</div>
+      </div>
+      <div style={{fontSize:10,color:T.t3}}>{label}</div>
+    </div>
+  );
+
   return(
     <div>
-      <h1 style={s.h1}>{t("analytics")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Strengths · Weaknesses · AI recommendations</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
-        <div style={s.card}>
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>Skill Radar</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <RadarChart data={RADAR}>
-              <PolarGrid stroke={T.bd}/>
-              <PolarAngleAxis dataKey="s" tick={{fill:T.t3,fontSize:10}}/>
-              <Radar name="You" dataKey="you" stroke={T.ac} fill={rgba(T.ac,0.25)} strokeWidth={2}/>
-              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-        <div style={s.card}>
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.85rem"}}>You vs Class Average</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={BAR} layout="vertical" barSize={8}>
-              <XAxis type="number" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} domain={[0,100]}/>
-              <YAxis dataKey="sub" type="category" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false} width={60}/>
-              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
-              <Bar dataKey="you" name="Yours" fill={T.ac} radius={[0,3,3,0]}/>
-              <Bar dataKey="avg" name="Class" fill={T.bg5} radius={[0,3,3,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <h1 style={s.h1}>Analytics & Career Readiness</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>AI-powered employability assessment</p>
+
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        <button onClick={()=>setCertMode(false)} style={{...(certMode?s.btnS:s.btnP),fontSize:12}}>Career Score</button>
+        <button onClick={()=>setCertMode(true)} style={{...(certMode?s.btnP:s.btnS),fontSize:12}}>Digital Certificate</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <div style={s.card}>
-          <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:"0.85rem"}}>Strengths</div>
-          {strong.map((c,i)=>(
-            <div key={i} style={{marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
-                <span>{c.code}</span><span style={{color:T.green,fontWeight:600}}>{c.p}%</span>
-              </div>
-              <Prog val={c.p} color={T.green}/>
-            </div>
-          ))}
-        </div>
-        <div style={s.card}>
-          <div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:"0.85rem"}}>Areas to Improve</div>
-          {weak.map((c,i)=>{
-            const wColor=c.p<40?T.red:T.amber;
-            return(
-              <div key={i} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.t1,marginBottom:4}}>
-                  <span>{c.code}</span><span style={{color:wColor,fontWeight:600}}>{c.p}%</span>
-                </div>
-                <Prog val={c.p} color={wColor}/>
-              </div>
-            );
-          })}
-          <div style={{...s.acCard,marginTop:"0.75rem",padding:"0.75rem"}}>
-            <div style={{fontSize:11,color:T.ac,marginBottom:6}}>AI Suggestion</div>
-            <div style={{fontSize:11,color:T.t2,lineHeight:1.6}}>Focus on lowest-scoring units. Use EduBot daily and connect with top peers.</div>
+
+      {!certMode&&(<div>
+        {!score&&(
+          <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
+            <div style={{fontSize:48,marginBottom:16}}>🎯</div>
+            <div style={{fontSize:16,fontWeight:600,color:T.t1,marginBottom:8}}>AI Career Readiness Score</div>
+            <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem",lineHeight:1.7}}>Get an AI-powered assessment of your employability based on your academic performance, engagement and activity on AKADIMIA. Updated each time you run it.</div>
+            {error&&<div style={{marginBottom:"1rem",padding:"8px 12px",background:T.red+"18",borderRadius:6,fontSize:12,color:T.red}}>{error}</div>}
+            <button onClick={generateScore} style={{...s.btnP,fontSize:14,padding:"12px 32px"}} disabled={loading}>{loading?"Analyzing your profile...":"Generate My Score"}</button>
           </div>
+        )}
+        {score&&(
+          <div>
+            <div style={{...s.card,borderLeft:"4px solid "+scoreColor(score.overall_score),marginBottom:"1rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
+                <div>
+                  <div style={{fontSize:11,color:T.t3,marginBottom:4}}>CAREER READINESS SCORE</div>
+                  <div style={{fontSize:52,fontWeight:700,color:scoreColor(score.overall_score),lineHeight:1}}>{score.overall_score}</div>
+                  <div style={{fontSize:14,color:T.t2,marginTop:4}}>{score.label} — Grade {score.grade}</div>
+                </div>
+                <div style={{display:"flex",gap:20}}>
+                  <ScoreArc value={score.academic_score} label="Academic" color={scoreColor(score.academic_score)}/>
+                  <ScoreArc value={score.engagement_score} label="Engagement" color={scoreColor(score.engagement_score)}/>
+                  <ScoreArc value={score.skills_score} label="Skills" color={scoreColor(score.skills_score)}/>
+                </div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+              <div style={s.card}>
+                <div style={{fontSize:12,fontWeight:600,color:T.green,marginBottom:10}}>Strengths</div>
+                {(score.strengths||[]).map((str,i)=><div key={i} style={{fontSize:12,color:T.t2,display:"flex",gap:6,marginBottom:6}}><span style={{color:T.green}}>✓</span>{str}</div>)}
+              </div>
+              <div style={s.card}>
+                <div style={{fontSize:12,fontWeight:600,color:T.amber,marginBottom:10}}>Areas to Improve</div>
+                {(score.gaps||[]).map((g,i)=><div key={i} style={{fontSize:12,color:T.t2,display:"flex",gap:6,marginBottom:6}}><span style={{color:T.amber}}>→</span>{g}</div>)}
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+              <div style={s.card}>
+                <div style={{fontSize:12,fontWeight:600,color:T.ac,marginBottom:10}}>Top Career Matches</div>
+                {(score.top_roles||[]).map((r,i)=><div key={i} style={{fontSize:12,color:T.t1,padding:"6px 10px",background:T.bg3,borderRadius:6,marginBottom:6}}>{r}</div>)}
+              </div>
+              <div style={s.card}>
+                <div style={{fontSize:12,fontWeight:600,color:T.blue,marginBottom:10}}>Recommended Next Steps</div>
+                {(score.next_steps||[]).map((ns,i)=><div key={i} style={{fontSize:12,color:T.t2,display:"flex",gap:6,marginBottom:6}}><span style={{color:T.blue,fontWeight:700}}>{i+1}.</span>{ns}</div>)}
+              </div>
+            </div>
+            <button onClick={()=>setScore(null)} style={{...s.btnS,fontSize:12}}>Recalculate</button>
+          </div>
+        )}
+      </div>)}
+
+      {certMode&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Generate Digital Certificate</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>STUDENT NAME</label><input style={s.input} value={certData.name||userName} onChange={e=>setCertData({...certData,name:e.target.value})}/></div>
+            <div><label style={s.lbl}>COURSE / UNIT NAME</label><input style={s.input} placeholder="e.g. Risk Theory SAC 406" value={certData.course} onChange={e=>setCertData({...certData,course:e.target.value})}/></div>
+            <div><label style={s.lbl}>GRADE / RESULT</label><input style={s.input} placeholder="e.g. A, Distinction, 78%" value={certData.grade} onChange={e=>setCertData({...certData,grade:e.target.value})}/></div>
+            <div><label style={s.lbl}>DATE ISSUED</label><input style={s.input} type="date" value={certData.date} onChange={e=>setCertData({...certData,date:e.target.value})}/></div>
+          </div>
+          <div style={{padding:"12px",background:T.bg3,borderRadius:8,fontSize:12,color:T.t2,marginBottom:"1rem"}}>The certificate will open in a new tab. Click Print / Save PDF to save it. The certificate includes a unique verification ID linked to akadimia.co.ke.</div>
+          <button onClick={generateCertificate} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={!certData.course}>Generate Certificate</button>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -3197,7 +3307,7 @@ export default function App(){
     calendar:<CalendarView setTab={persistTab}/>,
     meetings:<MeetingsView role={role} userField={userField} userName={userName}/>,
     opps:<OppsView userField={userField}/>,
-    analytics:<AnalyticsView userField={userField}/>,
+    analytics:<AnalyticsView userField={userField} userName={userName} role={role}/>,
     tools:<ToolsView userField={userField}/>,
     transcript:<TranscriptView userField={userField}/>,
     peers:<PeersView setTab={persistTab} userField={userField}/>,
