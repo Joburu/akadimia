@@ -1394,8 +1394,24 @@ const ExamsView=({userField,role,userName})=>{
     return()=>clearInterval(timerRef.current);
   },[activeExam]);
 
+  const shuffle=(arr)=>[...arr].sort(()=>Math.random()-0.5);
+
   const startExam=async(exam)=>{
-    setActiveExam(exam);
+    // Shuffle questions order
+    const shuffledQs=shuffle(exam.questions||[]).map(q=>{
+      if(q.type==="mcq"&&q.options){
+        // Shuffle MCQ options and track correct answer remapping
+        const indexed=q.options.map((opt,i)=>({opt,origIdx:i}));
+        const shuffledOpts=shuffle(indexed);
+        return{
+          ...q,
+          options:shuffledOpts.map(o=>o.opt),
+          _optMap:shuffledOpts.map(o=>o.origIdx)
+        };
+      }
+      return q;
+    });
+    setActiveExam({...exam,questions:shuffledQs});
     setTimeLeft(exam.duration_minutes*60);
     setAnswers({});setSubmitted(false);
   };
