@@ -1416,7 +1416,7 @@ const ExamsView=({userField,role,userName})=>{
     if(!newE.title)return;
     const {supabase}=await import("./supabase.js");
     const {data:{user}}=await supabase.auth.getUser();
-    await supabase.from("exams").insert({...newE,field:userField,created_by:user.id});
+    await supabase.from("exams").insert({...newE,field:userField,created_by:user.id,questions:JSON.parse(JSON.stringify(newE.questions||[]))});
     setShowCreate(false);setNewE({title:"",course_code:"",duration_minutes:60,total_marks:100,instructions:"",target_year:"all",questions:[]});
     load();
   };
