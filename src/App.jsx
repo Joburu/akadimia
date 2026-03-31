@@ -240,15 +240,15 @@ const CAL_EVENTS=[
   {d:28,type:"deadline",label:"Portfolio Submission",time:"11:59 PM",col:"#D97706"},
 ];
 const MEETINGS=[
-  {id:1,title:"Weekly Tutorial",host:"Dr. Ochieng",date:"Mar 21",time:"10:00 AM",dur:"1h",platform:"zoom",att:28,rec:false,type:"class"},
+
   {id:2,title:"Research Supervision",host:"Prof. Wanjiku",date:"Mar 22",time:"2:00 PM",dur:"45min",platform:"meet",att:3,rec:false,type:"research"},
-  {id:3,title:"Study Group",host:"Amara Osei",date:"Mar 23",time:"4:00 PM",dur:"1.5h",platform:"teams",att:6,rec:false,type:"peer"},
+
   {id:4,title:"Industry Webinar",host:"Guest Speaker",date:"Mar 25",time:"10:00 AM",dur:"2h",platform:"zoom",att:150,rec:true,type:"industry"},
 ];
 const PENDING_REGS=[
-  {id:101,name:"Brian Otieno",email:"b.otieno@student.buc.ke",field:"medicine",date:"Mar 18",sid:"BUC/MED/2026/023",role:"student"},
-  {id:102,name:"Grace Mutua",email:"g.mutua@student.buc.ke",field:"law",date:"Mar 19",sid:"BUC/LAW/2026/011",role:"student"},
-  {id:103,name:"James Kariuki",email:"j.kariuki@student.buc.ke",field:"actuarial",date:"Mar 20",sid:"BUC/AS/2026/045",role:"student"},
+
+
+
   {id:104,name:"Dr. Njoroge P.",email:"p.njoroge@staff.buc.ke",field:"engineering",date:"Mar 19",sid:"BUC/STAFF/7",role:"lecturer"},
   {id:105,name:"Aisha Mohamed",email:"a.mohamed@student.buc.ke",field:"compsci",date:"Mar 20",sid:"BUC/CS/2026/019",role:"student"},
 ];
@@ -389,7 +389,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
   const langOpts=Object.entries(LANGS);
   const themeOpts=Object.values(THEMES);
   const roleOpts=[["student","Student"],["lecturer","Lecturer / Teaching Staff"],["researcher","Researcher"]];
-  const demoRoles=[["student","Student"],["lecturer","Lecturer"],["admin","Admin"]];
+
   return(
     <div style={{minHeight:"100vh",background:T.bg0,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",color:T.t1,position:"relative",overflow:"hidden"}}>
       <svg style={{position:"fixed",top:0,left:0,width:"100%",height:"100%",opacity:0.025,pointerEvents:"none"}}>
@@ -654,6 +654,7 @@ const DashboardView=({setTab,userName,userField})=>{
   const cs=((FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[]).slice(0,4);
   const [assignments,setAssignments]=useState([]);
   const [materials,setMaterials]=useState([]);
+  const [todayMeetings,setTodayMeetings]=useState([]);
   const [news,setNews]=useState([]);
   const [stocks,setStocks]=useState([]);
   const [newsLoading,setNewsLoading]=useState(false);
@@ -664,8 +665,13 @@ const DashboardView=({setTab,userName,userField})=>{
       const {supabase}=await import("./supabase.js");
       const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(5);
       const {data:mats}=await supabase.from("course_materials").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(3);
+      const {data:mtgs}=await supabase.from("meetings").select("*").order("scheduled_at",{ascending:true});
+      const today=new Date();
+      const todayStr=today.toDateString();
+      const todayM=(mtgs||[]).filter(m=>new Date(m.scheduled_at).toDateString()===todayStr);
       setAssignments(asgn||[]);
       setMaterials(mats||[]);
+      setTodayMeetings(todayM);
     };
     load();
   },[userField]);
@@ -704,7 +710,7 @@ const DashboardView=({setTab,userName,userField})=>{
 
   const upcoming=assignments.filter(a=>a.due_date&&new Date(a.due_date)>=new Date()).sort((a,b)=>new Date(a.due_date)-new Date(b.due_date)).slice(0,3);
   const overdue=assignments.filter(a=>a.due_date&&new Date(a.due_date)<new Date());
-  const schedule=[["8:00 AM","Morning Lecture",T.teal],["2:00 PM","Tutorial",T.blue],["4:00 PM","Study Group",T.purple]];
+  const schedule=[];
   const perfData=[{w:"W1",sc:67},{w:"W2",sc:72},{w:"W3",sc:69},{w:"W4",sc:74},{w:"W5",sc:78},{w:"W6",sc:75},{w:"W7",sc:82},{w:"W8",sc:88}];
 
   return(
@@ -713,7 +719,7 @@ const DashboardView=({setTab,userName,userField})=>{
       <p style={s.sub}><span style={{...s.tag(fld.color),marginRight:8}}>{fld.icon} {fld.name}</span>Semester 1, 2026 · AKADIMIA</p>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
-        <StatCard label="GPA" value="3.5" sub="Above average" color={T.green} icon="🎯"/>
+        <StatCard label="Assignments" value={upcoming.length} sub={upcoming.length===0?"All done":"Due soon"} color={upcoming.length>0?T.amber:T.green} icon="📋"/>
         <StatCard label="Active Courses" value={cs.length} sub="This semester" color={T.blue} icon="📚"/>
         <StatCard label="Pending Tasks" value={upcoming.length+overdue.length} sub="Assignments due" color={upcoming.length+overdue.length>0?T.amber:T.green} icon="📋"/>
         <StatCard label="New Materials" value={materials.length} sub="Recently uploaded" color={T.purple} icon="📂"/>
@@ -812,14 +818,24 @@ const DashboardView=({setTab,userName,userField})=>{
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={s.card}>
-            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Today</div>
-            {schedule.map((sc,i)=>(
-              <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
-                <span style={{fontSize:10,color:T.t3,width:50,flexShrink:0}}>{sc[0]}</span>
-                <div style={{width:3,height:26,background:sc[2],borderRadius:2}}/>
-                <span style={{fontSize:11,color:T.t1}}>{sc[1]}</span>
-              </div>
-            ))}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.t1}}>Today's Classes</div>
+              <button onClick={()=>setTab("meetings")} style={{...s.btnS,fontSize:10,padding:"2px 8px"}}>View All</button>
+            </div>
+            {todayMeetings.length===0?(
+              <div style={{fontSize:11,color:T.t3,textAlign:"center",padding:"0.75rem"}}>No classes scheduled today</div>
+            ):(
+              todayMeetings.map((m,i)=>{
+                const dt=new Date(m.scheduled_at);
+                return(
+                  <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
+                    <span style={{fontSize:10,color:T.t3,width:50,flexShrink:0}}>{dt.toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</span>
+                    <div style={{width:3,height:26,background:T.ac,borderRadius:2}}/>
+                    <span style={{fontSize:11,color:T.t1,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
           <div style={s.acCard}>
             <div style={{fontSize:10,color:T.ac,letterSpacing:0.8,marginBottom:6}}>AI SUGGESTION</div>
