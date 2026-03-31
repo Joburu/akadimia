@@ -232,7 +232,7 @@ const TREND_DATA=[{w:"W1",sc:72},{w:"W2",sc:75},{w:"W3",sc:68},{w:"W4",sc:80},{w
 const CAL_EVENTS=[
   {d:3,type:"exam",label:"Mid-Semester Exam",time:"9:00 AM",col:"#EF4444"},
   {d:7,type:"assignment",label:"Assignment 2 Due",time:"11:59 PM",col:"#D97706"},
-  {d:10,type:"meeting",label:"Study Group",time:"3:00 PM",col:"#3B82F6"},
+
   {d:14,type:"class",label:"Online Lecture",time:"8:00 AM",col:"#0D9488"},
   {d:17,type:"deadline",label:"Research Draft Due",time:"5:00 PM",col:"#7C3AED"},
   {d:21,type:"exam",label:"CAT 2",time:"2:00 PM",col:"#EF4444"},
@@ -2489,7 +2489,7 @@ const ClassroomView=({userField})=>{
   const [ltab,setLtab]=useState("courses"),[showNew,setShowNew]=useState(false);
   const fld=FIELDS[userField];const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
   const SUBS=[
-    {student:"Amara Osei",unit:(courses[0]&&courses[0].code)||"",task:"Assignment 1",sub:"Mar 18",grade:null},
+
     {student:"Brian Mutua",unit:(courses[0]&&courses[0].code)||"",task:"Assignment 1",sub:"Mar 19",grade:17},
     {student:"Fatima Hassan",unit:(courses[1]&&courses[1].code)||"",task:"CAT 1",sub:"Mar 15",grade:22},
     {student:"Akinyi Otieno",unit:(courses[1]&&courses[1].code)||"",task:"Assignment 1",sub:"Mar 20",grade:null},
