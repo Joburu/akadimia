@@ -2805,6 +2805,7 @@ const ProgrammeView=({userField,role,userName})=>{
   const T=useT();const s=sx(T);
   const [courses,setCourses]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [progLevel,setProgLevel]=useState("undergraduate");
   const [yearFilter,setYearFilter]=useState(1);
   const [semFilter,setSemFilter]=useState("all");
   const [search,setSearch]=useState("");
@@ -2865,6 +2866,7 @@ const ProgrammeView=({userField,role,userName})=>{
     const {supabase}=await import("./supabase.js");
     const {data}=await supabase.from("programme_courses").select("*").order("year").order("semester").order("code");
     setCourses(data||[]);setLoading(false);
+    setYearFilter(1);setSemFilter("all");setExpanded(null);
   };
   useEffect(()=>{load();},[]);
 
@@ -2876,11 +2878,14 @@ const ProgrammeView=({userField,role,userName})=>{
   };
 
   const filtered=courses.filter(c=>{
+    if((c.programme_level||"undergraduate")!==progLevel)return false;
     if(c.year!==yearFilter)return false;
     if(semFilter!=="all"&&c.semester!==parseInt(semFilter))return false;
     if(search&&!c.name.toLowerCase().includes(search.toLowerCase())&&!c.code.toLowerCase().includes(search.toLowerCase()))return false;
     return true;
   });
+  const isMasters=progLevel==="masters";
+  const maxYear=isMasters?2:4;
 
   const yearColors={1:T.green,2:T.blue,3:T.purple,4:T.amber};
   const semGroups=["1","2","3"].filter(s=>semFilter==="all"||semFilter===s);
@@ -2888,8 +2893,8 @@ const ProgrammeView=({userField,role,userName})=>{
 
   const doExport=()=>{
     exportPDF(
-      "BSc Actuarial Science with IT — Year "+yearFilter+" Programme",
-      "Wangari Agrovet Biopharma (WAB) Course Codes · AKADIMIA",
+      (isMasters?"MSc":"BSc")+" Actuarial Science — Year "+yearFilter+" Programme",
+      (isMasters?"JOOUST SAC Course Codes":"Wangari Agrovet Biopharma WAB Course Codes")+" · AKADIMIA",
       ["Code","Course Name","Sem","Credits","Type","Prerequisites"],
       filtered.map(c=>[c.code,c.name,c.semester===3?"Attachment":c.semester,c.credits,c.type==="C"?"Core":"Elective",c.prerequisites||"None"])
     );
@@ -2902,19 +2907,25 @@ const ProgrammeView=({userField,role,userName})=>{
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
             <h1 style={{fontSize:22,fontWeight:800,color:T.t1,marginBottom:4,letterSpacing:0.5}}>Programme Structure</h1>
-            <div style={{fontSize:13,color:T.ac,fontWeight:600,marginBottom:4}}>Bachelor of Science in Actuarial Science with IT</div>
-            <div style={{fontSize:12,color:T.t3}}>Wangari Agrovet Biopharma (WAB) · 4 Years · 8 Semesters</div>
+            <div style={{fontSize:13,color:T.ac,fontWeight:600,marginBottom:4}}>{isMasters?"Master of Science in Actuarial Science":"Bachelor of Science in Actuarial Science with IT"}</div>
+            <div style={{fontSize:12,color:T.t3}}>{isMasters?"JOOUST · SAC Course Codes · 4 Semesters · Thesis or Project Pathway":"Wangari Agrovet Biopharma (WAB) · 4 Years · 8 Semesters"}</div>
           </div>
-          <button onClick={doExport} style={{...s.btnS,fontSize:11,padding:"8px 16px"}}>📄 Export PDF</button>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:4,background:T.bg3,borderRadius:8,padding:4,border:"1px solid "+T.bd}}>
+              <button onClick={()=>{setProgLevel("undergraduate");setYearFilter(1);setSemFilter("all");setExpanded(null);}} style={{padding:"6px 14px",borderRadius:6,border:"none",background:progLevel==="undergraduate"?T.ac:"none",color:progLevel==="undergraduate"?"#000":T.t2,fontSize:11,cursor:"pointer",fontWeight:progLevel==="undergraduate"?700:400}}>BSc</button>
+              <button onClick={()=>{setProgLevel("masters");setYearFilter(1);setSemFilter("all");setExpanded(null);}} style={{padding:"6px 14px",borderRadius:6,border:"none",background:progLevel==="masters"?T.purple:"none",color:progLevel==="masters"?"#fff":T.t2,fontSize:11,cursor:"pointer",fontWeight:progLevel==="masters"?700:400}}>MSc</button>
+            </div>
+            <button onClick={doExport} style={{...s.btnS,fontSize:11,padding:"8px 16px"}}>📄 Export PDF</button>
+          </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:10,marginTop:"1rem"}}>
           {[
-            [courses.length,"Total Units","📚",T.ac],
-            [courses.filter(c=>c.type==="C").length,"Core","🎯",T.green],
-            [courses.filter(c=>c.type==="E").length,"Elective","✨",T.amber],
-            ["4","Years","📅",T.blue],
-            ["8","Semesters","🗓",T.purple],
-            [courses.filter(c=>c.lecturer_notes).length,"Lecturer Notes","📝",T.teal],
+            [courses.filter(c=>(c.programme_level||"undergraduate")===progLevel).length,"Total Units","📚",T.ac],
+            [courses.filter(c=>(c.programme_level||"undergraduate")===progLevel&&c.type==="C").length,"Core","🎯",T.green],
+            [courses.filter(c=>(c.programme_level||"undergraduate")===progLevel&&c.type==="E").length,"Elective","✨",T.amber],
+            [isMasters?"2":"4","Years","📅",T.blue],
+            [isMasters?"4":"8","Semesters","🗓",T.purple],
+            [courses.filter(c=>(c.programme_level||"undergraduate")===progLevel&&c.lecturer_notes).length,"Lecturer Notes","📝",T.teal],
           ].map(([v,l,ic,col])=>(
             <div key={l} style={{background:T.bg2,borderRadius:10,padding:"10px 8px",textAlign:"center",border:"1px solid "+T.bd}}>
               <div style={{fontSize:16,marginBottom:2}}>{ic}</div>
@@ -2928,11 +2939,11 @@ const ProgrammeView=({userField,role,userName})=>{
       {/* Year Tabs */}
       <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
         <div style={{display:"flex",gap:6,flex:1,flexWrap:"wrap"}}>
-          {[1,2,3,4].map(y=>(
-            <button key={y} onClick={()=>{setYearFilter(y);setSemFilter("all");setExpanded(null);}} style={{flex:1,minWidth:80,padding:"10px 8px",borderRadius:10,border:"2px solid "+(yearFilter===y?yearColors[y]:T.bd),background:yearFilter===y?rgba(yearColors[y],0.15):"none",color:yearFilter===y?yearColors[y]:T.t2,fontWeight:yearFilter===y?700:400,cursor:"pointer",fontSize:12,transition:"all 0.2s"}}>
-              <div style={{fontSize:18,marginBottom:2}}>{"1️⃣2️⃣3️⃣4️⃣".split("️⃣").filter(Boolean)[y-1]+"️⃣"}</div>
-              Year {y}
-              <div style={{fontSize:10,opacity:0.7}}>{courses.filter(c=>c.year===y).length} units</div>
+          {Array.from({length:maxYear},(_,i)=>i+1).map(y=>(
+            <button key={y} onClick={()=>{setYearFilter(y);setSemFilter("all");setExpanded(null);}} style={{flex:1,minWidth:80,padding:"10px 8px",borderRadius:10,border:"2px solid "+(yearFilter===y?yearColors[y]||T.purple:T.bd),background:yearFilter===y?rgba(yearColors[y]||T.purple,0.15):"none",color:yearFilter===y?yearColors[y]||T.purple:T.t2,fontWeight:yearFilter===y?700:400,cursor:"pointer",fontSize:12,transition:"all 0.2s"}}>
+              <div style={{fontSize:16,marginBottom:2}}>{isMasters?["Sem 1-2","Sem 3-4"][y-1]:["1️⃣","2️⃣","3️⃣","4️⃣"][y-1]}</div>
+              {isMasters?"Year "+y+" (Sem "+(y*2-1)+"-"+y*2+")":"Year "+y}
+              <div style={{fontSize:10,opacity:0.7}}>{courses.filter(c=>c.year===y&&(c.programme_level||"undergraduate")===progLevel).length} units</div>
             </button>
           ))}
         </div>
@@ -2941,7 +2952,8 @@ const ProgrammeView=({userField,role,userName})=>{
       {/* Filters */}
       <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
         <div style={{display:"flex",gap:4,background:T.bg2,borderRadius:8,padding:4,border:"1px solid "+T.bd}}>
-          {[["all","All"],["1","Sem 1"],["2","Sem 2"],["3","Attach"]].map(([v,l])=>(
+          {(isMasters?[["all","All"],["1","Sem 1"],["2","Sem 2"]]:
+            [["all","All"],["1","Sem 1"],["2","Sem 2"],["3","Attach"]]).map(([v,l])=>(
             <button key={v} onClick={()=>setSemFilter(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:semFilter===v?T.ac:"none",color:semFilter===v?"#000":T.t3,fontSize:11,cursor:"pointer",fontWeight:semFilter===v?600:400}}>{l}</button>
           ))}
         </div>
