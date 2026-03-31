@@ -1177,8 +1177,12 @@ const AssignmentsView=({userField,role,userName})=>{
     }
     await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
     try{
-      const query=supabase.from("profiles").select("*").eq("status","approved").eq("role","student").eq("field",userField);
-      const {data:students}=newA.target_year==="all"?await query:await query.eq("year_level",newA.target_year);
+      const query=supabase.from("profiles").select("*").eq("status","approved").eq("field",userField);
+      const {data:allProfiles}=await query;
+      const students=(allProfiles||[]).filter(p=>{
+        if(newA.target_year==="all") return true;
+        return p.year_level===newA.target_year;
+      });
       if(students&&students.length>0){
         const {sendAssignmentEmail}=await import("./email.js");
         for(const st of students){if(st.email)await sendAssignmentEmail(st.email,st.full_name||"Student",{...newA,field:userField});}
@@ -1275,14 +1279,14 @@ const AssignmentsView=({userField,role,userName})=>{
                       {mySub&&mySub.status==="graded"&&<span style={{background:T.purple+"22",color:T.purple,borderRadius:4,padding:"1px 8px",fontSize:10}}>Graded: {mySub.marks}/{a.max_marks}</span>}
                       {overdue&&!mySub&&<span style={{background:T.red+"22",color:T.red,borderRadius:4,padding:"1px 8px",fontSize:10}}>Overdue</span>}
                     </div>
-                    {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6}}>{a.description}</div>}
+                    {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6,lineHeight:1.7}}><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{a.description}</ReactMarkdown></div>}
                     {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,color:T.ac,textDecoration:"none",background:T.ac+"18",borderRadius:6,padding:"3px 10px",marginBottom:6}}>📎 Download</a>}
                     <div style={{fontSize:11,color:T.t3}}>
                       {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
                       <span>Max: {a.max_marks} marks</span>
                       {isLec&&<span style={{marginLeft:12}}>📥 {subs.length} submission{subs.length!==1?"s":""}</span>}
                     </div>
-                    {mySub&&mySub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:T.purple+"18",border:"1px solid "+T.purple+"44",borderRadius:8,fontSize:12,color:T.t1}}>💬 {mySub.feedback}</div>}
+                    {mySub&&mySub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:T.purple+"18",border:"1px solid "+T.purple+"44",borderRadius:8,fontSize:12,color:T.t1}}>💬 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{mySub.feedback}</ReactMarkdown></div>}
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
                     {!isLec&&!mySub&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit</button>}
@@ -1437,7 +1441,7 @@ const ExamsView=({userField,role,userName})=>{
         ):(
           qs.map((q,i)=>(
             <div key={q.id||i} style={{...s.card,marginBottom:"0.75rem"}}>
-              <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>{i+1}. {q.text} <span style={{fontSize:11,color:T.t3}}>({q.marks} marks)</span></div>
+              <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{(i+1)+". "+q.text}</ReactMarkdown><span style={{fontSize:11,color:T.t3}}>({q.marks} marks)</span></div>
               {q.type==="mcq"?(
                 <div style={{display:"grid",gap:6}}>
                   {(q.options||[]).filter(o=>o).map((opt,j)=>(
@@ -2053,7 +2057,10 @@ const OppsView=({userField})=>{
                     <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:o.deadline?6:0}}>{o.description}</div>
                     {o.deadline&&<div style={{fontSize:11,color:T.amber}}>Deadline: {o.deadline}</div>}
                   </div>
-                  {o.url&&o.url.startsWith("http")?<a href={o.url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"6px 14px",textDecoration:"none",flexShrink:0}}>Apply</a>:<span style={{fontSize:11,color:T.t3,flexShrink:0}}>No link</span>}
+                  <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
+                    {o.url&&o.url.startsWith("http")&&<a href={o.url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"6px 14px",textDecoration:"none"}}>Apply →</a>}
+                    <span style={{fontSize:9,color:T.t3}}>Verify on official site</span>
+                  </div>
                 </div>
               </div>
             );
@@ -2380,7 +2387,7 @@ const PeersView=({setTab,userField,userName})=>{
   };
   useEffect(()=>{load();},[]);
 
-  const filtered=filter==="field"?peers.filter(p=>p.field===userField):filter==="year"?peers.filter(p=>p.field===userField):peers;
+  const filtered=filter==="field"?peers.filter(p=>p.field===userField):filter==="year"?peers.filter(p=>p.field===userField&&p.year_level):filter==="lecturers"?peers.filter(p=>p.role==="lecturer"||p.role==="admin"):peers;
   const getInitials=(n)=>n?n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():"??";
   const fieldColors=Object.fromEntries(Object.entries(FIELDS).map(([k,v])=>[k,v.color]));
 
@@ -2390,7 +2397,7 @@ const PeersView=({setTab,userField,userName})=>{
       <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
 
       <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
-        {[["all","All Students"],["field","My Field"],["year","Same Year"]].map(([id,label])=>(
+        {[["all","All"],["field","My Field"],["year","My Field & Year"],["lecturers","Lecturers"]].map(([id,label])=>(
           <button key={id} onClick={()=>setFilter(id)} style={{...(filter===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
         ))}
       </div>
@@ -2410,7 +2417,7 @@ const PeersView=({setTab,userField,userName})=>{
                   <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:4}}>{p.full_name}</div>
                   <div style={{fontSize:11,color:fc,marginBottom:4}}>{peerFld?peerFld.icon+" "+peerFld.name:p.field}</div>
                   {p.year_level&&<div style={{fontSize:10,color:T.t3,marginBottom:8}}>{p.year_level}</div>}
-                  <div style={{display:"inline-block",background:rgba(fc,0.12),color:fc,borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:500,textTransform:"capitalize"}}>{p.role||"student"}</div>
+                  <div style={{display:"inline-block",background:rgba(fc,0.12),color:fc,borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:500,textTransform:"capitalize"}}>{p.role==="admin"?"Admin":p.role==="lecturer"?"Lecturer":p.role==="researcher"?"Researcher":"Student"}</div>
                 </div>
               );
             })}
