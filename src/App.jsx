@@ -1422,7 +1422,13 @@ const ExamsView=({userField,role,userName})=>{
   };
 
   const addQuestion=()=>{
-    setNewE(e=>({...e,questions:[...e.questions,{...newQ,id:Date.now()}]}));
+    if(!newQ.text.trim())return;
+    const q={...newQ,id:Date.now(),text:newQ.text.trim()};
+    setNewE(prev=>{
+      const updated={...prev,questions:[...prev.questions,q]};
+      console.log("Questions now:",updated.questions.length);
+      return updated;
+    });
     setNewQ({text:"",type:"mcq",options:["","","",""],marks:5});
   };
 
@@ -1528,7 +1534,7 @@ const ExamsView=({userField,role,userName})=>{
                 ))}
               </div>
             )}
-            <button onClick={addQuestion} style={s.btnS} disabled={!newQ.text}>+ Add Question</button>
+            <button onClick={addQuestion} style={{...s.btnP,fontSize:12}} disabled={!newQ.text.trim()}>+ Add Question to Exam</button>
             {newE.questions.length>0&&(
               <div style={{marginTop:"0.75rem",display:"grid",gap:4}}>
                 {newE.questions.map((q,i)=>(
@@ -1540,8 +1546,9 @@ const ExamsView=({userField,role,userName})=>{
               </div>
             )}
           </div>
+          {newE.questions.length===0&&<div style={{padding:"8px 12px",background:T.amber+"18",borderRadius:6,fontSize:12,color:T.amber,marginBottom:8}}>Add at least one question before creating the exam.</div>}
           <div style={{display:"flex",gap:8}}>
-            <button onClick={createExam} style={s.btnP}>Create Exam</button>
+            <button onClick={createExam} style={s.btnP}>Create Exam ({newE.questions.length} questions)</button>
             <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
           </div>
         </div>
