@@ -3331,10 +3331,16 @@ export default function App(){
       if(session&&session.user){
         const {data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
         if(data&&data.status==="approved"){
-          setRole(data.role||"student");
-          setUserField(data.field||"actuarial");
-          setUserName(data.full_name||session.user.email);
-          setAuthed(true);
+          const termsKey="ak_terms_"+session.user.id;
+          if(!localStorage.getItem(termsKey)){
+            setPendingLogin({role:data.role||"student",field:data.field||"actuarial",name:data.full_name||session.user.email,termsKey});
+            setShowTerms(true);
+          } else {
+            setRole(data.role||"student");
+            setUserField(data.field||"actuarial");
+            setUserName(data.full_name||session.user.email);
+            setAuthed(true);
+          }
         }
       }
 
