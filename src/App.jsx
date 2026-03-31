@@ -3286,6 +3286,8 @@ export default function App(){
   const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState("en"),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
+  const [showTerms,setShowTerms]=useState(false);
+  const [pendingLogin,setPendingLogin]=useState(null);
   const [tab,setTab]=useState(()=>localStorage.getItem("ak_tab")||"dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
   const origSetTab=setTab;
   const persistTab=(t)=>{localStorage.setItem("ak_tab",t);origSetTab(t);};
@@ -3368,9 +3370,15 @@ export default function App(){
     const result=await handleSignIn(email,password);
     if(result.error)return result.error;
     const p=result.profile;
-    setRole(p.role||"student");setUserField(p.field||"actuarial");
-    setUserName(p.full_name||email);setAuthed(true);
-    flash((LS[lang]||LS.en).welcome+", "+(p.full_name||email).split(" ")[0]+"!");
+    const termsKey="ak_terms_"+p.id;
+    if(!localStorage.getItem(termsKey)){
+      setPendingLogin({role:p.role||"student",field:p.field||"actuarial",name:p.full_name||email,termsKey});
+      setShowTerms(true);
+    } else {
+      setRole(p.role||"student");setUserField(p.field||"actuarial");
+      setUserName(p.full_name||email);setAuthed(true);
+      flash((LS[lang]||LS.en).welcome+", "+(p.full_name||email).split(" ")[0]+"!");
+    }
     return null;
   };
   const handleRealSignUp=async(email,password,meta)=>{
@@ -3422,6 +3430,44 @@ export default function App(){
                   else{setResetMsg("Password updated! Redirecting to login...");const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setTimeout(()=>{setResetMode(false);setAuthed(false);window.location.hash="";},2000);}
                 }} style={{width:"100%",background:"#d4a017",border:"none",borderRadius:8,padding:"12px",color:"#000",fontSize:14,fontWeight:600,cursor:resetLoading?"not-allowed":"pointer"}} disabled={resetLoading}>{resetLoading?"Updating...":"Set New Password"}</button>
               </>}
+            </div>
+          </div>
+        ):showTerms&&pendingLogin?(
+          <div style={{minHeight:"100vh",background:"#0f0f1a",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"2rem 1rem",overflowY:"auto"}}>
+            <div style={{width:"100%",maxWidth:700,background:"#16162a",borderRadius:16,border:"1px solid #2a2a4a",padding:"2rem"}}>
+              <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+                <img src="/logo2.png" style={{height:52,width:52,objectFit:"contain",marginBottom:8}}/>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:"#fff",letterSpacing:2}}>AKADIMIA</div>
+                <div style={{fontSize:11,color:"#D4A017",fontStyle:"italic",marginBottom:8}}>Ujuzi Bila Mipaka</div>
+                <div style={{fontSize:16,fontWeight:600,color:"#fff"}}>Terms of Use & Data Privacy Consent</div>
+                <div style={{fontSize:12,color:"#888",marginTop:4}}>Please read carefully and accept before accessing the platform</div>
+              </div>
+              <div style={{maxHeight:"50vh",overflowY:"auto",padding:"1rem",background:"#0f0f1a",borderRadius:8,border:"1px solid #2a2a4a",marginBottom:"1.5rem",fontSize:12,color:"#ccc",lineHeight:1.8}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>1. Kenya Data Protection Act 2019 (KDPA)</div>
+                <p style={{marginBottom:12}}>AKADIMIA processes your personal data under the Kenya Data Protection Act 2019 (Act No. 24 of 2019). By using this platform you consent to collection and processing of: full name, email, student ID, field of study, year level, assignments, exam responses, and activity logs. Data is used solely for academic administration.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>2. Legal Basis for Processing</div>
+                <p style={{marginBottom:12}}>Processing is based on your consent (Section 30, KDPA 2019) and legitimate academic interest. You may withdraw consent by contacting your institution administrator, however this will affect your platform access.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>3. Computer Misuse and Cybercrimes Act 2018</div>
+                <p style={{marginBottom:12}}>Under the Computer Misuse and Cybercrimes Act 2018 (Act No. 5 of 2018), unauthorized access, misuse or interference with this platform is a criminal offence punishable under Sections 3, 4 and 5 of the Act.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>4. Academic Integrity</div>
+                <p style={{marginBottom:12}}>You agree to uphold academic integrity. Sharing exam questions, answers or using unauthorized assistance constitutes academic fraud and may be referred to your institution disciplinary committee. AKADIMIA may flag suspicious exam behaviour.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>5. Data Security</div>
+                <p style={{marginBottom:12}}>Data is encrypted in transit (TLS 1.3) and at rest (AES-256). Stored on Supabase EU-West servers. AKADIMIA does not sell or share personal data with third parties except as required by Kenyan law or court order.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>6. Your Rights Under KDPA 2019</div>
+                <p style={{marginBottom:12}}>You have the right to: access your data (S.26); correct inaccurate data (S.27); request deletion (S.38); object to processing (S.35); and lodge a complaint with the Office of the Data Protection Commissioner at odpc.go.ke.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>7. Wellness & Ratings Data</div>
+                <p style={{marginBottom:12}}>Wellness check-ins are fully anonymous — never linked to your identity. Raw wellness data is deleted after 90 days. Class ratings are anonymous and used only to improve teaching quality.</p>
+                <div style={{fontSize:13,fontWeight:600,color:"#D4A017",marginBottom:6}}>8. Governing Law</div>
+                <p>These terms are governed by the laws of Kenya including: KDPA 2019, Computer Misuse and Cybercrimes Act 2018, Kenya ICT Act Cap. 411A, and Consumer Protection Act 2012.</p>
+              </div>
+              <div style={{background:"#1a1a2e",borderRadius:8,padding:"12px 16px",marginBottom:"1.5rem",fontSize:12,color:"#aaa",border:"1px solid #2a2a4a"}}>
+                Logged in as <strong style={{color:"#fff"}}>{pendingLogin.name}</strong> — by accepting you confirm this account belongs to you and all registration information is accurate.
+              </div>
+              <div style={{display:"flex",gap:12}}>
+                <button onClick={()=>{localStorage.setItem(pendingLogin.termsKey,"1");setRole(pendingLogin.role);setUserField(pendingLogin.field);setUserName(pendingLogin.name);setAuthed(true);setShowTerms(false);setPendingLogin(null);flash("Welcome, "+pendingLogin.name.split(" ")[0]+"!");}} style={{flex:1,background:"#D4A017",color:"#000",border:"none",borderRadius:8,padding:"14px",fontSize:14,fontWeight:700,cursor:"pointer"}}>I Accept — Enter AKADIMIA</button>
+                <button onClick={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setShowTerms(false);setPendingLogin(null);}} style={{background:"none",border:"1px solid #444",borderRadius:8,padding:"14px 20px",fontSize:13,color:"#888",cursor:"pointer"}}>Decline & Sign Out</button>
+              </div>
+              <div style={{fontSize:10,color:"#444",textAlign:"center",marginTop:12}}>Kenya Data Protection Act 2019 · Computer Misuse and Cybercrimes Act 2018 · Kenya ICT Act Cap. 411A</div>
             </div>
           </div>
         ):!authed?(
