@@ -2812,53 +2812,53 @@ const ProgrammeView=({userField,role,userName})=>{
   const [editNotes,setEditNotes]=useState(null);
   const [notesText,setNotesText]=useState("");
   const [saving,setSaving]=useState(false);
+  const [viewMode,setViewMode]=useState("cards");
   const isLec=role==="lecturer"||role==="admin";
 
-  const REFERENCES={
-    actuarial:[
-      {title:"Institute and Faculty of Actuaries (IFoA) Study Notes",url:"https://www.actuaries.org.uk/studying/study-materials",type:"Official"},
-      {title:"Society of Actuaries Free Study Materials",url:"https://www.soa.org/education/exam-req/edu-exam-p-detail/",type:"Official"},
-      {title:"Actuarial Outpost — Free Study Resources",url:"https://www.actuarialoutpost.com",type:"Community"},
-      {title:"ACTEX Study Manual (Preview Chapters)",url:"https://www.actexmadriver.com",type:"Textbook"},
-      {title:"OpenStax Statistics (Free)",url:"https://openstax.org/books/introductory-statistics/pages/1-introduction",type:"Open Textbook"},
-      {title:"Paul's Online Math Notes — Calculus",url:"https://tutorial.math.lamar.edu",type:"Free Notes"},
-      {title:"MIT OpenCourseWare — Financial Mathematics",url:"https://ocw.mit.edu/courses/18-s096-topics-in-mathematics-with-applications-in-finance-fall-2013/",type:"University"},
-      {title:"Khan Academy — Statistics and Probability",url:"https://www.khanacademy.org/math/statistics-probability",type:"Free Course"},
-      {title:"Coursera — Introduction to Financial Engineering (Audit Free)",url:"https://www.coursera.org/learn/financial-engineering-intro",type:"MOOC"},
-      {title:"Insurance Regulatory Authority Kenya — Publications",url:"https://www.ira.go.ke/index.php/publications",type:"Regulatory"},
+  const REFS={
+    wab:[
+      {title:"IFoA Study Materials",url:"https://www.actuaries.org.uk/studying/study-materials",type:"Official"},
+      {title:"Society of Actuaries — Exam P Materials",url:"https://www.soa.org/education/exam-req/edu-exam-p-detail/",type:"Official"},
+      {title:"MIT OCW — Financial Mathematics",url:"https://ocw.mit.edu/courses/18-s096-topics-in-mathematics-with-applications-in-finance-fall-2013/",type:"University"},
+      {title:"Khan Academy — Finance & Capital Markets",url:"https://www.khanacademy.org/economics-finance-domain/core-finance",type:"Free"},
+      {title:"IRA Kenya — Insurance Publications",url:"https://www.ira.go.ke/index.php/publications",type:"Regulatory"},
+      {title:"CBK — Financial Stability Reports",url:"https://www.centralbank.go.ke/financial-stability-reports/",type:"Regulatory"},
       {title:"CMA Kenya — Capital Markets Research",url:"https://www.cma.or.ke/index.php/research-policy",type:"Regulatory"},
-      {title:"CBK — Financial Stability Reports (Free)",url:"https://www.centralbank.go.ke/financial-stability-reports/",type:"Regulatory"},
+      {title:"ACTEX Free Preview Chapters",url:"https://www.actexmadriver.com",type:"Textbook"},
     ],
-    stats:[
-      {title:"OpenStax Introductory Statistics",url:"https://openstax.org/books/introductory-statistics/pages/1-introduction",type:"Open Textbook"},
-      {title:"StatLect — Free Lectures on Probability",url:"https://www.statlect.com",type:"Free Notes"},
-      {title:"Penn State STAT Online — Free Courses",url:"https://online.stat.psu.edu/statprogram/",type:"University"},
-      {title:"R for Data Science (Free Online)",url:"https://r4ds.had.co.nz",type:"Free Book"},
-      {title:"Introduction to Statistical Learning (Free PDF)",url:"https://www.statlearning.com",type:"Free Textbook"},
+    sas:[
+      {title:"OpenStax Introductory Statistics (Free)",url:"https://openstax.org/books/introductory-statistics/pages/1-introduction",type:"Free"},
+      {title:"Introduction to Statistical Learning (Free PDF)",url:"https://www.statlearning.com",type:"Free"},
+      {title:"R for Data Science — Hadley Wickham (Free)",url:"https://r4ds.had.co.nz",type:"Free"},
+      {title:"StatLect — Free Probability Lectures",url:"https://www.statlect.com",type:"Free"},
+      {title:"Penn State STAT Online Courses",url:"https://online.stat.psu.edu/statprogram/",type:"University"},
+      {title:"Coursera — Statistics with R (Audit Free)",url:"https://www.coursera.org/specializations/statistics",type:"MOOC"},
     ],
-    math:[
-      {title:"Paul's Online Math Notes",url:"https://tutorial.math.lamar.edu",type:"Free Notes"},
-      {title:"MIT OpenCourseWare — Mathematics",url:"https://ocw.mit.edu/courses/mathematics/",type:"University"},
+    sma:[
+      {title:"Paul's Online Math Notes (Calculus & ODE)",url:"https://tutorial.math.lamar.edu",type:"Free"},
+      {title:"MIT OCW — Mathematics Courses",url:"https://ocw.mit.edu/courses/mathematics/",type:"University"},
       {title:"3Blue1Brown — Essence of Linear Algebra",url:"https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab",type:"Video"},
-      {title:"Khan Academy — Linear Algebra",url:"https://www.khanacademy.org/math/linear-algebra",type:"Free Course"},
+      {title:"Khan Academy — Calculus & Linear Algebra",url:"https://www.khanacademy.org/math",type:"Free"},
+      {title:"Brilliant.org — Interactive Maths (Free tier)",url:"https://brilliant.org",type:"Interactive"},
     ],
-    cs:[
-      {title:"CS50 — Harvard Free Computer Science Course",url:"https://cs50.harvard.edu/x/",type:"Free Course"},
-      {title:"GeeksForGeeks — Data Structures and Algorithms",url:"https://www.geeksforgeeks.org/data-structures/",type:"Free Notes"},
-      {title:"Java Programming — MOOC.fi (Free)",url:"https://java-programming.mooc.fi",type:"Free Course"},
+    scs:[
+      {title:"CS50 Harvard — Free Computer Science",url:"https://cs50.harvard.edu/x/",type:"Free"},
+      {title:"GeeksForGeeks — DSA & Programming",url:"https://www.geeksforgeeks.org/data-structures/",type:"Free"},
+      {title:"Java Programming MOOC.fi (Free)",url:"https://java-programming.mooc.fi",type:"Free"},
+      {title:"W3Schools — SQL & Programming",url:"https://www.w3schools.com",type:"Free"},
+      {title:"freeCodeCamp — Full Stack Development",url:"https://www.freecodecamp.org",type:"Free"},
     ]
   };
 
-  const getRefsForCourse=(code)=>{
+  const getRefs=(code)=>{
     const c=code.toLowerCase();
-    if(c.startsWith("wab"))return REFERENCES.actuarial;
-    if(c.startsWith("sas"))return REFERENCES.stats;
-    if(c.startsWith("sma"))return REFERENCES.math;
-    if(c.startsWith("scs"))return REFERENCES.cs;
-    return REFERENCES.actuarial;
+    if(c.startsWith("wab"))return REFS.wab;
+    if(c.startsWith("sas"))return REFS.sas;
+    if(c.startsWith("sma"))return REFS.sma;
+    return REFS.scs;
   };
 
-  const typeColor={Official:T.green,Community:T.blue,University:T.purple,"Open Textbook":T.ac,"Free Notes":T.teal,"Free Book":T.ac,MOOC:T.amber,Regulatory:T.red,Video:"#FF6B6B","Free Course":T.green,"Free Textbook":T.ac};
+  const refColor={Official:T.green,University:T.purple,Free:T.ac,Regulatory:T.red,Textbook:T.amber,MOOC:T.teal,Video:"#FF6B6B",Interactive:T.blue};
 
   const load=async()=>{
     setLoading(true);
@@ -2868,10 +2868,10 @@ const ProgrammeView=({userField,role,userName})=>{
   };
   useEffect(()=>{load();},[]);
 
-  const saveNotes=async(courseId)=>{
+  const saveNotes=async(id)=>{
     setSaving(true);
     const {supabase}=await import("./supabase.js");
-    await supabase.from("programme_courses").update({lecturer_notes:notesText,lecturer_name:userName,updated_at:new Date().toISOString()}).eq("id",courseId);
+    await supabase.from("programme_courses").update({lecturer_notes:notesText,lecturer_name:userName,updated_at:new Date().toISOString()}).eq("id",id);
     setSaving(false);setEditNotes(null);load();
   };
 
@@ -2882,122 +2882,190 @@ const ProgrammeView=({userField,role,userName})=>{
     return true;
   });
 
-  const coreCount=filtered.filter(c=>c.type==="C").length;
-  const electiveCount=filtered.filter(c=>c.type==="E").length;
+  const yearColors={1:T.green,2:T.blue,3:T.purple,4:T.amber};
+  const semGroups=["1","2","3"].filter(s=>semFilter==="all"||semFilter===s);
+  const semLabel={1:"Semester One",2:"Semester Two",3:"Industrial Attachment"};
+
+  const doExport=()=>{
+    exportPDF(
+      "BSc Actuarial Science with IT — Year "+yearFilter+" Programme",
+      "Wangari Agrovet Biopharma (WAB) Course Codes · AKADIMIA",
+      ["Code","Course Name","Sem","Credits","Type","Prerequisites"],
+      filtered.map(c=>[c.code,c.name,c.semester===3?"Attachment":c.semester,c.credits,c.type==="C"?"Core":"Elective",c.prerequisites||"None"])
+    );
+  };
 
   return(
     <div>
-      <h1 style={s.h1}>Programme Structure</h1>
-      <p style={s.sub}>BSc Actuarial Science with IT — Wangari Agrovet Biopharma (WAB) Course Codes</p>
-
-      <div style={{...s.card,marginBottom:"1.25rem",background:"linear-gradient(135deg,"+rgba(T.ac,0.1)+","+rgba(T.blue,0.05)+")",border:"1px solid "+rgba(T.ac,0.2)}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:12}}>
-          {[[courses.length,"Total Units","📚",T.ac],[courses.filter(c=>c.type==="C").length,"Core Units","🎯",T.green],[courses.filter(c=>c.type==="E").length,"Elective Units","✨",T.amber],["4 Years","Duration","📅",T.blue],["8 Sems","Structure","🗓",T.purple]].map(([v,l,ic,col])=>(
-            <div key={l} style={{textAlign:"center"}}>
-              <div style={{fontSize:20}}>{ic}</div>
-              <div style={{fontSize:20,fontWeight:700,color:col}}>{v}</div>
-              <div style={{fontSize:10,color:T.t3}}>{l}</div>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,"+rgba(T.ac,0.12)+","+rgba(T.blue,0.06)+")",borderRadius:16,padding:"1.5rem",marginBottom:"1.5rem",border:"1px solid "+rgba(T.ac,0.2)}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+          <div>
+            <h1 style={{fontSize:22,fontWeight:800,color:T.t1,marginBottom:4,letterSpacing:0.5}}>Programme Structure</h1>
+            <div style={{fontSize:13,color:T.ac,fontWeight:600,marginBottom:4}}>Bachelor of Science in Actuarial Science with IT</div>
+            <div style={{fontSize:12,color:T.t3}}>Wangari Agrovet Biopharma (WAB) · 4 Years · 8 Semesters</div>
+          </div>
+          <button onClick={doExport} style={{...s.btnS,fontSize:11,padding:"8px 16px"}}>📄 Export PDF</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:10,marginTop:"1rem"}}>
+          {[
+            [courses.length,"Total Units","📚",T.ac],
+            [courses.filter(c=>c.type==="C").length,"Core","🎯",T.green],
+            [courses.filter(c=>c.type==="E").length,"Elective","✨",T.amber],
+            ["4","Years","📅",T.blue],
+            ["8","Semesters","🗓",T.purple],
+            [courses.filter(c=>c.lecturer_notes).length,"Lecturer Notes","📝",T.teal],
+          ].map(([v,l,ic,col])=>(
+            <div key={l} style={{background:T.bg2,borderRadius:10,padding:"10px 8px",textAlign:"center",border:"1px solid "+T.bd}}>
+              <div style={{fontSize:16,marginBottom:2}}>{ic}</div>
+              <div style={{fontSize:18,fontWeight:700,color:col,lineHeight:1}}>{v}</div>
+              <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
-        <div style={{display:"flex",gap:6}}>
+      {/* Year Tabs */}
+      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:6,flex:1,flexWrap:"wrap"}}>
           {[1,2,3,4].map(y=>(
-            <button key={y} onClick={()=>{setYearFilter(y);setSemFilter("all");setExpanded(null);}} style={{...(yearFilter===y?s.btnP:s.btnS),fontSize:12,padding:"6px 14px"}}>Year {y}</button>
+            <button key={y} onClick={()=>{setYearFilter(y);setSemFilter("all");setExpanded(null);}} style={{flex:1,minWidth:80,padding:"10px 8px",borderRadius:10,border:"2px solid "+(yearFilter===y?yearColors[y]:T.bd),background:yearFilter===y?rgba(yearColors[y],0.15):"none",color:yearFilter===y?yearColors[y]:T.t2,fontWeight:yearFilter===y?700:400,cursor:"pointer",fontSize:12,transition:"all 0.2s"}}>
+              <div style={{fontSize:18,marginBottom:2}}>{"1️⃣2️⃣3️⃣4️⃣".split("️⃣").filter(Boolean)[y-1]+"️⃣"}</div>
+              Year {y}
+              <div style={{fontSize:10,opacity:0.7}}>{courses.filter(c=>c.year===y).length} units</div>
+            </button>
           ))}
         </div>
-        <div style={{display:"flex",gap:6}}>
-          {[["all","All Sems"],["1","Sem 1"],["2","Sem 2"],["3","Attachment"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setSemFilter(v)} style={{...(semFilter===v?s.btnS:s.btnS),fontSize:11,padding:"5px 10px",opacity:semFilter===v?1:0.6,border:"1px solid "+(semFilter===v?T.ac:T.bd),color:semFilter===v?T.ac:T.t3}}>{l}</button>
+      </div>
+
+      {/* Filters */}
+      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:4,background:T.bg2,borderRadius:8,padding:4,border:"1px solid "+T.bd}}>
+          {[["all","All"],["1","Sem 1"],["2","Sem 2"],["3","Attach"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setSemFilter(v)} style={{padding:"5px 12px",borderRadius:6,border:"none",background:semFilter===v?T.ac:"none",color:semFilter===v?"#000":T.t3,fontSize:11,cursor:"pointer",fontWeight:semFilter===v?600:400}}>{l}</button>
           ))}
         </div>
-        <input style={{...s.input,flex:1,minWidth:160,fontSize:12}} placeholder="Search courses..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <input style={{...s.input,flex:1,minWidth:160,fontSize:12}} placeholder="🔍 Search by name or code..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <div style={{display:"flex",gap:4,background:T.bg2,borderRadius:8,padding:4,border:"1px solid "+T.bd}}>
+          {[["cards","▦"],["list","☰"]].map(([v,ic])=>(
+            <button key={v} onClick={()=>setViewMode(v)} style={{padding:"5px 10px",borderRadius:6,border:"none",background:viewMode===v?T.ac:"none",color:viewMode===v?"#000":T.t3,fontSize:13,cursor:"pointer"}}>{ic}</button>
+          ))}
+        </div>
       </div>
 
-      <div style={{fontSize:12,color:T.t3,marginBottom:"0.75rem"}}>
-        Showing {filtered.length} courses — {coreCount} core (C), {electiveCount} elective (E)
+      <div style={{fontSize:12,color:T.t3,marginBottom:"1rem",display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+        <span>{filtered.length} courses</span>
+        <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:10,height:10,borderRadius:2,background:T.green,display:"inline-block"}}/>Core</span>
+        <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:10,height:10,borderRadius:2,background:T.amber,display:"inline-block"}}/>Elective</span>
       </div>
 
-      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading programme...</div>:(
+      {loading?(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:32,marginBottom:12}}>📚</div>
+          <div style={{color:T.t3}}>Loading programme...</div>
+        </div>
+      ):(
         <div>
-          {["1","2","3"].filter(sem=>semFilter==="all"||semFilter===sem).map(sem=>{
-            const semCourses=filtered.filter(c=>c.semester===parseInt(sem));
-            if(semCourses.length===0)return null;
-            const semLabel=sem==="3"?"Industrial Attachment":sem==="1"?"First Semester":"Second Semester";
+          {semGroups.map(sem=>{
+            const sc=filtered.filter(c=>c.semester===parseInt(sem));
+            if(sc.length===0)return null;
             return(
-              <div key={sem} style={{marginBottom:"1.5rem"}}>
-                <div style={{fontSize:12,fontWeight:700,color:T.ac,letterSpacing:1,marginBottom:"0.75rem",textTransform:"uppercase"}}>{semLabel}</div>
-                <div style={{display:"grid",gap:8}}>
-                  {semCourses.map(course=>{
-                    const isExpanded=expanded===course.id;
-                    const refs=getRefsForCourse(course.code);
-                    return(
-                      <div key={course.id} style={{...s.card,borderLeft:"3px solid "+(course.type==="C"?T.green:T.amber),cursor:"pointer"}} onClick={()=>setExpanded(isExpanded?null:course.id)}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                          <div style={{flex:1}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                              <span style={{fontSize:12,fontWeight:700,color:T.ac,fontFamily:"monospace"}}>{course.code}</span>
-                              <span style={{fontSize:13,fontWeight:600,color:T.t1}}>{course.name}</span>
-                              <span style={{background:course.type==="C"?rgba(T.green,0.15):rgba(T.amber,0.15),color:course.type==="C"?T.green:T.amber,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:700}}>{course.type==="C"?"CORE":"ELECTIVE"}</span>
-                              <span style={{background:T.bg3,color:T.t3,borderRadius:4,padding:"1px 6px",fontSize:10}}>{course.credits} Credits</span>
+              <div key={sem} style={{marginBottom:"2rem"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"1rem"}}>
+                  <div style={{height:2,flex:1,background:"linear-gradient(90deg,"+T.ac+",transparent)"}}/>
+                  <div style={{fontSize:13,fontWeight:700,color:T.ac,letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap"}}>{semLabel[sem]||"Semester "+sem}</div>
+                  <div style={{height:2,flex:1,background:"linear-gradient(270deg,"+T.ac+",transparent)"}}/>
+                </div>
+
+                {viewMode==="cards"?(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>
+                    {sc.map(course=>{
+                      const isExp=expanded===course.id;
+                      const refs=getRefs(course.code);
+                      const prefix=course.code.split(" ")[0].toLowerCase();
+                      const prefixColor={wab:T.ac,sas:T.blue,sma:T.purple,scs:T.teal}[prefix]||T.ac;
+                      return(
+                        <div key={course.id} style={{background:T.bg2,borderRadius:12,border:"1px solid "+(isExp?T.ac:T.bd),overflow:"hidden",transition:"all 0.2s",boxShadow:isExp?"0 4px 20px "+rgba(T.ac,0.15):"none"}}>
+                          <div onClick={()=>setExpanded(isExp?null:course.id)} style={{padding:"14px 16px",cursor:"pointer",borderLeft:"4px solid "+(course.type==="C"?T.green:T.amber)}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:6}}>
+                              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                <span style={{background:rgba(prefixColor,0.15),color:prefixColor,borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{course.code}</span>
+                                <span style={{background:course.type==="C"?rgba(T.green,0.12):rgba(T.amber,0.12),color:course.type==="C"?T.green:T.amber,borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:600}}>{course.type==="C"?"CORE":"ELEC"}</span>
+                                {course.lecturer_notes&&<span style={{background:rgba(T.purple,0.12),color:T.purple,borderRadius:6,padding:"2px 6px",fontSize:10}}>📝</span>}
+                              </div>
+                              <span style={{color:T.t3,fontSize:12}}>{isExp?"▲":"▼"}</span>
                             </div>
-                            {course.prerequisites&&<div style={{fontSize:11,color:T.t3,marginTop:4}}>Pre-requisites: {course.prerequisites}</div>}
-                            {course.lecturer_notes&&!isExpanded&&<div style={{fontSize:11,color:T.purple,marginTop:4}}>📝 Lecturer notes available</div>}
+                            <div style={{fontSize:13,fontWeight:600,color:T.t1,lineHeight:1.4,marginBottom:4}}>{course.name}</div>
+                            <div style={{fontSize:11,color:T.t3}}>{course.credits} Credits {course.prerequisites?"· Pre-req: "+course.prerequisites:""}</div>
                           </div>
-                          <span style={{color:T.t3,fontSize:16,flexShrink:0}}>{isExpanded?"▲":"▼"}</span>
-                        </div>
-
-                        {isExpanded&&(
-                          <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}} onClick={e=>e.stopPropagation()}>
-                            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Course Description</div>
-                            <div style={{fontSize:12,color:T.t2,lineHeight:1.8,marginBottom:"1rem"}}>{course.description||"Description not yet available."}</div>
-
-                            {course.lecturer_notes&&(
-                              <div style={{marginBottom:"1rem",padding:"12px",background:rgba(T.purple,0.08),border:"1px solid "+rgba(T.purple,0.25),borderRadius:8}}>
-                                <div style={{fontSize:11,fontWeight:600,color:T.purple,marginBottom:6}}>📝 Lecturer Notes{course.lecturer_name?" — "+course.lecturer_name:""}</div>
-                                <div style={{fontSize:12,color:T.t1,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{course.lecturer_notes}</div>
-                              </div>
-                            )}
-
-                            {isLec&&(
-                              <div style={{marginBottom:"1rem"}}>
-                                {editNotes===course.id?(
-                                  <div>
-                                    <label style={s.lbl}>LECTURER NOTES & INSTRUCTIONS</label>
-                                    <textarea style={{...s.input,height:120,resize:"vertical",fontSize:12,marginBottom:8}} placeholder="Add lecture notes, reading instructions, assessment tips, office hours, contact details..." value={notesText} onChange={e=>setNotesText(e.target.value)}/>
-                                    <div style={{display:"flex",gap:8}}>
-                                      <button onClick={()=>saveNotes(course.id)} style={{...s.btnP,fontSize:12}} disabled={saving}>{saving?"Saving...":"Save Notes"}</button>
-                                      <button onClick={()=>setEditNotes(null)} style={{...s.btnS,fontSize:12}}>Cancel</button>
+                          {isExp&&(
+                            <div style={{borderTop:"1px solid "+T.bd,padding:"14px 16px",background:rgba(T.ac,0.02)}} onClick={e=>e.stopPropagation()}>
+                              {course.description&&<div style={{fontSize:12,color:T.t2,lineHeight:1.8,marginBottom:"1rem"}}>{course.description}</div>}
+                              {course.lecturer_notes&&(
+                                <div style={{marginBottom:"1rem",padding:"12px",background:rgba(T.purple,0.08),border:"1px solid "+rgba(T.purple,0.2),borderRadius:8}}>
+                                  <div style={{fontSize:11,fontWeight:600,color:T.purple,marginBottom:6}}>📝 Lecturer Notes{course.lecturer_name?" — "+course.lecturer_name:""}</div>
+                                  <div style={{fontSize:12,color:T.t1,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{course.lecturer_notes}</div>
+                                </div>
+                              )}
+                              {isLec&&(
+                                <div style={{marginBottom:"1rem"}}>
+                                  {editNotes===course.id?(
+                                    <div>
+                                      <label style={s.lbl}>NOTES / INSTRUCTIONS / OFFICE HOURS</label>
+                                      <textarea style={{...s.input,height:100,resize:"vertical",fontSize:12,marginBottom:8}} placeholder="Add lecture notes, reading guides, assessment tips, office hours, email..." value={notesText} onChange={e=>setNotesText(e.target.value)}/>
+                                      <div style={{display:"flex",gap:8}}>
+                                        <button onClick={()=>saveNotes(course.id)} style={{...s.btnP,fontSize:11}} disabled={saving}>{saving?"Saving...":"Save"}</button>
+                                        <button onClick={()=>setEditNotes(null)} style={{...s.btnS,fontSize:11}}>Cancel</button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ):(
-                                  <button onClick={()=>{setEditNotes(course.id);setNotesText(course.lecturer_notes||"");}} style={{...s.btnS,fontSize:11}}>
-                                    {course.lecturer_notes?"✏️ Edit Lecturer Notes":"📝 Add Lecturer Notes"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-
-                            <div>
-                              <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>📚 Free Access References & Resources</div>
-                              <div style={{display:"grid",gap:6}}>
+                                  ):(
+                                    <button onClick={()=>{setEditNotes(course.id);setNotesText(course.lecturer_notes||"");}} style={{...s.btnS,fontSize:11,width:"100%"}}>
+                                      {course.lecturer_notes?"✏️ Edit Notes":"📝 Add Lecturer Notes"}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              <div style={{fontSize:11,fontWeight:600,color:T.t3,letterSpacing:0.5,marginBottom:8}}>FREE REFERENCES & RESOURCES</div>
+                              <div style={{display:"grid",gap:5}}>
                                 {refs.map((ref,i)=>(
-                                  <a key={i} href={ref.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:T.bg3,borderRadius:8,textDecoration:"none",border:"1px solid "+T.bd}}>
-                                    <span style={{background:rgba(typeColor[ref.type]||T.ac,0.15),color:typeColor[ref.type]||T.ac,borderRadius:4,padding:"2px 8px",fontSize:9,fontWeight:700,flexShrink:0,textTransform:"uppercase"}}>{ref.type}</span>
-                                    <span style={{fontSize:12,color:T.t1,flex:1}}>{ref.title}</span>
-                                    <span style={{fontSize:11,color:T.t3,flexShrink:0}}>→</span>
+                                  <a key={i} href={ref.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:T.bg3,borderRadius:7,textDecoration:"none",border:"1px solid "+T.bd,transition:"all 0.2s"}}>
+                                    <span style={{background:rgba(refColor[ref.type]||T.ac,0.15),color:refColor[ref.type]||T.ac,borderRadius:4,padding:"1px 7px",fontSize:9,fontWeight:700,flexShrink:0}}>{ref.type.toUpperCase()}</span>
+                                    <span style={{fontSize:11,color:T.t1,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ref.title}</span>
+                                    <span style={{fontSize:11,color:T.ac,flexShrink:0}}>↗</span>
                                   </a>
                                 ))}
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ):(
+                  <div style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                    <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <thead>
+                        <tr style={{background:T.bg3}}>
+                          {["Code","Course Name","Credits","Type","Pre-requisites","Notes"].map(h=>(
+                            <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:11,fontWeight:700,color:T.t3,letterSpacing:0.5,borderBottom:"1px solid "+T.bd}}>{h.toUpperCase()}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sc.map((course,i)=>(
+                          <tr key={course.id} style={{borderBottom:"1px solid "+T.bd,background:i%2===0?T.bg2:rgba(T.ac,0.02),cursor:"pointer"}} onClick={()=>setExpanded(expanded===course.id?null:course.id)}>
+                            <td style={{padding:"10px 12px"}}><span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:T.ac}}>{course.code}</span></td>
+                            <td style={{padding:"10px 12px",fontSize:12,color:T.t1,fontWeight:500}}>{course.name}</td>
+                            <td style={{padding:"10px 12px",fontSize:12,color:T.t3,textAlign:"center"}}>{course.credits}</td>
+                            <td style={{padding:"10px 12px"}}><span style={{background:course.type==="C"?rgba(T.green,0.15):rgba(T.amber,0.15),color:course.type==="C"?T.green:T.amber,borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600}}>{course.type==="C"?"Core":"Elective"}</span></td>
+                            <td style={{padding:"10px 12px",fontSize:11,color:T.t3}}>{course.prerequisites||"—"}</td>
+                            <td style={{padding:"10px 12px",fontSize:11,color:T.purple}}>{course.lecturer_notes?"📝 Yes":"—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -3599,6 +3667,60 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
       )}
     </div>
   );
+};
+
+const exportCSV=(filename,headers,rows)=>{
+  const csv=[headers.join(","),...rows.map(r=>r.map(c=>'"'+(String(c||"").replace(/"/g,'""'))+'"').join(","))].join("\n");
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download=filename+".csv";a.click();
+};
+
+const exportPDF=(title,subtitle,headers,rows)=>{
+  const tableRows=rows.map(r=>"<tr>"+r.map(c=>"<td style='padding:6px 10px;border:1px solid #e0e0e0;font-size:11px;color:#333'>"+String(c||"")+"</td>").join("")+"</tr>").join("");
+  const html=`<!DOCTYPE html><html><head><title>${title}</title><style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;background:#fff;color:#1a1a2e;padding:32px;}
+    .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #D4A017;padding-bottom:16px;margin-bottom:24px;}
+    .brand{display:flex;flex-direction:column;}
+    .logo{font-size:26px;font-weight:800;letter-spacing:3px;color:#1a1a2e;}
+    .tagline{font-size:11px;color:#D4A017;font-style:italic;}
+    .meta{text-align:right;font-size:11px;color:#888;}
+    .report-title{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
+    .report-sub{font-size:13px;color:#555;margin-bottom:20px;}
+    .confidential{background:#FFF8E7;border-left:4px solid #D4A017;padding:8px 14px;font-size:11px;color:#856404;margin-bottom:20px;border-radius:0 4px 4px 0;}
+    table{width:100%;border-collapse:collapse;margin-top:8px;}
+    th{background:#1a1a2e;color:#D4A017;padding:9px 10px;text-align:left;font-size:11px;font-weight:600;letter-spacing:0.5px;}
+    tr:nth-child(even){background:#f9f9f9;}
+    tr:hover{background:#f0f4ff;}
+    .footer{margin-top:24px;padding-top:12px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:10px;color:#aaa;}
+    .print-btn{position:fixed;bottom:24px;right:24px;background:#D4A017;color:#000;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+    @media print{.print-btn{display:none;} body{padding:16px;}}
+  </style></head><body>
+    <div class="header">
+      <div class="brand">
+        <div class="logo">AKADIMIA</div>
+        <div class="tagline">Ujuzi Bila Mipaka — Every Field. Every Student. One Platform.</div>
+      </div>
+      <div class="meta">
+        <div>Generated: ${new Date().toLocaleDateString("en-KE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        <div>${new Date().toLocaleTimeString("en-KE")}</div>
+        <div>akadimia.co.ke</div>
+      </div>
+    </div>
+    <div class="report-title">${title}</div>
+    <div class="report-sub">${subtitle}</div>
+    <div class="confidential">CONFIDENTIAL — This document contains personal data protected under the Kenya Data Protection Act 2019. Authorised personnel only.</div>
+    <table><thead><tr>${headers.map(h=>"<th>"+h+"</th>").join("")}</tr></thead><tbody>${tableRows}</tbody></table>
+    <div class="footer">
+      <span>AKADIMIA Academic Platform — akadimia.co.ke</span>
+      <span>Total records: ${rows.length}</span>
+      <span>Kenya Data Protection Act 2019 compliant</span>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </body></html>`;
+  const w=window.open("","_blank");
+  w.document.write(html);w.document.close();
 };
 
 const AdminView=()=>{
