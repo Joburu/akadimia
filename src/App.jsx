@@ -1392,7 +1392,7 @@ const ExamsView=({userField,role,userName,addNotif})=>{
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
   const [newE,setNewE]=useState({title:"",course_code:"",duration_minutes:60,total_marks:100,instructions:"",target_year:"all",questions:[]});
-  const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5});
+  const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5,correct_answer:0,marking_scheme:""});
   const isLec=role==="lecturer"||role==="admin";
   const timerRef=useRef(null);
 
@@ -1570,6 +1570,18 @@ const ExamsView=({userField,role,userName,addNotif})=>{
                 ))}
               </div>
             )}
+            {newQ.type==="mcq"&&newQ.options.filter(o=>o).length>0&&(
+              <div style={{marginBottom:"0.75rem"}}>
+                <label style={s.lbl}>CORRECT ANSWER</label>
+                <select style={s.input} value={newQ.correct_answer} onChange={e=>setNewQ({...newQ,correct_answer:parseInt(e.target.value)})}>
+                  {newQ.options.map((opt,i)=>opt&&<option key={i} value={i}>Option {String.fromCharCode(65+i)}: {opt.slice(0,40)}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{marginBottom:"0.75rem"}}>
+              <label style={s.lbl}>MARKING SCHEME / MODEL ANSWER</label>
+              <textarea style={{...s.input,height:60,resize:"vertical",fontSize:12}} value={newQ.marking_scheme} onChange={e=>setNewQ({...newQ,marking_scheme:e.target.value})} placeholder={newQ.type==="mcq"?"Explain why option "+String.fromCharCode(65+newQ.correct_answer)+" is correct...":"Expected answer and key points to award marks..."}/>
+            </div>
             <button onClick={addQuestion} style={{...s.btnP,fontSize:12}} disabled={!newQ.text.trim()}>+ Add Question to Exam</button>
             {newE.questions.length>0&&(
               <div style={{marginTop:"0.75rem",display:"grid",gap:4}}>
@@ -1658,6 +1670,30 @@ const ExamsView=({userField,role,userName,addNotif})=>{
                                 if(addNotif)addNotif("✅","Exam Graded","Submission graded successfully.");
                                 setGrading(null);setGradeFeedback("");setGradeMarks("");load();
                               }} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Save</button>
+                            <button onClick={async()=>{
+                                setGradeFeedback("Grading...");
+                                try{
+                                  const qs=ex.questions||[];
+                                  const answerSummary=qs.map((q,qi)=>{
+                                    const ans=sub2.answers[q.id||qi];
+                                    const studentAns=q.type==="mcq"?"Option "+String.fromCharCode(65+(ans||0))+" ("+((q.options||[])[ans]||"No answer")+")":ans||"No answer";
+                                    const correct=q.type==="mcq"?"Correct: Option "+String.fromCharCode(65+(q.correct_answer||0))+" ("+((q.options||[])[q.correct_answer||0]||"")+")":(q.marking_scheme||"No scheme provided");
+                                    return (qi+1)+". Q: "+q.text+"\nStudent: "+studentAns+"\nExpected: "+correct+"\nMax marks: "+q.marks;
+                                  }).join("\n\n");
+                                  const res=await fetch("https://api.anthropic.com/v1/messages",{
+                                    method:"POST",
+                                    headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+                                    body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,
+                                      messages:[{role:"user",content:"You are an academic examiner. Grade this student exam submission fairly and professionally.\n\nExam: "+ex.title+"\nTotal Marks: "+ex.total_marks+"\n\nAnswers:\n"+answerSummary+"\n\nReturn ONLY a JSON object: {\"total_marks\": NUMBER, \"feedback\": \"detailed constructive feedback string\", \"per_question\": [{\"q\": NUMBER, \"awarded\": NUMBER, \"comment\": \"STRING\"}]}"}]})
+                                  });
+                                  const d=await res.json();
+                                  const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
+                                  const clean=raw.replace(/```json|```/g,"").trim();
+                                  const result=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
+                                  setGradeMarks(String(Math.min(result.total_marks||0,ex.total_marks)));
+                                  setGradeFeedback(result.feedback||"");
+                                }catch(e){setGradeFeedback("AI grading failed. Please grade manually.");}
+                              }} style={{...s.btnS,fontSize:11,padding:"8px 14px"}}>🤖 AI Grade</button>
                             </div>
                           )}
                         </div>
