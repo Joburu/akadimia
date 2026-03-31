@@ -1153,7 +1153,7 @@ const CoursesView=({userField,role,userName})=>{
     </div>
   );
 };
-const AssignmentsView=({userField,role,userName})=>{
+const AssignmentsView=({userField,role,userName,addNotif})=>{
   const T=useT();const s=sx(T);
   const [assignments,setAssignments]=useState([]);
   const [submissions,setSubmissions]=useState([]);
@@ -1231,6 +1231,7 @@ const AssignmentsView=({userField,role,userName})=>{
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
     await supabase.from("submissions").insert({assignment_id:assignmentId,student_id:user.id,student_name:userName,file_url:fileUrl,comment:subComment,status:"submitted"});
+    if(addNotif) addNotif("📋","Assignment Submitted","Your submission has been recorded successfully.");
     setSubComment("");setSubFile(null);setSelected(null);load();setSubmitting(false);
   };
 
@@ -1238,6 +1239,7 @@ const AssignmentsView=({userField,role,userName})=>{
     if(!gradeMarks)return;
     const {supabase}=await import("./supabase.js");
     await supabase.from("submissions").update({marks:parseInt(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",subId);
+    if(addNotif) addNotif("✅","Assignment Graded","A submission has been graded successfully.");
     setGrading(null);setGradeFeedback("");setGradeMarks("");load();
   };
 
@@ -1379,7 +1381,7 @@ const AssignmentsView=({userField,role,userName})=>{
   );
 };
 
-const ExamsView=({userField,role,userName})=>{
+const ExamsView=({userField,role,userName,addNotif})=>{
   const T=useT();const s=sx(T);const fld=FIELDS[userField];
   const [exams,setExams]=useState([]);
   const [submissions,setSubmissions]=useState([]);
@@ -1441,6 +1443,7 @@ const ExamsView=({userField,role,userName})=>{
       exam_id:activeExam.id,student_id:user.id,student_name:userName,
       answers,status:"submitted",submitted_at:new Date().toISOString()
     });
+    if(addNotif) addNotif("✏️","Exam Submitted","Your exam has been submitted successfully.");
     setSubmitted(true);setActiveExam(null);load();
   };
 
@@ -1614,9 +1617,54 @@ const ExamsView=({userField,role,userName})=>{
                   </div>
                   <div style={{flexShrink:0}}>
                     {!isLec&&!sub&&<button onClick={()=>startExam(ex)} style={s.btnP}>Start Exam →</button>}
-                    {isLec&&subs.length>0&&<button onClick={()=>setActiveExam(activeExam?.id===ex.id?null:ex)} style={s.btnS}>View ({subs.length})</button>}
+                    {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===ex.id?null:ex.id)} style={s.btnS}>Grade ({subs.length})</button>}
                   </div>
                 </div>
+
+                {selected===ex.id&&isLec&&(
+                  <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submissions — {ex.title}</div>
+                    <div style={{display:"grid",gap:8}}>
+                      {subs.map(sub2=>(
+                        <div key={sub2.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub2.student_name}</div>
+                              <div style={{fontSize:11,color:T.t3}}>{sub2.submitted_at?new Date(sub2.submitted_at).toLocaleDateString():""} · {sub2.status}</div>
+                              {sub2.marks&&<div style={{fontSize:12,color:T.purple,marginTop:4}}>Score: {sub2.marks}/{ex.total_marks}</div>}
+                              {sub2.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>Feedback: {sub2.feedback}</div>}
+                              {sub2.answers&&Object.keys(sub2.answers).length>0&&(
+                                <div style={{marginTop:8}}>
+                                  <div style={{fontSize:11,color:T.t3,marginBottom:4}}>Answers:</div>
+                                  {(ex.questions||[]).map((q,qi)=>(
+                                    <div key={qi} style={{fontSize:11,color:T.t2,marginBottom:4,padding:"4px 8px",background:T.bg4,borderRadius:4}}>
+                                      <span style={{fontWeight:600,marginRight:4}}>Q{qi+1}:</span>
+                                      {q.type==="mcq"?"Option "+String.fromCharCode(65+(sub2.answers[q.id||qi]||0)):sub2.answers[q.id||qi]||"No answer"}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <button onClick={()=>setGrading(grading===sub2.id?null:sub2.id)} style={{...s.btnP,fontSize:11,padding:"5px 10px",flexShrink:0}}>{sub2.status==="graded"?"Re-grade":"Grade"}</button>
+                          </div>
+                          {grading===sub2.id&&(
+                            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"120px 1fr auto",gap:8,alignItems:"end"}}>
+                              <div><label style={s.lbl}>MARKS/{ex.total_marks}</label><input style={s.input} type="number" min="0" max={ex.total_marks} value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)}/></div>
+                              <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} value={gradeFeedback} placeholder="Comments for student..." onChange={e=>setGradeFeedback(e.target.value)}/></div>
+                              <button onClick={async()=>{
+                                if(!gradeMarks)return;
+                                const {supabase}=await import("./supabase.js");
+                                await supabase.from("exam_submissions").update({marks:parseInt(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",sub2.id);
+                                if(addNotif)addNotif("✅","Exam Graded","Submission graded successfully.");
+                                setGrading(null);setGradeFeedback("");setGradeMarks("");load();
+                              }} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Save</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -2983,8 +3031,8 @@ export default function App(){
   const VIEWS={
     dashboard:<DashboardView setTab={persistTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
-    exams:<ExamsView userField={userField} role={role} userName={userName}/>,
-    assignments:<AssignmentsView userField={userField} role={role} userName={userName}/>,
+    exams:<ExamsView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
+    assignments:<AssignmentsView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
     calendar:<CalendarView setTab={persistTab}/>,
