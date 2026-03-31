@@ -1391,6 +1391,10 @@ const ExamsView=({userField,role,userName,addNotif})=>{
   const [timeLeft,setTimeLeft]=useState(0);
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const [grading,setGrading]=useState(null);
+  const [gradeMarks,setGradeMarks]=useState("");
+  const [gradeFeedback,setGradeFeedback]=useState("");
   const [newE,setNewE]=useState({title:"",course_code:"",duration_minutes:60,total_marks:100,instructions:"",target_year:"all",questions:[]});
   const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5,correct_answer:0,marking_scheme:""});
   const isLec=role==="lecturer"||role==="admin";
