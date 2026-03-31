@@ -1156,12 +1156,23 @@ const AssignmentsView=({userField,role,userName})=>{
   const fileRef=useRef(null);
   const isLec=role==="lecturer"||role==="admin";
 
+  const [myYearLevel,setMyYearLevel]=useState("");
   const load=async()=>{
     setLoading(true);
     const {supabase}=await import("./supabase.js");
-    const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false});
+    const {data:{user}}=await supabase.auth.getUser();
+    const {data:profile}=await supabase.from("profiles").select("year_level,role").eq("id",user.id).single();
+    const yearLevel=profile?.year_level||"";
+    setMyYearLevel(yearLevel);
+    const query=supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false});
+    const {data:asgn}=await query;
+    const filtered=(asgn||[]).filter(a=>{
+      if(isLec) return true;
+      if(!a.target_year||a.target_year==="all") return true;
+      return a.target_year===yearLevel;
+    });
     const {data:subs}=await supabase.from("submissions").select("*").order("submitted_at",{ascending:false});
-    setAssignments(asgn||[]);setSubmissions(subs||[]);setLoading(false);
+    setAssignments(filtered);setSubmissions(subs||[]);setLoading(false);
   };
   useEffect(()=>{load();},[userField]);
 
@@ -1241,7 +1252,7 @@ const AssignmentsView=({userField,role,userName})=>{
               {["Year 1","Year 2","Year 3","Year 4","Masters Sem 1","Masters Sem 2","PhD Year 1","PhD Year 2","PhD Year 3+"].map(v=><option key={v} value={v}>{v}</option>)}
             </select>
           </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions... Use $...$ for inline LaTeX e.g. $\\frac{d}{dx}f(x)$ and $$...$$ for display math" value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
           <div style={{marginBottom:"1rem"}}>
             <label style={s.lbl}>ATTACH FILE (PDF, Word, LaTeX)</label>
             <div style={{border:"2px dashed "+(assignmentFile?T.green:T.bd),borderRadius:8,padding:"0.75rem",textAlign:"center",fontSize:12,color:assignmentFile?T.green:T.t3}}>
@@ -1302,7 +1313,7 @@ const AssignmentsView=({userField,role,userName})=>{
                       <div style={{border:"2px dashed "+(subFile?T.green:T.bd),borderRadius:8,padding:"0.75rem",textAlign:"center",fontSize:12,color:subFile?T.green:T.t3}}>
                         {subFile?"✓ "+subFile.name:"Click to attach"}
                         <label style={{display:"block",marginTop:6,...s.btnS,cursor:"pointer",fontSize:11}}>
-                          Choose File<input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg" onChange={e=>setSubFile(e.target.files[0]||null)}/>
+                          Choose File<input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.tex,.txt" onChange={e=>setSubFile(e.target.files[0]||null)}/>
                         </label>
                       </div>
                     </div>
@@ -1500,7 +1511,7 @@ const ExamsView=({userField,role,userName})=>{
           <div style={{marginBottom:"1rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,height:60,resize:"vertical"}} value={newE.instructions} onChange={e=>setNewE({...newE,instructions:e.target.value})} placeholder="Exam instructions..."/></div>
           <div style={{...s.card,background:T.bg3,marginBottom:"1rem"}}>
             <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Add Questions ({newE.questions.length} added)</div>
-            <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>QUESTION TEXT</label><input style={s.input} value={newQ.text} onChange={e=>setNewQ({...newQ,text:e.target.value})} placeholder="Enter question..."/></div>
+            <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>QUESTION TEXT</label><input style={s.input} value={newQ.text} onChange={e=>setNewQ({...newQ,text:e.target.value})} placeholder="Enter question... Use $...$ for LaTeX e.g. $P(X=k) = \\binom{n}{k}p^k$"/></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"0.75rem"}}>
               <div><label style={s.lbl}>TYPE</label>
                 <select style={s.input} value={newQ.type} onChange={e=>setNewQ({...newQ,type:e.target.value})}>
