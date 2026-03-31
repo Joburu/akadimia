@@ -560,7 +560,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
   );
 };
 
-const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"}];
+const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"},{id:"innovation",icon:"💡"}];
 
 const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
   const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
@@ -2421,6 +2421,380 @@ const AnalyticsView=({userField,userName,role})=>{
           </div>
           <div style={{padding:"12px",background:T.bg3,borderRadius:8,fontSize:12,color:T.t2,marginBottom:"1rem"}}>The certificate will open in a new tab. Click Print / Save PDF to save it. The certificate includes a unique verification ID linked to akadimia.co.ke.</div>
           <button onClick={generateCertificate} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={!certData.course}>Generate Certificate</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const InnovationHub=({userName,role,userField})=>{
+  const T=useT();const s=sx(T);
+  const [tab,setTab]=useState("feed");
+  const [innovations,setInnovations]=useState([]);
+  const [challenges,setChallenges]=useState([]);
+  const [aiIdeas,setAiIdeas]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [aiLoading,setAiLoading]=useState(false);
+  const [showCreate,setShowCreate]=useState(false);
+  const [showChallenge,setShowChallenge]=useState(false);
+  const [comments,setComments]=useState({});
+  const [showComments,setShowComments]=useState(null);
+  const [newComment,setNewComment]=useState("");
+  const [userLikes,setUserLikes]=useState(new Set());
+  const [newI,setNewI]=useState({title:"",description:"",category:"idea",tags:""});
+  const [newC,setNewC]=useState({title:"",description:"",sponsor:"",prize:"",deadline:"",category:"tech",link:""});
+  const [subFile,setSubFile]=useState(null);
+  const isAdmin=role==="admin"||role==="lecturer";
+  const cats=["idea","project","research","startup","social","tech","agriculture","health","education","finance"];
+  const catColors={idea:T.ac,project:T.blue,research:T.purple,startup:T.amber,social:T.green,tech:T.teal,agriculture:"#84CC16",health:T.red,education:T.blue,finance:T.green};
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const [{data:inv},{data:chal},{data:lk}]=await Promise.all([
+      supabase.from("innovations").select("*").order("created_at",{ascending:false}),
+      supabase.from("challenges").select("*").order("deadline",{ascending:true}),
+      supabase.from("innovation_likes").select("innovation_id,user_id")
+    ]);
+    const {data:{user}}=await supabase.auth.getUser();
+    setInnovations(inv||[]);
+    setChallenges(chal||[]);
+    setUserLikes(new Set((lk||[]).filter(l=>l.user_id===user?.id).map(l=>l.innovation_id)));
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const generateAiIdeas=async()=>{
+    setAiLoading(true);setAiIdeas([]);
+    try{
+      const fld=FIELDS[userField];
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1500,
+          messages:[{role:"user",content:"Generate 6 exciting, actionable innovation ideas for Kenyan university students, especially those studying "+(fld?.name||userField)+". Ideas should address real African problems and have startup or social impact potential. Mix fields — include tech, agriculture, health, finance, education and social innovation. For each include a catchy title, 2-sentence description, category, potential impact and difficulty (Easy/Medium/Hard). Return ONLY a JSON array: [{title,description,category,impact,difficulty}]"}]})
+      });
+      const d=await res.json();
+      const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
+      const clean=raw.replace(/```json|```/g,"").trim();
+      const parsed=JSON.parse(clean.slice(clean.indexOf("["),clean.lastIndexOf("]")+1));
+      setAiIdeas(Array.isArray(parsed)?parsed:[]);
+    }catch(e){console.error(e);}
+    setAiLoading(false);
+  };
+
+  const submitInnovation=async()=>{
+    if(!newI.title||!newI.description)return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl="";
+    if(subFile){
+      const path="innovations/"+user.id+"/"+Date.now()+"_"+subFile.name;
+      const {data:upData}=await supabase.storage.from("course-materials").upload(path,subFile);
+      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+    }
+    await supabase.from("innovations").insert({...newI,tags:newI.tags.split(",").map(t=>t.trim()).filter(Boolean),author_name:userName,author_id:user.id,file_url:fileUrl||null});
+    setShowCreate(false);setNewI({title:"",description:"",category:"idea",tags:""});setSubFile(null);load();
+  };
+
+  const submitChallenge=async()=>{
+    if(!newC.title||!newC.sponsor)return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("challenges").insert({...newC,created_by:user.id});
+    setShowChallenge(false);setNewC({title:"",description:"",sponsor:"",prize:"",deadline:"",category:"tech",link:""});load();
+  };
+
+  const toggleLike=async(innovId)=>{
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    if(userLikes.has(innovId)){
+      await supabase.from("innovation_likes").delete().eq("innovation_id",innovId).eq("user_id",user.id);
+      await supabase.from("innovations").update({likes:Math.max(0,(innovations.find(i=>i.id===innovId)?.likes||1)-1)}).eq("id",innovId);
+      setUserLikes(s=>{const n=new Set(s);n.delete(innovId);return n;});
+    }else{
+      await supabase.from("innovation_likes").insert({innovation_id:innovId,user_id:user.id});
+      await supabase.from("innovations").update({likes:(innovations.find(i=>i.id===innovId)?.likes||0)+1}).eq("id",innovId);
+      setUserLikes(s=>new Set([...s,innovId]));
+    }
+    load();
+  };
+
+  const loadComments=async(innovId)=>{
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("innovation_comments").select("*").eq("innovation_id",innovId).order("created_at",{ascending:true});
+    setComments(c=>({...c,[innovId]:data||[]}));
+    setShowComments(showComments===innovId?null:innovId);
+  };
+
+  const submitComment=async(innovId)=>{
+    if(!newComment.trim())return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("innovation_comments").insert({innovation_id:innovId,author_name:userName,author_id:user.id,content:newComment.trim()});
+    setNewComment("");loadComments(innovId);
+  };
+
+  const daysLeft=(d)=>{if(!d)return null;const diff=Math.ceil((new Date(d)-new Date())/(1000*60*60*24));return diff>0?diff:0;};
+
+  return(
+    <div>
+      <div style={{marginBottom:"1.5rem"}}>
+        <h1 style={{...s.h1,marginBottom:4}}>Innovation Hub</h1>
+        <p style={{...s.sub,marginBottom:"1rem"}}>Ideas · Challenges · Community — open to every field and every mind</p>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[["feed","💡 Ideas Feed"],["challenges","🏆 Challenges"],["ai","🤖 AI Ideas"],["community","👥 Community"]].map(([id,label])=>(
+            <button key={id} onClick={()=>setTab(id)} style={{...(tab===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {tab==="feed"&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+            <div style={{fontSize:12,color:T.t3}}>{innovations.length} ideas shared by the community</div>
+            <button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ Share an Idea</button>
+          </div>
+
+          {showCreate&&(
+            <div style={{...s.card,marginBottom:"1.25rem",border:"1px solid "+rgba(T.ac,0.3)}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Share Your Innovation</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+                <div><label style={s.lbl}>TITLE</label><input style={s.input} value={newI.title} onChange={e=>setNewI({...newI,title:e.target.value})} placeholder="Give your idea a catchy name"/></div>
+                <div><label style={s.lbl}>CATEGORY</label>
+                  <select style={s.input} value={newI.category} onChange={e=>setNewI({...newI,category:e.target.value})}>
+                    {cats.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:100,resize:"vertical"}} value={newI.description} onChange={e=>setNewI({...newI,description:e.target.value})} placeholder="Describe your idea, the problem it solves and how it could work..."/></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+                <div><label style={s.lbl}>TAGS (comma separated)</label><input style={s.input} value={newI.tags} onChange={e=>setNewI({...newI,tags:e.target.value})} placeholder="e.g. fintech, mobile, rural"/></div>
+                <div><label style={s.lbl}>ATTACH PDF / DOCUMENT</label>
+                  <label style={{...s.btnS,cursor:"pointer",fontSize:11,display:"block",textAlign:"center"}}>
+                    {subFile?subFile.name:"Choose File"}
+                    <input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={e=>setSubFile(e.target.files[0]||null)}/>
+                  </label>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={submitInnovation} style={s.btnP}>Post Idea</button>
+                <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading ideas...</div>:
+          innovations.length===0?(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>💡</div>
+              <div style={{fontSize:14,color:T.t2,marginBottom:8}}>No ideas yet. Be the first to share!</div>
+              <button onClick={()=>setShowCreate(true)} style={s.btnP}>Share an Idea</button>
+            </div>
+          ):(
+            <div style={{display:"grid",gap:12}}>
+              {innovations.map(inv=>{
+                const color=catColors[inv.category]||T.ac;
+                const liked=userLikes.has(inv.id);
+                const commList=comments[inv.id]||[];
+                return(
+                  <div key={inv.id} style={{...s.card,borderLeft:"3px solid "+color}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
+                          <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{inv.title}</span>
+                          <span style={{background:rgba(color,0.15),color,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{inv.category}</span>
+                          {inv.status==="featured"&&<span style={{background:rgba(T.amber,0.2),color:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600}}>⭐ Featured</span>}
+                        </div>
+                        <div style={{fontSize:12,color:T.t2,lineHeight:1.7,marginBottom:8}}>{inv.description}</div>
+                        {inv.tags&&inv.tags.length>0&&(
+                          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
+                            {inv.tags.map((tag,i)=><span key={i} style={{background:T.bg3,color:T.t3,borderRadius:20,padding:"2px 8px",fontSize:10}}>#{tag}</span>)}
+                          </div>
+                        )}
+                        <div style={{fontSize:11,color:T.t3}}>
+                          By <span style={{color:T.ac,fontWeight:500}}>{inv.author_name}</span> · {new Date(inv.created_at).toLocaleDateString("en-KE")}
+                        </div>
+                      </div>
+                      {inv.file_url&&<a href={inv.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"5px 10px",textDecoration:"none",flexShrink:0}}>📎 View</a>}
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <button onClick={()=>toggleLike(inv.id)} style={{background:liked?rgba(T.red,0.15):"none",border:"1px solid "+(liked?T.red:T.bd),borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12,color:liked?T.red:T.t3,display:"flex",alignItems:"center",gap:4}}>
+                        {liked?"❤️":"🤍"} {inv.likes||0}
+                      </button>
+                      <button onClick={()=>loadComments(inv.id)} style={{background:"none",border:"1px solid "+T.bd,borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12,color:T.t3}}>
+                        💬 {showComments===inv.id?"Hide":"Discuss"} {commList.length>0?"("+commList.length+")":""}
+                      </button>
+                      {isAdmin&&<button onClick={async()=>{const {supabase}=await import("./supabase.js");await supabase.from("innovations").update({status:inv.status==="featured"?"open":"featured"}).eq("id",inv.id);load();}} style={{background:"none",border:"1px solid "+T.bd,borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:11,color:T.amber}}>{inv.status==="featured"?"Unfeature":"⭐ Feature"}</button>}
+                      {(inv.author_id===inv.author_id||isAdmin)&&<button onClick={async()=>{if(!confirm("Delete this idea?"))return;const {supabase}=await import("./supabase.js");await supabase.from("innovations").delete().eq("id",inv.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11,marginLeft:"auto"}}>🗑</button>}
+                    </div>
+                    {showComments===inv.id&&(
+                      <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                        {commList.map((c,i)=>(
+                          <div key={i} style={{display:"flex",gap:10,marginBottom:10}}>
+                            <div style={{width:28,height:28,borderRadius:"50%",background:rgba(T.ac,0.2),display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:T.ac,flexShrink:0}}>{c.author_name?.[0]||"?"}</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:11,fontWeight:600,color:T.ac}}>{c.author_name} <span style={{color:T.t3,fontWeight:400}}>· {new Date(c.created_at).toLocaleDateString()}</span></div>
+                              <div style={{fontSize:12,color:T.t1,lineHeight:1.6}}>{c.content}</div>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={{display:"flex",gap:8,marginTop:8}}>
+                          <input style={{...s.input,flex:1,fontSize:12}} placeholder="Add to the discussion..." value={newComment} onChange={e=>setNewComment(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submitComment(inv.id)}/>
+                          <button onClick={()=>submitComment(inv.id)} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Post</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="challenges"&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+            <div style={{fontSize:12,color:T.t3}}>{challenges.length} active challenges and hackathons</div>
+            {isAdmin&&<button onClick={()=>setShowChallenge(!showChallenge)} style={s.btnP}>+ Add Challenge</button>}
+          </div>
+
+          {isAdmin&&showChallenge&&(
+            <div style={{...s.card,marginBottom:"1.25rem",border:"1px solid "+rgba(T.amber,0.3)}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.amber,marginBottom:"1rem"}}>Add Challenge / Hackathon</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+                <div><label style={s.lbl}>TITLE</label><input style={s.input} value={newC.title} onChange={e=>setNewC({...newC,title:e.target.value})} placeholder="e.g. Safaricom Hackathon 2025"/></div>
+                <div><label style={s.lbl}>SPONSOR / ORGANISER</label><input style={s.input} value={newC.sponsor} onChange={e=>setNewC({...newC,sponsor:e.target.value})} placeholder="e.g. Safaricom PLC"/></div>
+                <div><label style={s.lbl}>PRIZE</label><input style={s.input} value={newC.prize} onChange={e=>setNewC({...newC,prize:e.target.value})} placeholder="e.g. KES 500,000"/></div>
+                <div><label style={s.lbl}>DEADLINE</label><input style={s.input} type="datetime-local" value={newC.deadline} onChange={e=>setNewC({...newC,deadline:e.target.value})}/></div>
+                <div><label style={s.lbl}>CATEGORY</label>
+                  <select style={s.input} value={newC.category} onChange={e=>setNewC({...newC,category:e.target.value})}>
+                    {["tech","agriculture","health","education","finance","social","energy","environment"].map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div><label style={s.lbl}>APPLY LINK</label><input style={s.input} value={newC.link} onChange={e=>setNewC({...newC,link:e.target.value})} placeholder="https://..."/></div>
+              </div>
+              <div style={{marginBottom:"1rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:80,resize:"vertical"}} value={newC.description} onChange={e=>setNewC({...newC,description:e.target.value})} placeholder="What is the challenge about?"/></div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={submitChallenge} style={{...s.btnP,background:T.amber,color:"#000"}}>Post Challenge</button>
+                <button onClick={()=>setShowChallenge(false)} style={s.btnS}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {challenges.length===0?(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>🏆</div>
+              <div style={{fontSize:14,color:T.t2}}>No active challenges yet.</div>
+              {isAdmin&&<div style={{fontSize:12,color:T.t3,marginTop:4}}>Add a hackathon or corporate challenge above.</div>}
+            </div>
+          ):(
+            <div style={{display:"grid",gap:12}}>
+              {challenges.map(ch=>{
+                const days=daysLeft(ch.deadline);
+                const urgent=days!==null&&days<=7;
+                return(
+                  <div key={ch.id} style={{...s.card,borderLeft:"3px solid "+(urgent?T.red:T.amber)}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
+                          <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{ch.title}</span>
+                          <span style={{background:rgba(T.amber,0.15),color:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{ch.category}</span>
+                          {urgent&&days>0&&<span style={{background:rgba(T.red,0.15),color:T.red,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600}}>🔥 {days}d left</span>}
+                          {days===0&&<span style={{background:rgba(T.red,0.2),color:T.red,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600}}>Closed</span>}
+                        </div>
+                        <div style={{fontSize:12,color:T.amber,fontWeight:500,marginBottom:4}}>{ch.sponsor}</div>
+                        {ch.description&&<div style={{fontSize:12,color:T.t2,lineHeight:1.7,marginBottom:6}}>{ch.description}</div>}
+                        <div style={{fontSize:11,color:T.t3,display:"flex",gap:16,flexWrap:"wrap"}}>
+                          {ch.prize&&<span>🏅 Prize: {ch.prize}</span>}
+                          {ch.deadline&&<span>📅 Deadline: {new Date(ch.deadline).toLocaleDateString("en-KE")}</span>}
+                          {days!==null&&days>0&&!urgent&&<span>⏳ {days} days left</span>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                        {ch.link&&<a href={ch.link} target="_blank" rel="noreferrer" style={{...s.btnP,textDecoration:"none",fontSize:12,background:T.amber,color:"#000"}}>Apply →</a>}
+                        {isAdmin&&<button onClick={async()=>{if(!confirm("Delete?"))return;const {supabase}=await import("./supabase.js");await supabase.from("challenges").delete().eq("id",ch.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11}}>🗑</button>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="ai"&&(
+        <div>
+          <div style={{...s.card,marginBottom:"1.5rem",textAlign:"center",padding:"2rem"}}>
+            <div style={{fontSize:40,marginBottom:12}}>🤖</div>
+            <div style={{fontSize:16,fontWeight:600,color:T.t1,marginBottom:8}}>AI Innovation Spark</div>
+            <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem",lineHeight:1.7}}>Claude AI generates 6 fresh innovation ideas tailored to the Kenyan context. Get inspired, then post your own version to the feed.</div>
+            <button onClick={generateAiIdeas} style={{...s.btnP,fontSize:13,padding:"10px 28px"}} disabled={aiLoading}>{aiLoading?"Generating ideas...":"Spark My Ideas 🔥"}</button>
+          </div>
+          {aiIdeas.length>0&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+              {aiIdeas.map((idea,i)=>{
+                const color=catColors[idea.category?.toLowerCase()]||T.ac;
+                return(
+                  <div key={i} style={{...s.card,borderTop:"3px solid "+color}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <span style={{fontSize:14,fontWeight:600,color:T.t1,flex:1}}>{idea.title}</span>
+                      <span style={{background:rgba(color,0.15),color,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:600,flexShrink:0,marginLeft:8,textTransform:"capitalize"}}>{idea.category}</span>
+                    </div>
+                    <div style={{fontSize:12,color:T.t2,lineHeight:1.7,marginBottom:8}}>{idea.description}</div>
+                    {idea.impact&&<div style={{fontSize:11,color:T.green,marginBottom:4}}>Impact: {idea.impact}</div>}
+                    {idea.difficulty&&<div style={{fontSize:11,color:idea.difficulty==="Easy"?T.green:idea.difficulty==="Medium"?T.amber:T.red}}>Difficulty: {idea.difficulty}</div>}
+                    <button onClick={()=>{setNewI({title:idea.title,description:idea.description,category:idea.category?.toLowerCase()||"idea",tags:idea.category||""});setShowCreate(true);setTab("feed");}} style={{...s.btnS,fontSize:11,marginTop:12,width:"100%"}}>Post This Idea →</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="community"&&(
+        <div>
+          <div style={{...s.card,marginBottom:"1.25rem",background:"linear-gradient(135deg,"+rgba(T.ac,0.1)+","+rgba(T.purple,0.1)+")",border:"1px solid "+rgba(T.ac,0.2)}}>
+            <div style={{fontSize:15,fontWeight:600,color:T.t1,marginBottom:8}}>Welcome to the Innovation Community</div>
+            <div style={{fontSize:12,color:T.t2,lineHeight:1.8}}>This is a cross-disciplinary space where actuaries meet engineers, lawyers meet technologists, and farmers meet data scientists. Every field has a problem. Every student has a solution.</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+            {[
+              {icon:"💡",label:"Total Ideas",value:innovations.length,color:T.ac},
+              {icon:"🏆",label:"Live Challenges",value:challenges.filter(c=>daysLeft(c.deadline)>0).length,color:T.amber},
+              {icon:"❤️",label:"Total Likes",value:innovations.reduce((a,i)=>a+(i.likes||0),0),color:T.red},
+              {icon:"👥",label:"Contributors",value:new Set(innovations.map(i=>i.author_name)).size,color:T.green},
+            ].map(({icon,label,value,color})=>(
+              <div key={label} style={{...s.card,textAlign:"center"}}>
+                <div style={{fontSize:28,marginBottom:4}}>{icon}</div>
+                <div style={{fontSize:24,fontWeight:700,color}}>{value}</div>
+                <div style={{fontSize:11,color:T.t3}}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{...s.card,marginBottom:"1rem"}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:12}}>Most Loved Ideas</div>
+            {[...innovations].sort((a,b)=>(b.likes||0)-(a.likes||0)).slice(0,5).map((inv,i)=>(
+              <div key={inv.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<4?"1px solid "+T.bd:"none"}}>
+                <span style={{fontSize:18,fontWeight:700,color:T.t3,width:24,textAlign:"center"}}>{i+1}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:T.t1,fontWeight:500}}>{inv.title}</div>
+                  <div style={{fontSize:11,color:T.t3}}>by {inv.author_name} · {inv.category}</div>
+                </div>
+                <span style={{fontSize:12,color:T.red}}>❤️ {inv.likes||0}</span>
+              </div>
+            ))}
+            {innovations.length===0&&<div style={{fontSize:12,color:T.t3,textAlign:"center",padding:"1rem"}}>No ideas yet. Be the first!</div>}
+          </div>
+          <div style={{...s.card,background:rgba(T.ac,0.05),border:"1px solid "+rgba(T.ac,0.2)}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:8}}>Community Guidelines</div>
+            <div style={{fontSize:12,color:T.t2,lineHeight:1.8}}>
+              Be respectful and constructive. Credit sources and inspirations. Build on each others ideas rather than dismissing them. One bold idea shared today could become the solution that changes a million lives tomorrow. This is your space — own it.
+            </div>
+          </div>
         </div>
       )}
     </div>
