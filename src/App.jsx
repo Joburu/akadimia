@@ -1267,12 +1267,19 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
   const asgSubmissions=(aId)=>submissions.filter(s=>s.assignment_id===aId);
   const isOverdue=(d)=>d&&new Date(d)<new Date();
   if(loading)return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading assignments...</div>;
+  const exportAssignments=()=>exportCSV("AKADIMIA_Assignments_"+new Date().toISOString().slice(0,10),["Title","Course Code","Due Date","Max Marks","Target Year","Submissions"],assignments.map(a=>[a.title,a.course_code,a.due_date||"",a.max_marks,a.target_year||"All",submissions.filter(s=>s.assignment_id===a.id).length]));
+  const exportSubmissions=()=>exportCSV("AKADIMIA_Submissions_"+new Date().toISOString().slice(0,10),["Student","Assignment","Submitted","Status","Marks","Feedback"],submissions.map(s=>{const a=assignments.find(x=>x.id===s.assignment_id);return[s.student_name,a?.title||"",s.submitted_at?new Date(s.submitted_at).toLocaleDateString():"",s.status,s.marks||"Not graded",s.feedback||""];}));
 
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
         <div><h1 style={s.h1}>Assignments</h1><p style={s.sub}>{assignments.length} assignment{assignments.length!==1?"s":""}</p></div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ New Assignment</button>}
+        {isLec&&assignments.length>0&&<button onClick={exportAssignments} style={{...s.btnS,fontSize:11}}>📥 CSV</button>}
+        {isLec&&assignments.length>0&&<button onClick={exportSubmissions} style={{...s.btnS,fontSize:11}}>📥 Submissions</button>}
+        {isLec&&assignments.length>0&&<button onClick={()=>exportPDF("Assignments Report",userField,["Title","Course","Due","Marks","Submissions"],assignments.map(a=>[a.title,a.course_code,a.due_date||"N/A",a.max_marks,submissions.filter(s=>s.assignment_id===a.id).length]),"Assignments")} style={{...s.btnS,fontSize:11}}>📄 PDF</button>}
+      </div>
       </div>
       {isLec&&showCreate&&(
         <div style={{...s.card,marginBottom:"1.25rem",border:"1px solid "+T.ac+"44"}}>
@@ -1627,6 +1634,13 @@ const ExamsView=({userField,role,userName,addNotif})=>{
         </div>
       )}
 
+      {isLec&&exams.length>0&&(
+        <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
+          <button onClick={()=>exportCSV("AKADIMIA_Exams_"+new Date().toISOString().slice(0,10),["Title","Course","Duration (min)","Total Marks","Questions","Submissions"],exams.map(e=>[e.title,e.course_code,e.duration_minutes,e.total_marks,(e.questions||[]).length,submissions.filter(s=>s.exam_id===e.id).length]))} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>📥 Export CSV</button>
+          <button onClick={()=>exportCSV("AKADIMIA_ExamResults_"+new Date().toISOString().slice(0,10),["Student","Exam","Submitted At","Status","Score","Feedback"],submissions.map(s=>{const e=exams.find(x=>x.id===s.exam_id);return[s.student_name,e?.title||"",s.submitted_at?new Date(s.submitted_at).toLocaleDateString():"",s.status,s.marks!=null?s.marks+"/"+e?.total_marks:"Not graded",s.feedback||""];}))} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>📥 Results CSV</button>
+          <button onClick={()=>exportPDF("Exam Results Report",userField+" — "+new Date().toLocaleDateString('en-KE'),["Student","Exam","Score","Status","Feedback"],submissions.map(s=>{const e=exams.find(x=>x.id===s.exam_id);return[s.student_name,e?.title||"",s.marks!=null?s.marks+"/"+e?.total_marks:"N/A",s.status,s.feedback||""];}),"AKADIMIA_ExamResults")} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>📄 Results PDF</button>
+        </div>
+      )}
       {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading exams...</div>:
       exams.length===0?<div style={{...s.card,textAlign:"center",padding:"3rem"}}><div style={{fontSize:40,marginBottom:12}}>✏️</div><div style={{fontSize:14,color:T.t2}}>No exams yet.</div></div>:(
         <div style={{display:"grid",gap:12}}>
@@ -2744,6 +2758,76 @@ const ClassroomView=({userField})=>{
   );
 };
 
+// ============ EXPORT UTILITIES ============
+const exportCSV = (filename, headers, rows) => {
+  const csvHeaders = headers.join(',');
+  const csvRows = rows.map(r => r.map(c => '"'+(String(c||'').replace(/"/g,'""'))+'"').join(','));
+  const csv = [csvHeaders, ...csvRows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const exportPDF = (title, subtitle, headers, rows, filename) => {
+  const w = 210, margin = 14;
+  const lines = [];
+  lines.push({type:'title', text:title});
+  lines.push({type:'subtitle', text:subtitle});
+  lines.push({type:'meta', text:'Generated by AKADIMIA — '+new Date().toLocaleDateString('en-KE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})});
+  lines.push({type:'meta', text:'CONFIDENTIAL — For authorised personnel only'});
+  lines.push({type:'headers', cells:headers});
+  rows.forEach(r => lines.push({type:'row', cells:r}));
+
+  const colW = Math.floor((w - margin*2) / headers.length);
+  let y = 0;
+  const pageH = 297;
+  let pageContent = '';
+
+  // Build SVG-based PDF using browser print
+  const tableRows = rows.map(r =>
+    '<tr>'+r.map(c=>'<td style="padding:5px 8px;border:1px solid #ddd;font-size:11px">'+String(c||'')+'</td>').join('')+'</tr>'
+  ).join('');
+
+  const html = `<!DOCTYPE html><html><head><title>${title}</title><style>
+    body{font-family:Arial,sans-serif;margin:20px;color:#1a1a2e;}
+    .header{display:flex;align-items:center;border-bottom:3px solid #D4A017;padding-bottom:16px;margin-bottom:20px;}
+    .logo-text{font-size:28px;font-weight:700;letter-spacing:3px;color:#1a1a2e;}
+    .tagline{font-size:11px;color:#D4A017;font-style:italic;margin-top:2px;}
+    .report-title{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
+    .report-sub{font-size:12px;color:#555;margin-bottom:4px;}
+    .meta{font-size:10px;color:#888;margin-bottom:16px;}
+    .confidential{background:#FFF3CD;border:1px solid #D4A017;padding:6px 12px;border-radius:4px;font-size:11px;color:#856404;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;}
+    th{background:#1a1a2e;color:#D4A017;padding:8px;text-align:left;font-size:12px;font-weight:600;}
+    tr:nth-child(even){background:#f9f9f9;}
+    .footer{margin-top:20px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#888;text-align:center;}
+    @media print{body{margin:0;} .no-print{display:none;}}
+  </style></head><body>
+    <div class="header">
+      <div>
+        <div class="logo-text">AKADIMIA</div>
+        <div class="tagline">Ujuzi Bila Mipaka</div>
+      </div>
+    </div>
+    <div class="report-title">${title}</div>
+    <div class="report-sub">${subtitle}</div>
+    <div class="meta">Generated: ${new Date().toLocaleDateString('en-KE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="confidential">CONFIDENTIAL — Authorised personnel only. This document contains personal data protected under Kenya Data Protection Act 2019.</div>
+    <table><thead><tr>${headers.map(h=>'<th>'+h+'</th>').join('')}</tr></thead><tbody>${tableRows}</tbody></table>
+    <div class="footer">AKADIMIA Academic Platform — akadimia.co.ke | This report is auto-generated and valid as at date of generation.</div>
+    <div class="no-print" style="margin-top:20px;text-align:center;">
+      <button onclick="window.print()" style="background:#D4A017;color:#000;border:none;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600;">Print / Save as PDF</button>
+    </div>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+};
+// ============ END EXPORT UTILITIES ============
+
 const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [pending,setPending]=useState([]);
@@ -2865,7 +2949,13 @@ const AdminView=()=>{
       {!loading&&atab==="approved"&&(approved.length===0?(
         <div style={{...s.card,textAlign:"center",padding:"2rem",fontSize:13,color:T.t2}}>No approved users yet.</div>
       ):(
-        <div style={{display:"grid",gap:10}}>
+        <div>
+          <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
+            <button onClick={()=>exportCSV("AKADIMIA_Students_"+new Date().toISOString().slice(0,10),["Full Name","Email","Field","Year Level","Programme","Role","Status"],approved.map(u=>[u.full_name,u.email,FIELDS[u.field]?.name||u.field,u.year_level||"",u.programme_level||"",u.role,u.status]))} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>📥 Export CSV</button>
+            <button onClick={()=>exportPDF("Student Register","All Approved Students — AKADIMIA",["Full Name","Email","Field","Year Level","Role"],approved.map(u=>[u.full_name,u.email,FIELDS[u.field]?.name||u.field,u.year_level||"N/A",u.role]),"AKADIMIA_Students")} style={{...s.btnS,fontSize:11,padding:"6px 14px"}}>📄 Export PDF</button>
+            <span style={{fontSize:11,color:T.t3,alignSelf:"center"}}>{approved.length} students total</span>
+          </div>
+          <div style={{display:"grid",gap:10}}>
           {approved.map(u=>(
             <UserCard key={u.id} u={u} actions={u=>(<>
               <select defaultValue={u.role} onChange={e=>changeRole(u.id,e.target.value)} style={{...s.input,fontSize:12,padding:"6px 10px",width:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -2878,6 +2968,7 @@ const AdminView=()=>{
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
             </>)}/>
           ))}
+          </div>
         </div>
       ))}
       {!loading&&atab==="rejected"&&(rejected.length===0?(
