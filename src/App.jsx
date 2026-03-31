@@ -1137,6 +1137,217 @@ const CoursesView=({userField,role,userName})=>{
     </div>
   );
 };
+const AssignmentsView=({userField,role,userName})=>{
+  const T=useT();const s=sx(T);
+  const [assignments,setAssignments]=useState([]);
+  const [submissions,setSubmissions]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [selected,setSelected]=useState(null);
+  const [submitting,setSubmitting]=useState(false);
+  const [grading,setGrading]=useState(null);
+  const [newA,setNewA]=useState({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});
+  const [assignmentFile,setAssignmentFile]=useState(null);
+  const [subComment,setSubComment]=useState("");
+  const [subFile,setSubFile]=useState(null);
+  const [gradeFeedback,setGradeFeedback]=useState("");
+  const [gradeMarks,setGradeMarks]=useState("");
+  const assignFileRef=useRef(null);
+  const fileRef=useRef(null);
+  const isLec=role==="lecturer"||role==="admin";
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:asgn}=await supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false});
+    const {data:subs}=await supabase.from("submissions").select("*").order("submitted_at",{ascending:false});
+    setAssignments(asgn||[]);setSubmissions(subs||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[userField]);
+
+  const createAssignment=async()=>{
+    if(!newA.title||!newA.course_code)return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl="";
+    if(assignmentFile){
+      const path="assignments/"+userField+"/"+Date.now()+"_"+assignmentFile.name.replace(/\s+/g,"_");
+      const {data:upData}=await supabase.storage.from("course-materials").upload(path,assignmentFile);
+      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+    }
+    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    try{
+      const query=supabase.from("profiles").select("*").eq("status","approved").eq("role","student").eq("field",userField);
+      const {data:students}=newA.target_year==="all"?await query:await query.eq("year_level",newA.target_year);
+      if(students&&students.length>0){
+        const {sendAssignmentEmail}=await import("./email.js");
+        for(const st of students){if(st.email)await sendAssignmentEmail(st.email,st.full_name||"Student",{...newA,field:userField});}
+      }
+    }catch(e){console.error(e);}
+    setShowCreate(false);setNewA({title:"",description:"",course_code:"",due_date:"",max_marks:100,target_year:"all"});setAssignmentFile(null);
+    load();
+  };
+
+  const submitAssignment=async(assignmentId)=>{
+    if(!subFile&&!subComment)return;
+    setSubmitting(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl="";
+    if(subFile){
+      const path="submissions/"+assignmentId+"/"+user.id+"_"+Date.now()+"_"+subFile.name;
+      const {data:upData}=await supabase.storage.from("course-materials").upload(path,subFile);
+      if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
+    }
+    await supabase.from("submissions").insert({assignment_id:assignmentId,student_id:user.id,student_name:userName,file_url:fileUrl,comment:subComment,status:"submitted"});
+    setSubComment("");setSubFile(null);setSelected(null);load();setSubmitting(false);
+  };
+
+  const gradeSubmission=async(subId)=>{
+    if(!gradeMarks)return;
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("submissions").update({marks:parseInt(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",subId);
+    setGrading(null);setGradeFeedback("");setGradeMarks("");load();
+  };
+
+  const mySubmission=(aId)=>submissions.find(s=>s.assignment_id===aId&&s.student_name===userName);
+  const asgSubmissions=(aId)=>submissions.filter(s=>s.assignment_id===aId);
+  const isOverdue=(d)=>d&&new Date(d)<new Date();
+  if(loading)return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading assignments...</div>;
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div><h1 style={s.h1}>Assignments</h1><p style={s.sub}>{assignments.length} assignment{assignments.length!==1?"s":""}</p></div>
+        {isLec&&<button onClick={()=>setShowCreate(!showCreate)} style={s.btnP}>+ New Assignment</button>}
+      </div>
+      {isLec&&showCreate&&(
+        <div style={{...s.card,marginBottom:"1.25rem",border:"1px solid "+T.ac+"44"}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create Assignment</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Risk Theory Problem Set 1" value={newA.title} onChange={e=>setNewA({...newA,title:e.target.value})}/></div>
+            <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} placeholder="e.g. SAC 406" value={newA.course_code} onChange={e=>setNewA({...newA,course_code:e.target.value})}/></div>
+            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
+            <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}>
+            <label style={s.lbl}>TARGET YEAR GROUP</label>
+            <select style={s.input} value={newA.target_year} onChange={e=>setNewA({...newA,target_year:e.target.value})}>
+              <option value="all">All Students</option>
+              {["Year 1","Year 2","Year 3","Year 4","Masters Sem 1","Masters Sem 2","PhD Year 1","PhD Year 2","PhD Year 3+"].map(v=><option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:80,resize:"vertical"}} placeholder="Assignment instructions..." value={newA.description} onChange={e=>setNewA({...newA,description:e.target.value})}/></div>
+          <div style={{marginBottom:"1rem"}}>
+            <label style={s.lbl}>ATTACH FILE (PDF, Word, LaTeX)</label>
+            <div style={{border:"2px dashed "+(assignmentFile?T.green:T.bd),borderRadius:8,padding:"0.75rem",textAlign:"center",fontSize:12,color:assignmentFile?T.green:T.t3}}>
+              {assignmentFile?"✓ "+assignmentFile.name:"Click to attach"}
+              <label style={{display:"block",marginTop:6,...s.btnS,cursor:"pointer",fontSize:11}}>
+                Choose File<input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.tex" onChange={e=>setAssignmentFile(e.target.files[0]||null)}/>
+              </label>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={createAssignment} style={s.btnP}>Create Assignment</button>
+            <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {assignments.length===0?(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>📋</div>
+          <div style={{fontSize:14,color:T.t2}}>No assignments yet.</div>
+        </div>
+      ):(
+        <div style={{display:"grid",gap:12}}>
+          {assignments.map(a=>{
+            const mySub=mySubmission(a.id);
+            const subs=asgSubmissions(a.id);
+            const overdue=isOverdue(a.due_date);
+            return(
+              <div key={a.id} style={{...s.card,borderLeft:"3px solid "+(mySub?T.green:overdue?T.red:T.ac)}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                      <span style={{fontSize:15,fontWeight:600,color:T.t1}}>{a.title}</span>
+                      <span style={{background:T.ac+"22",color:T.ac,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:600}}>{a.course_code}</span>
+                      {mySub&&<span style={{background:T.green+"22",color:T.green,borderRadius:4,padding:"1px 8px",fontSize:10}}>Submitted</span>}
+                      {mySub&&mySub.status==="graded"&&<span style={{background:T.purple+"22",color:T.purple,borderRadius:4,padding:"1px 8px",fontSize:10}}>Graded: {mySub.marks}/{a.max_marks}</span>}
+                      {overdue&&!mySub&&<span style={{background:T.red+"22",color:T.red,borderRadius:4,padding:"1px 8px",fontSize:10}}>Overdue</span>}
+                    </div>
+                    {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6}}>{a.description}</div>}
+                    {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,color:T.ac,textDecoration:"none",background:T.ac+"18",borderRadius:6,padding:"3px 10px",marginBottom:6}}>📎 Download</a>}
+                    <div style={{fontSize:11,color:T.t3}}>
+                      {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
+                      <span>Max: {a.max_marks} marks</span>
+                      {isLec&&<span style={{marginLeft:12}}>📥 {subs.length} submission{subs.length!==1?"s":""}</span>}
+                    </div>
+                    {mySub&&mySub.feedback&&<div style={{marginTop:8,padding:"8px 12px",background:T.purple+"18",border:"1px solid "+T.purple+"44",borderRadius:8,fontSize:12,color:T.t1}}>💬 {mySub.feedback}</div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                    {!isLec&&!mySub&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit</button>}
+                    {!isLec&&mySub&&mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11}}>View</a>}
+                    {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnS}>View ({subs.length})</button>}
+                  </div>
+                </div>
+                {selected===a.id&&!isLec&&!mySub&&(
+                  <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submit Your Work</div>
+                    <div style={{marginBottom:"0.75rem"}}>
+                      <label style={s.lbl}>UPLOAD FILE</label>
+                      <div style={{border:"2px dashed "+(subFile?T.green:T.bd),borderRadius:8,padding:"0.75rem",textAlign:"center",fontSize:12,color:subFile?T.green:T.t3}}>
+                        {subFile?"✓ "+subFile.name:"Click to attach"}
+                        <label style={{display:"block",marginTop:6,...s.btnS,cursor:"pointer",fontSize:11}}>
+                          Choose File<input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg" onChange={e=>setSubFile(e.target.files[0]||null)}/>
+                        </label>
+                      </div>
+                    </div>
+                    <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>COMMENT</label><textarea style={{...s.input,height:60,resize:"vertical"}} placeholder="Notes for lecturer..." value={subComment} onChange={e=>setSubComment(e.target.value)}/></div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={()=>submitAssignment(a.id)} style={s.btnP} disabled={submitting}>{submitting?"Submitting...":"Submit"}</button>
+                      <button onClick={()=>setSelected(null)} style={s.btnS}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {selected===a.id&&isLec&&subs.length>0&&(
+                  <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:"0.75rem"}}>Submissions ({subs.length})</div>
+                    <div style={{display:"grid",gap:8}}>
+                      {subs.map(sub=>(
+                        <div key={sub.id} style={{background:T.bg3,borderRadius:8,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub.student_name}</div>
+                              <div style={{fontSize:11,color:T.t3}}>{new Date(sub.submitted_at).toLocaleDateString()} · {sub.status}</div>
+                              {sub.comment&&<div style={{fontSize:12,color:T.t2,marginTop:4}}>"{sub.comment}"</div>}
+                              {sub.marks&&<div style={{fontSize:12,color:T.purple,marginTop:4}}>Marks: {sub.marks}/{a.max_marks}</div>}
+                            </div>
+                            <div style={{display:"flex",gap:6}}>
+                              {sub.file_url&&<a href={sub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,fontSize:11,padding:"5px 10px",textDecoration:"none"}}>View</a>}
+                              <button onClick={()=>setGrading(grading===sub.id?null:sub.id)} style={{...s.btnP,fontSize:11,padding:"5px 10px"}}>{sub.status==="graded"?"Re-grade":"Grade"}</button>
+                            </div>
+                          </div>
+                          {grading===sub.id&&(
+                            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"end"}}>
+                              <div><label style={s.lbl}>MARKS/{a.max_marks}</label><input style={s.input} type="number" value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)}/></div>
+                              <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} value={gradeFeedback} onChange={e=>setGradeFeedback(e.target.value)} placeholder="Comments..."/></div>
+                              <button onClick={()=>gradeSubmission(sub.id)} style={{...s.btnP,fontSize:11,padding:"8px 14px"}}>Save</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ExamsView=({userField,role,userName})=>{
   const T=useT();const s=sx(T);const fld=FIELDS[userField];
   const [exams,setExams]=useState([]);
@@ -1634,6 +1845,143 @@ const MeetingsView=({role,userField,userName})=>{
     </div>
   );
 };
+const ResearchView=({userField})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [mode,setMode]=useState("check");
+  const [file,setFile]=useState(null);
+  const [text,setText]=useState("");
+  const [extractedPreview,setExtractedPreview]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [extracting,setExtracting]=useState(false);
+  const [step,setStep]=useState("");
+  const [result,setResult]=useState(null);
+  const [error,setError]=useState("");
+
+  const parseJSON=(str)=>{try{const s=str.replace(/```json|```/g,"").trim();const a=s.indexOf("{");const b=s.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(s.slice(a,b+1));}catch(e){}return null;};
+
+  const analyzeText=async(content)=>{
+    if(!content||content.trim().length<50){setError("Please provide at least 50 characters.");return;}
+    setLoading(true);setError("");setResult(null);setStep("Analyzing...");
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:"Analyze this academic text for plagiarism and AI generation.
+
+TEXT:
+""""+content.slice(0,6000)+""""
+
+Return ONLY this JSON:
+{"similarity_index":NUMBER,"ai_content_percentage":NUMBER,"human_content_percentage":NUMBER,"word_count":NUMBER,"sentence_count":NUMBER,"readability_score":NUMBER,"readability_label":"STRING","overall_verdict":"Likely Original OR Possibly AI-Assisted OR Likely AI-Generated OR Potentially Plagiarized","confidence":NUMBER,"summary":"STRING","ai_indicators":["STRING"],"suspicious_sections":["STRING"],"recommendations":["STRING"]}"}]})});
+      const d=await res.json();
+      if(d.error){setError("Error: "+d.error.message);setLoading(false);return;}
+      const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"";
+      const parsed=parseJSON(raw);
+      setResult(parsed||{overall_verdict:"Done",summary:raw.slice(0,400),similarity_index:0,ai_content_percentage:0,human_content_percentage:0,word_count:content.split(/\s+/).length,sentence_count:content.split(/[.!?]+/).length,readability_score:50,readability_label:"Standard",confidence:0,ai_indicators:[],suspicious_sections:[],recommendations:[]});
+    }catch(e){setError("Error: "+e.message);}
+    setStep("");setLoading(false);
+  };
+
+  const handleFile=async(f)=>{
+    setFile(f);setError("");setText("");setExtractedPreview("");
+    if(f.type==="text/plain"){const r=new FileReader();r.onload=e=>{setText(e.target.result);setExtractedPreview(e.target.result.slice(0,200)+"...");};r.readAsText(f);}
+    else if(f.type==="application/pdf"){
+      setExtracting(true);setStep("Extracting PDF...");
+      const r=new FileReader();
+      r.onload=async(e)=>{
+        try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:e.target.result.split(",")[1]}},{type:"text",text:"Extract ALL text. Return only raw text."}]}]})});
+        const d=await res.json();const t=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"";
+        if(t.length>50){setText(t);setExtractedPreview(t.slice(0,200)+"...");}else{setError("Could not extract PDF. Paste text manually.");}
+        }catch(e){setError("PDF extraction failed.");}
+        setExtracting(false);setStep("");
+      };r.readAsDataURL(f);
+    }else{setError("Please use PDF, TXT. For DOCX, paste text manually.");}
+  };
+
+  const verdictColor=(v)=>{if(!v)return T.t2;if(v.includes("Original"))return T.green;if(v.includes("Assisted"))return T.amber;return T.red;};
+  const ScoreRing=({value,label,color})=>(<div style={{textAlign:"center",padding:"1rem"}}><div style={{position:"relative",width:80,height:80,margin:"0 auto 8px"}}><svg viewBox="0 0 80 80" style={{transform:"rotate(-90deg)"}}><circle cx="40" cy="40" r="32" fill="none" stroke={T.bg3} strokeWidth="8"/><circle cx="40" cy="40" r="32" fill="none" stroke={color} strokeWidth="8" strokeDasharray={String(2*Math.PI*32)} strokeDashoffset={String(2*Math.PI*32*(1-(value||0)/100))} strokeLinecap="round"/></svg><div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:16,fontWeight:700,color}}>{value||0}%</div></div><div style={{fontSize:11,color:T.t2}}>{label}</div></div>);
+
+  return(<div>
+    <h1 style={s.h1}>Research & Integrity</h1>
+    <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Plagiarism · AI detection</p>
+    <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+      {[{id:"check",label:"Plagiarism & AI Check"},{id:"submit",label:"Submit Research"},{id:"library",label:"Library"}].map(mb=><button key={mb.id} onClick={()=>setMode(mb.id)} style={{...(mode===mb.id?s.btnP:s.btnS),fontSize:12}}>{mb.label}</button>)}
+    </div>
+    {mode==="check"&&(<div>
+      {!result&&(<div style={s.card}>
+        <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Upload or Paste Text</div>
+        <div style={{border:"2px dashed "+(file?T.green:T.bd),borderRadius:8,padding:"1.25rem",marginBottom:"1rem"}}>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+            <label style={{...s.btnP,cursor:"pointer",fontSize:12,padding:"8px 16px"}}>{extracting?"Extracting...":file?"Change File":"Choose File"}<input type="file" style={{display:"none"}} accept=".txt,.pdf" onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])} disabled={extracting}/></label>
+            <div style={{flex:1,fontSize:12,color:file?T.t1:T.t3}}>{file?file.name:"PDF or TXT"}{step&&<div style={{color:T.ac,marginTop:4,fontSize:11}}>{step}</div>}</div>
+          </div>
+          {extractedPreview&&<div style={{marginTop:10,padding:"8px",background:T.bg3,borderRadius:6,fontSize:11,color:T.t2}}><span style={{color:T.green,fontWeight:600}}>Extracted: </span>{extractedPreview}</div>}
+        </div>
+        <div style={{marginBottom:"1rem"}}><label style={s.lbl}>PASTE TEXT</label><textarea style={{...s.input,height:160,resize:"vertical",fontSize:12}} placeholder="Paste your essay here..." value={text} onChange={e=>setText(e.target.value)}/><div style={{fontSize:10,color:T.t3,marginTop:4}}>{text.split(/\s+/).filter(Boolean).length} words</div></div>
+        {error&&<div style={{marginBottom:"0.75rem",padding:"8px 12px",background:T.red+"18",borderRadius:6,fontSize:12,color:T.red}}>{error}</div>}
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>analyzeText(text)} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={loading||extracting||!text.trim()}>{loading?"Analyzing...":"Analyze Text"}</button>
+          {loading&&<span style={{fontSize:11,color:T.t3}}>{step}</span>}
+        </div>
+      </div>)}
+      {result&&(<div>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1rem"}}><h2 style={{...s.h1,marginBottom:0}}>Analysis Report</h2><button onClick={()=>{setResult(null);setFile(null);setText("");setExtractedPreview("");}} style={s.btnS}>New Analysis</button></div>
+        <div style={{...s.card,borderLeft:"4px solid "+verdictColor(result.overall_verdict),marginBottom:"1rem"}}>
+          <div style={{fontSize:11,color:T.t3,marginBottom:4}}>OVERALL VERDICT</div>
+          <div style={{fontSize:22,fontWeight:700,color:verdictColor(result.overall_verdict),marginBottom:6}}>{result.overall_verdict}</div>
+          <div style={{fontSize:12,color:T.t2}}>{result.summary}</div>
+          {result.confidence>0&&<div style={{marginTop:8,fontSize:12,color:T.t3}}>Confidence: {result.confidence}%</div>}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1rem"}}>
+          <div style={s.card}><ScoreRing value={result.similarity_index} label="Similarity" color={result.similarity_index>30?T.red:result.similarity_index>15?T.amber:T.green}/></div>
+          <div style={s.card}><ScoreRing value={result.ai_content_percentage} label="AI Content" color={result.ai_content_percentage>50?T.red:result.ai_content_percentage>25?T.amber:T.green}/></div>
+          <div style={s.card}><ScoreRing value={result.human_content_percentage} label="Human Written" color={result.human_content_percentage>70?T.green:T.amber}/></div>
+          <div style={s.card}><ScoreRing value={result.readability_score} label={result.readability_label||"Readability"} color={T.blue}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+          <div style={s.card}><div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:10}}>Stats</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{[["Words",result.word_count||0],["Sentences",result.sentence_count||0]].map(([k,v])=><div key={k} style={{background:T.bg3,borderRadius:6,padding:"10px 12px"}}><div style={{fontSize:10,color:T.t3}}>{k}</div><div style={{fontSize:20,fontWeight:600,color:T.t1}}>{v}</div></div>)}</div></div>
+          <div style={s.card}><div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:10}}>Recommendations</div>{(result.recommendations||[]).slice(0,4).map((r,i)=><div key={i} style={{fontSize:11,color:T.t2,display:"flex",gap:6,marginBottom:4}}><span style={{color:T.ac}}>→</span>{r}</div>)}</div>
+        </div>
+        {(result.suspicious_sections||[]).length>0&&<div style={{...s.card,marginBottom:"1rem"}}><div style={{fontSize:12,fontWeight:600,color:T.red,marginBottom:10}}>Flagged Sections</div>{result.suspicious_sections.slice(0,5).map((sec,i)=><div key={i} style={{background:T.red+"14",borderRadius:6,padding:"8px 12px",fontSize:11,color:T.t1,fontStyle:"italic",marginBottom:6}}>"{sec}"</div>)}</div>}
+        {(result.ai_indicators||[]).length>0&&<div style={s.card}><div style={{fontSize:12,fontWeight:600,color:T.amber,marginBottom:10}}>AI Indicators</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{result.ai_indicators.slice(0,8).map((ind,i)=><span key={i} style={{background:T.amber+"20",color:T.amber,borderRadius:20,padding:"3px 12px",fontSize:11}}>{ind}</span>)}</div></div>}
+      </div>)}
+    </div>)}
+    {mode==="submit"&&<div style={s.card}><div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Submit Research</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}><div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Title"/></div><div><label style={s.lbl}>AUTHORS</label><input style={s.input} placeholder="Authors"/></div></div><button style={s.btnP}>Submit</button></div>}
+    {mode==="library"&&<div style={{...s.card,textAlign:"center",padding:"3rem"}}><div style={{fontSize:40,marginBottom:12}}>📚</div><div style={{fontSize:14,color:T.t2}}>Research library coming soon.</div></div>}
+  </div>);
+};
+
+const AIView=({lang,userField})=>{
+  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
+  const [msgs,setMsgs]=useState([{role:"bot",text:"Karibu! I am EduBot, AKADIMIA AI tutor. I specialise in "+((fld&&fld.name)||userField)+". Ask me anything about your coursework, assignments, research or career!"}]);
+  const [inp,setInp]=useState(""),[loading,setL]=useState(false);const scrollRef=useRef(null);
+  useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight;},[msgs]);
+  const send=async()=>{
+    if(!inp.trim())return;
+    const q=inp.trim();setInp("");setL(true);setMsgs(m=>[...m,{role:"user",text:q}]);
+    try{
+      const {askClaude}=await import("./api.js");
+      const reply=await askClaude(q,(fld&&fld.name)||"Actuarial Science",lang);
+      setMsgs(m=>[...m,{role:"bot",text:reply}]);
+    }catch(e){setMsgs(m=>[...m,{role:"bot",text:"Sorry, I could not process that. Please try again."}]);}
+    setL(false);
+  };
+  return(<div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
+    <h1 style={s.h1}>{t("ai")}</h1>
+    <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Powered by Claude AI</p>
+    <div ref={scrollRef} style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,padding:"1rem 0",marginBottom:"1rem"}}>
+      {msgs.map((m,i)=>{
+        const isBot=m.role==="bot";
+        return(<div key={i} style={{display:"flex",justifyContent:isBot?"flex-start":"flex-end"}}>
+          <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:isBot?"4px 12px 12px 12px":"12px 4px 12px 12px",background:isBot?T.bg2:T.ac+"22",border:"1px solid "+(isBot?T.bd:T.ac+"44"),fontSize:13,color:T.t1,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.text}</div>
+        </div>);
+      })}
+      {loading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{padding:"10px 14px",borderRadius:"4px 12px 12px 12px",background:T.bg2,border:"1px solid "+T.bd,fontSize:13,color:T.t3}}>Thinking...</div></div>}
+    </div>
+    <div style={{display:"flex",gap:8}}>
+      <input style={{...s.input,flex:1}} placeholder={t("ask")} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}/>
+      <button onClick={send} style={{...s.btnP,padding:"10px 20px"}} disabled={loading||!inp.trim()}>{t("send")}</button>
+    </div>
+  </div>);
+};
+
 const AnalyticsView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
