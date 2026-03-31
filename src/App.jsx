@@ -1462,8 +1462,9 @@ const ExamsView=({userField,role,userName})=>{
               {q.type==="mcq"?(
                 <div style={{display:"grid",gap:6}}>
                   {(q.options||[]).filter(o=>o).map((opt,j)=>(
-                    <div key={j} onClick={()=>setAnswers(a=>({...a,[q.id||i]:j}))} style={{padding:"8px 12px",borderRadius:8,border:`1px solid ${answers[q.id||i]===j?T.ac:T.bd}`,background:answers[q.id||i]===j?rgba(T.ac,0.15):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>
-                      {String.fromCharCode(65+j)}. {opt}
+                    <div key={j} onClick={()=>setAnswers(a=>({...a,[q.id||i]:j}))} style={{padding:"8px 12px",borderRadius:8,border:"1px solid "+(answers[q.id||i]===j?T.ac:T.bd),background:answers[q.id||i]===j?rgba(T.ac,0.15):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>
+                      <span style={{fontWeight:600,marginRight:6}}>{String.fromCharCode(65+j)}.</span>
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={{p:({children})=><span>{children}</span>}}>{opt}</ReactMarkdown>
                     </div>
                   ))}
                 </div>
