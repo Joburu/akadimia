@@ -3782,6 +3782,7 @@ export default function App(){
     tools:<ToolsView userField={userField}/>,
     transcript:<TranscriptView userField={userField}/>,
     peers:<PeersView setTab={persistTab} userField={userField}/>,
+    innovation:<InnovationHub userName={userName} role={role} userField={userField}/>,
     classroom:<ClassroomView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
