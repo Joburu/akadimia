@@ -560,7 +560,7 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
   );
 };
 
-const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"}];
+const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"},{id:"wellness",icon:"💚"}];
 
 const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
   const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
@@ -2718,225 +2718,308 @@ const PeersView=({setTab,userField,userName})=>{
     </div>
   );
 };
-const ClassroomView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);
-  const [ltab,setLtab]=useState("courses"),[showNew,setShowNew]=useState(false);
-  const fld=FIELDS[userField];const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];
-  const SUBS=[
+const ClassroomView=({userField,role,userName,addNotif})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [assignments,setAssignments]=useState([]);
+  const [submissions,setSubmissions]=useState([]);
+  const [exams,setExams]=useState([]);
+  const [examSubs,setExamSubs]=useState([]);
+  const [meetings,setMeetings]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [tab,setTab]=useState("overview");
+  const [wellnessMode,setWellnessMode]=useState(false);
+  const [wellnessMsg,setWellnessMsg]=useState("");
+  const [wellnessSending,setWellnessSending]=useState(false);
+  const [wellnessDone,setWellnessDone]=useState(false);
+  const [ratings,setRatings]=useState({});
+  const [ratingDone,setRatingDone]=useState({});
+  const [ratingComment,setRatingComment]=useState({});
+  const isLec=role==="lecturer"||role==="admin";
 
-    {student:"Brian Mutua",unit:(courses[0]&&courses[0].code)||"",task:"Assignment 1",sub:"Mar 19",grade:17},
-    {student:"Fatima Hassan",unit:(courses[1]&&courses[1].code)||"",task:"CAT 1",sub:"Mar 15",grade:22},
-    {student:"Akinyi Otieno",unit:(courses[1]&&courses[1].code)||"",task:"Assignment 1",sub:"Mar 20",grade:null},
-  ];
-  const ltabBtns=[["courses","Courses"],["issue_exam","Issue Exam"],["issue_asgn","Issue Assignment"],["submissions","Submissions"],["cls_analytics","Analytics"]];
-  const yearOpts=[1,2,3,4];
-  const examTypOpts=["MCQ","Short Answer","Essay","Practical","Mixed"];
-  const subTypOpts=["Upload File","Online Text","Both"];
-  const lateOpts=["Not allowed","10% penalty","No penalty"];
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const [aRes,sRes,eRes,esRes,mRes]=await Promise.all([
+      supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
+      supabase.from("submissions").select("*"),
+      supabase.from("exams").select("*").eq("field",userField),
+      supabase.from("exam_submissions").select("*"),
+      supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false})
+    ]);
+    setAssignments(aRes.data||[]);setSubmissions(sRes.data||[]);
+    setExams(eRes.data||[]);setExamSubs(esRes.data||[]);
+    setMeetings(mRes.data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[userField]);
+
+  const mySubmissions=submissions.filter(s=>s.student_name===userName);
+  const myExamSubs=examSubs.filter(s=>s.student_name===userName);
+  const graded=mySubmissions.filter(s=>s.status==="graded");
+  const gradedExams=myExamSubs.filter(s=>s.marks!=null);
+  const avgScore=graded.length>0?Math.round(graded.reduce((a,s)=>a+(s.marks||0),0)/graded.length):null;
+
+  const submitWellness=async()=>{
+    if(!wellnessMsg.trim())return;
+    setWellnessSending(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("wellness_checkins").insert({
+      student_id:user.id,field:userField,message:wellnessMsg,
+      anonymous:true,created_at:new Date().toISOString()
+    }).select();
+    setWellnessDone(true);setWellnessSending(false);
+    if(addNotif)addNotif("💚","Wellness Check-in Sent","Your message has been sent anonymously.");
+  };
+
+  const submitRating=async(meetingId)=>{
+    if(!ratings[meetingId])return;
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("class_ratings").insert({
+      meeting_id:meetingId,field:userField,rating:ratings[meetingId],
+      comment:ratingComment[meetingId]||"",student_id:user.id,
+      created_at:new Date().toISOString()
+    }).select();
+    setRatingDone(r=>({...r,[meetingId]:true}));
+    if(addNotif)addNotif("⭐","Rating Submitted","Thank you for your feedback.");
+  };
+
+  const tabs=[["overview","Overview"],["grades","My Grades"],["wellness","Wellness"],["ratings","Rate Classes"]];
+  if(isLec) tabs.push(["insights","Class Insights"]);
+
+  if(loading)return <div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading...</div>;
+
   return(
     <div>
-      <h1 style={s.h1}>{t("classroom")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Manage courses · Issue exams and assignments · Grade</p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:"1.25rem"}}>
-        <StatCard label="My Courses" value={courses.length} sub="Active this semester" color={T.blue} icon="B"/>
-        <StatCard label="Students" value="42" sub="Enrolled" color={T.ac} icon="S"/>
-        <StatCard label="To Grade" value="2" sub="Ungraded" color={T.amber} icon="G"/>
-        <StatCard label="Class Avg" value="71%" sub="Performance" color={T.green} icon="A"/>
-      </div>
-      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
-        {ltabBtns.map(lb=>(
-          <button key={lb[0]} onClick={()=>setLtab(lb[0])} style={{...(ltab===lb[0]?s.btnP:s.btnS),fontSize:12,padding:"7px 14px"}}>{lb[1]}</button>
+      <h1 style={s.h1}>My Classroom</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>{isLec?"Lecturer view — class management":"Student view — your academic hub"}</p>
+
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
+        {tabs.map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{...(tab===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
         ))}
       </div>
-      {ltab==="courses"&&(
+
+      {tab==="overview"&&(
         <div>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1rem"}}>
-            <span style={{fontSize:14,fontWeight:600,color:T.t1}}>Assigned Courses</span>
-            <button onClick={()=>setShowNew(!showNew)} style={s.btnP}>+ New</button>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:"1.5rem"}}>
+            {[
+              ["Assignments",assignments.length,"📋",T.blue],
+              ["My Submissions",mySubmissions.length,"📤",T.green],
+              ["Exams Taken",myExamSubs.length,"✏️",T.purple],
+              ["Avg Score",avgScore!=null?avgScore+"%":"N/A","🎯",avgScore>=70?T.green:avgScore>=50?T.amber:T.red],
+              ["Classes",meetings.length,"📹",T.ac],
+            ].map(([label,value,icon,color])=>(
+              <div key={label} style={{...s.card,textAlign:"center"}}>
+                <div style={{fontSize:24,marginBottom:4}}>{icon}</div>
+                <div style={{fontSize:22,fontWeight:700,color}}>{value}</div>
+                <div style={{fontSize:11,color:T.t3}}>{label}</div>
+              </div>
+            ))}
           </div>
-          {showNew&&(
-            <div style={{...s.card,marginBottom:"1rem",border:`1px solid ${rgba(T.ac,0.3)}`}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create New Course</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-                <div><label style={s.lbl}>CODE</label><input style={s.input} placeholder="e.g. MED 402"/></div>
-                <div><label style={s.lbl}>NAME</label><input style={s.input} placeholder="Course title"/></div>
-                <div><label style={s.lbl}>YEAR</label><select style={s.input}>{yearOpts.map(v=><option key={v}>Year {v}</option>)}</select></div>
-                <div><label style={s.lbl}>CREDITS</label><input style={s.input} type="number" defaultValue="3"/></div>
-              </div>
-              <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,minHeight:70,resize:"vertical"}} placeholder="Objectives..."/></div>
-              <div style={{display:"flex",gap:8}}>
-                <button style={s.btnP}>Create</button>
-                <button onClick={()=>setShowNew(false)} style={s.btnS}>Cancel</button>
-              </div>
+          <div style={{...s.card,marginBottom:"1rem"}}>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:10}}>Recent Assignments</div>
+            {assignments.slice(0,5).map(a=>{
+              const mySub=mySubmissions.find(s=>s.assignment_id===a.id);
+              return(
+                <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+T.bd}}>
+                  <div>
+                    <div style={{fontSize:13,color:T.t1}}>{a.title}</div>
+                    <div style={{fontSize:11,color:T.t3}}>{a.course_code} · Due: {a.due_date||"No deadline"}</div>
+                  </div>
+                  <div style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:mySub?(mySub.status==="graded"?T.purple+"22":T.green+"22"):T.red+"22",color:mySub?(mySub.status==="graded"?T.purple:T.green):T.red}}>
+                    {mySub?mySub.status==="graded"?"Graded: "+mySub.marks:"Submitted":"Not submitted"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {tab==="grades"&&(
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Assignment Grades</div>
+          {graded.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No graded assignments yet.</div>:(
+            <div style={{display:"grid",gap:8,marginBottom:"1.5rem"}}>
+              {graded.map(sub=>{
+                const a=assignments.find(x=>x.id===sub.assignment_id);
+                const pct=a?Math.round((sub.marks/a.max_marks)*100):0;
+                return(
+                  <div key={sub.id} style={{...s.card,borderLeft:"3px solid "+(pct>=70?T.green:pct>=50?T.amber:T.red)}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{a?.title||"Assignment"}</div>
+                        <div style={{fontSize:11,color:T.t3}}>{a?.course_code} · {new Date(sub.submitted_at).toLocaleDateString()}</div>
+                        {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
+                      </div>
+                      <div style={{textAlign:"center",flexShrink:0}}>
+                        <div style={{fontSize:22,fontWeight:700,color:pct>=70?T.green:pct>=50?T.amber:T.red}}>{sub.marks}/{a?.max_marks}</div>
+                        <div style={{fontSize:11,color:T.t3}}>{pct}%</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
-            {courses.map((c,i)=>(
-              <div key={i} style={s.card}>
-                <div style={{display:"flex",justifyContent:"space-between"}}>
-                  <div>
-                    <div style={{fontSize:10,color:T.ac,fontWeight:700,marginBottom:4}}>{c.code} · Year {c.y}</div>
-                    <div style={{fontSize:14,fontWeight:600,color:T.t1}}>{c.name}</div>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Exam Grades</div>
+          {gradedExams.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No graded exams yet.</div>:(
+            <div style={{display:"grid",gap:8}}>
+              {gradedExams.map(sub=>{
+                const ex=exams.find(x=>x.id===sub.exam_id);
+                const pct=ex?Math.round((sub.marks/ex.total_marks)*100):0;
+                return(
+                  <div key={sub.id} style={{...s.card,borderLeft:"3px solid "+(pct>=70?T.green:pct>=50?T.amber:T.red)}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{ex?.title||"Exam"}</div>
+                        <div style={{fontSize:11,color:T.t3}}>{ex?.course_code} · {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString():""}</div>
+                        {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
+                      </div>
+                      <div style={{textAlign:"center",flexShrink:0}}>
+                        <div style={{fontSize:22,fontWeight:700,color:pct>=70?T.green:pct>=50?T.amber:T.red}}>{sub.marks}/{ex?.total_marks}</div>
+                        <div style={{fontSize:11,color:T.t3}}>{pct}%</div>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:12,fontWeight:600,color:T.ac}}>Avg: {c.p}%</div>
-                  </div>
-                </div>
-                <div style={{display:"flex",gap:8,marginTop:"0.85rem"}}>
-                  <button style={{...s.btnS,flex:1,fontSize:11,padding:"6px"}}>Upload</button>
-                  <button style={{...s.btnP,flex:1,fontSize:11,padding:"6px"}}>Edit</button>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
-      {ltab==="issue_exam"&&(
-        <div style={s.card}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue Examination</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Exam title"/></div>
-            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
-            <div><label style={s.lbl}>DATE &amp; TIME</label><input style={s.input} type="datetime-local"/></div>
-            <div><label style={s.lbl}>DURATION (MIN)</label><input style={s.input} type="number" defaultValue="60"/></div>
-            <div><label style={s.lbl}>TOTAL MARKS</label><input style={s.input} type="number" defaultValue="50"/></div>
-            <div><label style={s.lbl}>TYPE</label><select style={s.input}>{examTypOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,minHeight:80,resize:"vertical"}} placeholder="Instructions..."/></div>
-          <div style={{border:`2px dashed ${T.bd}`,borderRadius:8,padding:"1rem",textAlign:"center",color:T.t3,cursor:"pointer",marginBottom:"1rem",fontSize:12}}>Upload exam paper or add questions inline</div>
-          <div style={{display:"flex",gap:8}}>
-            <button style={s.btnP}>Issue to Students</button>
-            <button style={s.btnS}>Save Draft</button>
-          </div>
-        </div>
-      )}
-      {ltab==="issue_asgn"&&(
-        <div style={s.card}>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Issue Assignment</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
-            <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="Assignment title"/></div>
-            <div><label style={s.lbl}>COURSE</label><select style={s.input}>{courses.map(c=><option key={c.code}>{c.code}</option>)}</select></div>
-            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date"/></div>
-            <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" defaultValue="30"/></div>
-            <div><label style={s.lbl}>SUBMISSION</label><select style={s.input}>{subTypOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-            <div><label style={s.lbl}>LATE POLICY</label><select style={s.input}>{lateOpts.map(v=><option key={v}>{v}</option>)}</select></div>
-          </div>
-          <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>INSTRUCTIONS &amp; RUBRIC</label><textarea style={{...s.input,minHeight:100,resize:"vertical"}} placeholder="Instructions and marking criteria..."/></div>
-          <button style={s.btnP}>Issue to Students</button>
-        </div>
-      )}
-      {ltab==="submissions"&&(
+
+      {tab==="wellness"&&(
         <div>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Submissions</div>
-          <div style={{display:"grid",gap:8}}>
-            {SUBS.map((sub,i)=>(
-              <div key={i} style={{...s.card,display:"flex",alignItems:"center",gap:12}}>
-                <Av name={sub.student} size={36}/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{sub.student}</div>
-                  <div style={{fontSize:11,color:T.t3}}>{sub.unit} · {sub.task} · {sub.sub}</div>
-                </div>
-                {sub.grade!==null?(
-                  <Pill text={"Graded: "+sub.grade} color={T.green}/>
-                ):(
-                  <div style={{display:"flex",gap:8}}>
-                    <button style={{...s.btnS,fontSize:11,padding:"5px 12px"}}>View</button>
-                    <button style={{...s.btnP,fontSize:11,padding:"5px 12px"}}>Grade</button>
-                  </div>
-                )}
+          {!wellnessDone?(
+            <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.green,marginBottom:8}}>💚 Wellness Check-in</div>
+              <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>This is a safe, anonymous space. Share how you are feeling academically, emotionally or personally. Your message goes directly to the institution wellness team — your name is never attached.</div>
+              <div style={{display:"grid",gap:8,marginBottom:"1rem"}}>
+                {["I am struggling with coursework","I am feeling overwhelmed","I have personal challenges affecting my studies","I need financial support","I feel isolated or lonely","I am doing well — just checking in"].map(opt=>(
+                  <div key={opt} onClick={()=>setWellnessMsg(opt)} style={{padding:"10px 14px",borderRadius:8,border:"1px solid "+(wellnessMsg===opt?T.green:T.bd),background:wellnessMsg===opt?rgba(T.green,0.1):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>{opt}</div>
+                ))}
               </div>
-            ))}
-          </div>
+              <div style={{marginBottom:"1rem"}}><label style={s.lbl}>OR WRITE YOUR OWN (ANONYMOUS)</label><textarea style={{...s.input,height:80,resize:"vertical",fontSize:12}} placeholder="Share anything on your mind..." value={wellnessMsg} onChange={e=>setWellnessMsg(e.target.value)}/></div>
+              <button onClick={submitWellness} style={{...s.btnP,background:T.green}} disabled={!wellnessMsg.trim()||wellnessSending}>{wellnessSending?"Sending...":"Send Anonymously"}</button>
+            </div>
+          ):(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>💚</div>
+              <div style={{fontSize:16,fontWeight:600,color:T.green,marginBottom:8}}>Thank you for sharing</div>
+              <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem"}}>Your message has been sent anonymously to the wellness team. You are not alone.</div>
+              <button onClick={()=>{setWellnessDone(false);setWellnessMsg("");}} style={s.btnS}>Send Another</button>
+            </div>
+          )}
         </div>
       )}
-      {ltab==="cls_analytics"&&(
+
+      {tab==="ratings"&&(
         <div>
-          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Class Performance</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={courses.map(c=>({name:c.code.slice(-3),avg:c.p,top:Math.min(100,c.p+15),low:Math.max(20,c.p-20)}))} barSize={18}>
-              <XAxis dataKey="name" tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fill:T.t3,fontSize:10}} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={{background:T.bg3,border:`1px solid ${T.bd}`,borderRadius:8,color:T.t1,fontSize:12}}/>
-              <Bar dataKey="avg" name="Average" fill={T.ac} radius={[3,3,0,0]}/>
-              <Bar dataKey="top" name="Top" fill={T.green} radius={[3,3,0,0]}/>
-              <Bar dataKey="low" name="Lowest" fill={T.red} radius={[3,3,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.6}}>Rate your recent classes anonymously. Your feedback helps improve teaching quality.</div>
+          {meetings.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No classes to rate yet.</div>:(
+            <div style={{display:"grid",gap:12}}>
+              {meetings.slice(0,8).map(m=>(
+                <div key={m.id} style={s.card}>
+                  <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:4}}>{m.title}</div>
+                  <div style={{fontSize:11,color:T.t3,marginBottom:10}}>{new Date(m.scheduled_at).toLocaleDateString("en-KE")} · {m.platform}</div>
+                  {ratingDone[m.id]?(
+                    <div style={{fontSize:12,color:T.green}}>✓ Rated {ratings[m.id]}/5 — Thank you!</div>
+                  ):(
+                    <div>
+                      <div style={{display:"flex",gap:8,marginBottom:8}}>
+                        {[1,2,3,4,5].map(n=>(
+                          <button key={n} onClick={()=>setRatings(r=>({...r,[m.id]:n}))} style={{background:ratings[m.id]>=n?T.amber:"none",border:"1px solid "+(ratings[m.id]>=n?T.amber:T.bd),borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:16,color:ratings[m.id]>=n?"#000":T.t3}}>★</button>
+                        ))}
+                        {ratings[m.id]&&<span style={{fontSize:11,color:T.t3,alignSelf:"center"}}>{ratings[m.id]}/5</span>}
+                      </div>
+                      <input style={{...s.input,fontSize:12,marginBottom:8}} placeholder="Optional comment (anonymous)..." value={ratingComment[m.id]||""} onChange={e=>setRatingComment(r=>({...r,[m.id]:e.target.value}))}/>
+                      <button onClick={()=>submitRating(m.id)} style={{...s.btnP,fontSize:11,padding:"6px 16px"}} disabled={!ratings[m.id]}>Submit Rating</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      )}
+
+      {tab==="insights"&&isLec&&(
+        <LecturerInsights userField={userField} assignments={assignments} submissions={submissions} exams={exams} examSubs={examSubs} meetings={meetings} T={T} s={s}/>
       )}
     </div>
   );
 };
 
-// ============ EXPORT UTILITIES ============
-const exportCSV = (filename, headers, rows) => {
-  const csvHeaders = headers.join(',');
-  const csvRows = rows.map(r => r.map(c => '"'+(String(c||'').replace(/"/g,'""'))+'"').join(','));
-  const csv = [csvHeaders, ...csvRows].join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename+'.csv'; a.click();
-  URL.revokeObjectURL(url);
-};
+const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetings,T,s})=>{
+  const [ratings,setRatings]=useState([]);
+  const [wellness,setWellness]=useState([]);
+  const [loading,setLoading]=useState(true);
 
-const exportPDF = (title, subtitle, headers, rows, filename) => {
-  const w = 210, margin = 14;
-  const lines = [];
-  lines.push({type:'title', text:title});
-  lines.push({type:'subtitle', text:subtitle});
-  lines.push({type:'meta', text:'Generated by AKADIMIA — '+new Date().toLocaleDateString('en-KE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})});
-  lines.push({type:'meta', text:'CONFIDENTIAL — For authorised personnel only'});
-  lines.push({type:'headers', cells:headers});
-  rows.forEach(r => lines.push({type:'row', cells:r}));
+  useEffect(()=>{
+    (async()=>{
+      const {supabase}=await import("./supabase.js");
+      const [rRes,wRes]=await Promise.all([
+        supabase.from("class_ratings").select("*").eq("field",userField),
+        supabase.from("wellness_checkins").select("created_at,field,message").eq("field",userField)
+      ]);
+      setRatings(rRes.data||[]);setWellness(wRes.data||[]);setLoading(false);
+    })();
+  },[]);
 
-  const colW = Math.floor((w - margin*2) / headers.length);
-  let y = 0;
-  const pageH = 297;
-  let pageContent = '';
+  const avgRating=ratings.length>0?(ratings.reduce((a,r)=>a+(r.rating||0),0)/ratings.length).toFixed(1):null;
+  const submissionRate=assignments.length>0?Math.round((submissions.length/Math.max(assignments.length,1))*100):0;
+  const gradedRate=submissions.length>0?Math.round((submissions.filter(s=>s.status==="graded").length/submissions.length)*100):0;
 
-  // Build SVG-based PDF using browser print
-  const tableRows = rows.map(r =>
-    '<tr>'+r.map(c=>'<td style="padding:5px 8px;border:1px solid #ddd;font-size:11px">'+String(c||'')+'</td>').join('')+'</tr>'
-  ).join('');
+  if(loading)return <div style={{color:T.t3,fontSize:13}}>Loading insights...</div>;
 
-  const html = `<!DOCTYPE html><html><head><title>${title}</title><style>
-    body{font-family:Arial,sans-serif;margin:20px;color:#1a1a2e;}
-    .header{display:flex;align-items:center;border-bottom:3px solid #D4A017;padding-bottom:16px;margin-bottom:20px;}
-    .logo-text{font-size:28px;font-weight:700;letter-spacing:3px;color:#1a1a2e;}
-    .tagline{font-size:11px;color:#D4A017;font-style:italic;margin-top:2px;}
-    .report-title{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
-    .report-sub{font-size:12px;color:#555;margin-bottom:4px;}
-    .meta{font-size:10px;color:#888;margin-bottom:16px;}
-    .confidential{background:#FFF3CD;border:1px solid #D4A017;padding:6px 12px;border-radius:4px;font-size:11px;color:#856404;margin-bottom:16px;}
-    table{width:100%;border-collapse:collapse;margin-top:12px;}
-    th{background:#1a1a2e;color:#D4A017;padding:8px;text-align:left;font-size:12px;font-weight:600;}
-    tr:nth-child(even){background:#f9f9f9;}
-    .footer{margin-top:20px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#888;text-align:center;}
-    @media print{body{margin:0;} .no-print{display:none;}}
-  </style></head><body>
-    <div class="header">
-      <div>
-        <div class="logo-text">AKADIMIA</div>
-        <div class="tagline">Ujuzi Bila Mipaka</div>
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:"1.5rem"}}>
+        {[
+          ["Avg Class Rating",avgRating?avgRating+"/5":"No ratings","⭐",T.amber],
+          ["Total Ratings",ratings.length,"📊",T.blue],
+          ["Submission Rate",submissionRate+"%","📤",T.green],
+          ["Grading Rate",gradedRate+"%","✅",T.purple],
+          ["Wellness Flags",wellness.length,"💚",T.red],
+        ].map(([label,value,icon,color])=>(
+          <div key={label} style={{...s.card,textAlign:"center"}}>
+            <div style={{fontSize:22,marginBottom:4}}>{icon}</div>
+            <div style={{fontSize:20,fontWeight:700,color}}>{value}</div>
+            <div style={{fontSize:10,color:T.t3}}>{label}</div>
+          </div>
+        ))}
       </div>
+      {ratings.length>0&&(
+        <div style={{...s.card,marginBottom:"1rem"}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:10}}>Recent Class Ratings</div>
+          {ratings.slice(0,5).map((r,i)=>{
+            const m=meetings.find(x=>x.id===r.meeting_id);
+            return(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid "+T.bd}}>
+                <div style={{fontSize:12,color:T.t1}}>{m?.title||"Class"}</div>
+                <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                  <span style={{fontSize:12,color:T.amber}}>{"★".repeat(r.rating||0)+"☆".repeat(5-(r.rating||0))}</span>
+                  {r.comment&&<span style={{fontSize:11,color:T.t3,fontStyle:"italic"}}>"{r.comment}"</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {wellness.length>0&&(
+        <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:10}}>💚 Anonymous Wellness Flags ({wellness.length})</div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>These messages were sent anonymously by students. No names are attached.</div>
+          {wellness.slice(0,5).map((w,i)=>(
+            <div key={i} style={{padding:"8px 12px",background:rgba(T.green,0.06),borderRadius:6,fontSize:12,color:T.t1,marginBottom:6,borderLeft:"3px solid "+T.green}}>{w.message}</div>
+          ))}
+        </div>
+      )}
     </div>
-    <div class="report-title">${title}</div>
-    <div class="report-sub">${subtitle}</div>
-    <div class="meta">Generated: ${new Date().toLocaleDateString('en-KE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
-    <div class="confidential">CONFIDENTIAL — Authorised personnel only. This document contains personal data protected under Kenya Data Protection Act 2019.</div>
-    <table><thead><tr>${headers.map(h=>'<th>'+h+'</th>').join('')}</tr></thead><tbody>${tableRows}</tbody></table>
-    <div class="footer">AKADIMIA Academic Platform — akadimia.co.ke | This report is auto-generated and valid as at date of generation.</div>
-    <div class="no-print" style="margin-top:20px;text-align:center;">
-      <button onclick="window.print()" style="background:#D4A017;color:#000;border:none;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600;">Print / Save as PDF</button>
-    </div>
-  </body></html>`;
-
-  const win = window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
+  );
 };
-// ============ END EXPORT UTILITIES ============
 
 const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
@@ -3311,7 +3394,7 @@ export default function App(){
     tools:<ToolsView userField={userField}/>,
     transcript:<TranscriptView userField={userField}/>,
     peers:<PeersView setTab={persistTab} userField={userField}/>,
-    classroom:<ClassroomView userField={userField}/>,
+    classroom:<ClassroomView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
   };

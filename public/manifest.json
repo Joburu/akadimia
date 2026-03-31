@@ -1,0 +1,16 @@
+{
+  "name": "AKADIMIA — Ujuzi Bila Mipaka",
+  "short_name": "AKADIMIA",
+  "description": "Every Field. Every Student. One Platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#D4A017",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "/logo2.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/logo2.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ],
+  "categories": ["education"],
+  "lang": "en-KE"
+}
