@@ -62,6 +62,26 @@ const FIELDS={
   pharmacy:    {id:"pharmacy",    name:"Pharmacy",             icon:"💉", color:"#F43F5E",group:"Health",     desc:"Pharmacology, clinical pharmacy & drug development"},
   psychology:  {id:"psychology",  name:"Psychology",           icon:"🧠", color:"#8B5CF6",group:"Social Sci.",desc:"Behavioural science, counselling & neuropsychology"},
   envscience:  {id:"envscience",  name:"Environmental Science",icon:"🌍", color:"#22C55E",group:"Sciences",   desc:"Climate change, ecology & environmental management"},
+  socialwork:  {id:"socialwork",  name:"Social Work",          icon:"🤝", color:"#F472B6",group:"Social Sci.",desc:"Community development, counselling & social policy"},
+  communication:{id:"communication",name:"Communication",      icon:"📡", color:"#60A5FA",group:"Social Sci.",desc:"Media studies, journalism & public relations"},
+  fintech:     {id:"fintech",     name:"Finance & Banking",    icon:"🏦", color:"#34D399",group:"Professional",desc:"Banking, investment, financial analysis & fintech"},
+  hrm:         {id:"hrm",        name:"Human Resource Mgmt",  icon:"👔", color:"#A78BFA",group:"Professional",desc:"HR strategy, labour law & organizational behaviour"},
+  supplychain: {id:"supplychain",name:"Supply Chain & Logistics",icon:"🚚",color:"#FB923C",group:"Professional",desc:"Procurement, logistics & operations management"},
+  ict:         {id:"ict",        name:"ICT & Networking",      icon:"🌐", color:"#22D3EE",group:"Technology", desc:"Networks, cybersecurity & IT infrastructure"},
+  electricaleng:{id:"electricaleng",name:"Electrical Engineering",icon:"⚡",color:"#FCD34D",group:"Technology",desc:"Power systems, electronics & control engineering"},
+  civileng:    {id:"civileng",   name:"Civil Engineering",     icon:"🏗️", color:"#94A3B8",group:"Technology", desc:"Structural, transport & water resources engineering"},
+  tourism:     {id:"tourism",    name:"Tourism & Hospitality", icon:"✈️", color:"#F87171",group:"Social Sci.",desc:"Hotel management, ecotourism & event management"},
+  artdesign:   {id:"artdesign",  name:"Art & Design",          icon:"🎨", color:"#C084FC",group:"Creative",   desc:"Fine art, graphic design & visual communication"},
+  music:       {id:"music",      name:"Music & Performing Arts",icon:"🎵",color:"#F9A8D4",group:"Creative",   desc:"Music theory, performance & creative arts"},
+  theology:    {id:"theology",   name:"Theology & Religion",   icon:"✝️", color:"#A16207",group:"Humanities", desc:"Religious studies, ethics & theology"},
+  history:     {id:"history",    name:"History & Political Sci",icon:"📜",color:"#78716C",group:"Humanities", desc:"African history, political theory & governance"},
+  tvet_elec:   {id:"tvet_elec",  name:"TVET — Electrical",     icon:"🔌", color:"#FCD34D",group:"TVET",       desc:"Electrical installation, wiring & power systems"},
+  tvet_mech:   {id:"tvet_mech",  name:"TVET — Mechanical",     icon:"🔧", color:"#6B7280",group:"TVET",       desc:"Motor vehicle, welding & mechanical engineering"},
+  tvet_ict:    {id:"tvet_ict",   name:"TVET — ICT",            icon:"🖥️", color:"#3B82F6",group:"TVET",       desc:"Computer repair, networking & ICT support"},
+  tvet_build:  {id:"tvet_build", name:"TVET — Building",       icon:"🧱", color:"#D97706",group:"TVET",       desc:"Masonry, plumbing & building construction"},
+  tvet_fashion:{id:"tvet_fashion",name:"TVET — Fashion",       icon:"👗", color:"#EC4899",group:"TVET",       desc:"Garment making, textile design & fashion"},
+  tvet_food:   {id:"tvet_food",  name:"TVET — Food & Nutrition",icon:"🍽️",color:"#22C55E",group:"TVET",       desc:"Catering, food production & nutrition"},
+  tvet_beauty: {id:"tvet_beauty",name:"TVET — Beauty & Hair",  icon:"💇", color:"#F472B6",group:"TVET",       desc:"Cosmetology, hairdressing & beauty therapy"},
 };
 
 const FIELD_DATA={
@@ -549,8 +569,8 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
   return(
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
-        <img src="/logo2.png" alt="AKADIMIA" style={{height:52,width:52,objectFit:"contain",flexShrink:0}}/>
-        {open&&<div><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:13,color:T.t1,letterSpacing:2.5}}>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic"}}>Ujuzi Bila Mipaka</div></div>}
+        <img src="/logo2.png" alt="AKADIMIA" style={{height:44,width:44,objectFit:"contain",flexShrink:0,display:"block"}}/>
+        {open&&<div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}><div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:14,color:T.t1,letterSpacing:2}}>AKADIMIA</div><div style={{fontSize:9,color:T.ac,fontStyle:"italic",marginTop:1}}>Ujuzi Bila Mipaka</div></div>}
       </div>
       {open&&fld&&(
         <div style={{padding:"0.5rem 0.75rem"}}>
@@ -1321,6 +1341,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
                     {!isLec&&!mySub&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit</button>}
                     {!isLec&&mySub&&mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11}}>View</a>}
                     {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnS}>View ({subs.length})</button>}
+                    {isLec&&<button onClick={async()=>{if(!confirm("Delete this assignment?"))return;const {supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px"}}>🗑 Delete</button>}
                   </div>
                 </div>
                 {selected===a.id&&!isLec&&!mySub&&(
@@ -1634,6 +1655,7 @@ const ExamsView=({userField,role,userName,addNotif})=>{
                   <div style={{flexShrink:0}}>
                     {!isLec&&!sub&&<button onClick={()=>startExam(ex)} style={s.btnP}>Start Exam →</button>}
                     {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===ex.id?null:ex.id)} style={s.btnS}>Grade ({subs.length})</button>}
+                    {isLec&&<button onClick={async()=>{if(!confirm("Delete this exam?"))return;const {supabase}=await import("./supabase.js");await supabase.from("exams").delete().eq("id",ex.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px"}}>🗑 Delete</button>}
                   </div>
                 </div>
 
@@ -2835,6 +2857,7 @@ const AdminView=()=>{
             <UserCard key={u.id} u={u} actions={u=>(<>
               <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>Approve</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>Reject</button>
+              <button onClick={async()=>{if(!confirm("Delete "+u.full_name+"?"))return;const {supabase}=await import("./supabase.js");await supabase.from("profiles").delete().eq("id",u.id);loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"7px 10px"}}>🗑</button>
             </>)}/>
           ))}
         </div>
@@ -2851,6 +2874,7 @@ const AdminView=()=>{
                 <option value="admin">Admin</option>
                 <option value="researcher">Researcher</option>
               </select>
+              <button onClick={async()=>{if(!confirm("Permanently remove "+u.full_name+"?"))return;const {supabase}=await import("./supabase.js");await supabase.from("profiles").delete().eq("id",u.id);loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
             </>)}/>
           ))}
