@@ -1976,6 +1976,94 @@ const AIView=({lang,userField})=>{
   </div>);
 };
 
+const OppsView=({userField})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [opps,setOpps]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [filter,setFilter]=useState("all");
+  const [lastFetched,setLastFetched]=useState(null);
+  const [error,setError]=useState("");
+
+  const fetchOpps=async()=>{
+    setLoading(true);setError("");
+    try{
+      const fieldName=(fld&&fld.name)||userField;
+      const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({
+          model:"claude-haiku-4-5-20251001",
+          max_tokens:2000,
+          messages:[{role:"user",content:"Today is "+today+". List 12 realistic current opportunities for "+fieldName+" students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array."}]
+        })
+      });
+      const d=await res.json();
+      let text=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
+      const clean=text.replace(/```json|```/g,"").trim();
+      const jsonStart=clean.indexOf("[");const jsonEnd=clean.lastIndexOf("]");
+      const parsed=JSON.parse(jsonStart>=0&&jsonEnd>jsonStart?clean.slice(jsonStart,jsonEnd+1):"[]");
+      setOpps(Array.isArray(parsed)?parsed:[]);
+      setLastFetched(new Date());
+    }catch(e){setError("Could not fetch opportunities. Please try again.");console.error(e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchOpps();},[userField]);
+
+  const types=["all","scholarship","grant","job","training","networking","fellowship"];
+  const filtered=filter==="all"?opps:opps.filter(o=>(o.type||"").toLowerCase().includes(filter));
+  const typeColor={scholarship:T.ac,grant:T.teal,job:T.green,training:T.blue,networking:T.purple,fellowship:T.amber};
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1rem"}}>
+        <div>
+          <h1 style={s.h1}>Opportunities</h1>
+          <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>{lastFetched?"Last updated: "+lastFetched.toLocaleTimeString():"Loading..."}</p>
+        </div>
+        <button onClick={fetchOpps} style={{...s.btnP,fontSize:12,padding:"8px 16px"}} disabled={loading}>{loading?"Searching...":"Refresh"}</button>
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+        {types.map(type=>(
+          <button key={type} onClick={()=>setFilter(type)} style={{...(filter===type?s.btnP:s.btnS),fontSize:11,padding:"5px 12px",textTransform:"capitalize"}}>{type==="all"?"All":type}</button>
+        ))}
+      </div>
+      {error&&<div style={{...s.card,color:T.red,textAlign:"center",padding:"1.5rem"}}>{error} <button onClick={fetchOpps} style={{...s.btnS,marginLeft:8,fontSize:11}}>Retry</button></div>}
+      {loading&&<div style={{display:"grid",gap:10}}>{[1,2,3,4].map(i=><div key={i} style={{...s.card,height:80,background:T.bg3}}/>)}</div>}
+      {!loading&&!error&&filtered.length===0&&(
+        <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+          <div style={{fontSize:40,marginBottom:12}}>🌍</div>
+          <div style={{fontSize:14,color:T.t2}}>No opportunities found. Try refreshing.</div>
+        </div>
+      )}
+      {!loading&&filtered.length>0&&(
+        <div style={{display:"grid",gap:10}}>
+          {filtered.map((o,i)=>{
+            const tc=typeColor[(o.type||"").toLowerCase()]||T.t2;
+            return(
+              <div key={i} style={{...s.card,borderLeft:"3px solid "+tc}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+                      <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{o.title}</span>
+                      <span style={{background:tc+"22",color:tc,borderRadius:6,padding:"2px 8px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{o.type||"opportunity"}</span>
+                    </div>
+                    <div style={{fontSize:12,color:T.ac,fontWeight:500,marginBottom:4}}>{o.org}</div>
+                    <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:o.deadline?6:0}}>{o.description}</div>
+                    {o.deadline&&<div style={{fontSize:11,color:T.amber}}>Deadline: {o.deadline}</div>}
+                  </div>
+                  {o.url&&o.url.startsWith("http")?<a href={o.url} target="_blank" rel="noreferrer" style={{...s.btnP,fontSize:11,padding:"6px 14px",textDecoration:"none",flexShrink:0}}>Apply</a>:<span style={{fontSize:11,color:T.t3,flexShrink:0}}>No link</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AnalyticsView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);
   const courses=(FIELD_DATA[userField]&&FIELD_DATA[userField].courses)||[];const fld=FIELDS[userField];
