@@ -2801,6 +2801,212 @@ const InnovationHub=({userName,role,userField})=>{
   );
 };
 
+const ProgrammeView=({userField,role,userName})=>{
+  const T=useT();const s=sx(T);
+  const [courses,setCourses]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [yearFilter,setYearFilter]=useState(1);
+  const [semFilter,setSemFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [expanded,setExpanded]=useState(null);
+  const [editNotes,setEditNotes]=useState(null);
+  const [notesText,setNotesText]=useState("");
+  const [saving,setSaving]=useState(false);
+  const isLec=role==="lecturer"||role==="admin";
+
+  const REFERENCES={
+    actuarial:[
+      {title:"Institute and Faculty of Actuaries (IFoA) Study Notes",url:"https://www.actuaries.org.uk/studying/study-materials",type:"Official"},
+      {title:"Society of Actuaries Free Study Materials",url:"https://www.soa.org/education/exam-req/edu-exam-p-detail/",type:"Official"},
+      {title:"Actuarial Outpost — Free Study Resources",url:"https://www.actuarialoutpost.com",type:"Community"},
+      {title:"ACTEX Study Manual (Preview Chapters)",url:"https://www.actexmadriver.com",type:"Textbook"},
+      {title:"OpenStax Statistics (Free)",url:"https://openstax.org/books/introductory-statistics/pages/1-introduction",type:"Open Textbook"},
+      {title:"Paul's Online Math Notes — Calculus",url:"https://tutorial.math.lamar.edu",type:"Free Notes"},
+      {title:"MIT OpenCourseWare — Financial Mathematics",url:"https://ocw.mit.edu/courses/18-s096-topics-in-mathematics-with-applications-in-finance-fall-2013/",type:"University"},
+      {title:"Khan Academy — Statistics and Probability",url:"https://www.khanacademy.org/math/statistics-probability",type:"Free Course"},
+      {title:"Coursera — Introduction to Financial Engineering (Audit Free)",url:"https://www.coursera.org/learn/financial-engineering-intro",type:"MOOC"},
+      {title:"Insurance Regulatory Authority Kenya — Publications",url:"https://www.ira.go.ke/index.php/publications",type:"Regulatory"},
+      {title:"CMA Kenya — Capital Markets Research",url:"https://www.cma.or.ke/index.php/research-policy",type:"Regulatory"},
+      {title:"CBK — Financial Stability Reports (Free)",url:"https://www.centralbank.go.ke/financial-stability-reports/",type:"Regulatory"},
+    ],
+    stats:[
+      {title:"OpenStax Introductory Statistics",url:"https://openstax.org/books/introductory-statistics/pages/1-introduction",type:"Open Textbook"},
+      {title:"StatLect — Free Lectures on Probability",url:"https://www.statlect.com",type:"Free Notes"},
+      {title:"Penn State STAT Online — Free Courses",url:"https://online.stat.psu.edu/statprogram/",type:"University"},
+      {title:"R for Data Science (Free Online)",url:"https://r4ds.had.co.nz",type:"Free Book"},
+      {title:"Introduction to Statistical Learning (Free PDF)",url:"https://www.statlearning.com",type:"Free Textbook"},
+    ],
+    math:[
+      {title:"Paul's Online Math Notes",url:"https://tutorial.math.lamar.edu",type:"Free Notes"},
+      {title:"MIT OpenCourseWare — Mathematics",url:"https://ocw.mit.edu/courses/mathematics/",type:"University"},
+      {title:"3Blue1Brown — Essence of Linear Algebra",url:"https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab",type:"Video"},
+      {title:"Khan Academy — Linear Algebra",url:"https://www.khanacademy.org/math/linear-algebra",type:"Free Course"},
+    ],
+    cs:[
+      {title:"CS50 — Harvard Free Computer Science Course",url:"https://cs50.harvard.edu/x/",type:"Free Course"},
+      {title:"GeeksForGeeks — Data Structures and Algorithms",url:"https://www.geeksforgeeks.org/data-structures/",type:"Free Notes"},
+      {title:"Java Programming — MOOC.fi (Free)",url:"https://java-programming.mooc.fi",type:"Free Course"},
+    ]
+  };
+
+  const getRefsForCourse=(code)=>{
+    const c=code.toLowerCase();
+    if(c.startsWith("wab"))return REFERENCES.actuarial;
+    if(c.startsWith("sas"))return REFERENCES.stats;
+    if(c.startsWith("sma"))return REFERENCES.math;
+    if(c.startsWith("scs"))return REFERENCES.cs;
+    return REFERENCES.actuarial;
+  };
+
+  const typeColor={Official:T.green,Community:T.blue,University:T.purple,"Open Textbook":T.ac,"Free Notes":T.teal,"Free Book":T.ac,MOOC:T.amber,Regulatory:T.red,Video:"#FF6B6B","Free Course":T.green,"Free Textbook":T.ac};
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("programme_courses").select("*").order("year").order("semester").order("code");
+    setCourses(data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const saveNotes=async(courseId)=>{
+    setSaving(true);
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("programme_courses").update({lecturer_notes:notesText,lecturer_name:userName,updated_at:new Date().toISOString()}).eq("id",courseId);
+    setSaving(false);setEditNotes(null);load();
+  };
+
+  const filtered=courses.filter(c=>{
+    if(c.year!==yearFilter)return false;
+    if(semFilter!=="all"&&c.semester!==parseInt(semFilter))return false;
+    if(search&&!c.name.toLowerCase().includes(search.toLowerCase())&&!c.code.toLowerCase().includes(search.toLowerCase()))return false;
+    return true;
+  });
+
+  const coreCount=filtered.filter(c=>c.type==="C").length;
+  const electiveCount=filtered.filter(c=>c.type==="E").length;
+
+  return(
+    <div>
+      <h1 style={s.h1}>Programme Structure</h1>
+      <p style={s.sub}>BSc Actuarial Science with IT — Wangari Agrovet Biopharma (WAB) Course Codes</p>
+
+      <div style={{...s.card,marginBottom:"1.25rem",background:"linear-gradient(135deg,"+rgba(T.ac,0.1)+","+rgba(T.blue,0.05)+")",border:"1px solid "+rgba(T.ac,0.2)}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:12}}>
+          {[[courses.length,"Total Units","📚",T.ac],[courses.filter(c=>c.type==="C").length,"Core Units","🎯",T.green],[courses.filter(c=>c.type==="E").length,"Elective Units","✨",T.amber],["4 Years","Duration","📅",T.blue],["8 Sems","Structure","🗓",T.purple]].map(([v,l,ic,col])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontSize:20}}>{ic}</div>
+              <div style={{fontSize:20,fontWeight:700,color:col}}>{v}</div>
+              <div style={{fontSize:10,color:T.t3}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:6}}>
+          {[1,2,3,4].map(y=>(
+            <button key={y} onClick={()=>{setYearFilter(y);setSemFilter("all");setExpanded(null);}} style={{...(yearFilter===y?s.btnP:s.btnS),fontSize:12,padding:"6px 14px"}}>Year {y}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {[["all","All Sems"],["1","Sem 1"],["2","Sem 2"],["3","Attachment"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setSemFilter(v)} style={{...(semFilter===v?s.btnS:s.btnS),fontSize:11,padding:"5px 10px",opacity:semFilter===v?1:0.6,border:"1px solid "+(semFilter===v?T.ac:T.bd),color:semFilter===v?T.ac:T.t3}}>{l}</button>
+          ))}
+        </div>
+        <input style={{...s.input,flex:1,minWidth:160,fontSize:12}} placeholder="Search courses..." value={search} onChange={e=>setSearch(e.target.value)}/>
+      </div>
+
+      <div style={{fontSize:12,color:T.t3,marginBottom:"0.75rem"}}>
+        Showing {filtered.length} courses — {coreCount} core (C), {electiveCount} elective (E)
+      </div>
+
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading programme...</div>:(
+        <div>
+          {["1","2","3"].filter(sem=>semFilter==="all"||semFilter===sem).map(sem=>{
+            const semCourses=filtered.filter(c=>c.semester===parseInt(sem));
+            if(semCourses.length===0)return null;
+            const semLabel=sem==="3"?"Industrial Attachment":sem==="1"?"First Semester":"Second Semester";
+            return(
+              <div key={sem} style={{marginBottom:"1.5rem"}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.ac,letterSpacing:1,marginBottom:"0.75rem",textTransform:"uppercase"}}>{semLabel}</div>
+                <div style={{display:"grid",gap:8}}>
+                  {semCourses.map(course=>{
+                    const isExpanded=expanded===course.id;
+                    const refs=getRefsForCourse(course.code);
+                    return(
+                      <div key={course.id} style={{...s.card,borderLeft:"3px solid "+(course.type==="C"?T.green:T.amber),cursor:"pointer"}} onClick={()=>setExpanded(isExpanded?null:course.id)}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+                          <div style={{flex:1}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                              <span style={{fontSize:12,fontWeight:700,color:T.ac,fontFamily:"monospace"}}>{course.code}</span>
+                              <span style={{fontSize:13,fontWeight:600,color:T.t1}}>{course.name}</span>
+                              <span style={{background:course.type==="C"?rgba(T.green,0.15):rgba(T.amber,0.15),color:course.type==="C"?T.green:T.amber,borderRadius:4,padding:"1px 8px",fontSize:10,fontWeight:700}}>{course.type==="C"?"CORE":"ELECTIVE"}</span>
+                              <span style={{background:T.bg3,color:T.t3,borderRadius:4,padding:"1px 6px",fontSize:10}}>{course.credits} Credits</span>
+                            </div>
+                            {course.prerequisites&&<div style={{fontSize:11,color:T.t3,marginTop:4}}>Pre-requisites: {course.prerequisites}</div>}
+                            {course.lecturer_notes&&!isExpanded&&<div style={{fontSize:11,color:T.purple,marginTop:4}}>📝 Lecturer notes available</div>}
+                          </div>
+                          <span style={{color:T.t3,fontSize:16,flexShrink:0}}>{isExpanded?"▲":"▼"}</span>
+                        </div>
+
+                        {isExpanded&&(
+                          <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}} onClick={e=>e.stopPropagation()}>
+                            <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>Course Description</div>
+                            <div style={{fontSize:12,color:T.t2,lineHeight:1.8,marginBottom:"1rem"}}>{course.description||"Description not yet available."}</div>
+
+                            {course.lecturer_notes&&(
+                              <div style={{marginBottom:"1rem",padding:"12px",background:rgba(T.purple,0.08),border:"1px solid "+rgba(T.purple,0.25),borderRadius:8}}>
+                                <div style={{fontSize:11,fontWeight:600,color:T.purple,marginBottom:6}}>📝 Lecturer Notes{course.lecturer_name?" — "+course.lecturer_name:""}</div>
+                                <div style={{fontSize:12,color:T.t1,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{course.lecturer_notes}</div>
+                              </div>
+                            )}
+
+                            {isLec&&(
+                              <div style={{marginBottom:"1rem"}}>
+                                {editNotes===course.id?(
+                                  <div>
+                                    <label style={s.lbl}>LECTURER NOTES & INSTRUCTIONS</label>
+                                    <textarea style={{...s.input,height:120,resize:"vertical",fontSize:12,marginBottom:8}} placeholder="Add lecture notes, reading instructions, assessment tips, office hours, contact details..." value={notesText} onChange={e=>setNotesText(e.target.value)}/>
+                                    <div style={{display:"flex",gap:8}}>
+                                      <button onClick={()=>saveNotes(course.id)} style={{...s.btnP,fontSize:12}} disabled={saving}>{saving?"Saving...":"Save Notes"}</button>
+                                      <button onClick={()=>setEditNotes(null)} style={{...s.btnS,fontSize:12}}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ):(
+                                  <button onClick={()=>{setEditNotes(course.id);setNotesText(course.lecturer_notes||"");}} style={{...s.btnS,fontSize:11}}>
+                                    {course.lecturer_notes?"✏️ Edit Lecturer Notes":"📝 Add Lecturer Notes"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            <div>
+                              <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:8}}>📚 Free Access References & Resources</div>
+                              <div style={{display:"grid",gap:6}}>
+                                {refs.map((ref,i)=>(
+                                  <a key={i} href={ref.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:T.bg3,borderRadius:8,textDecoration:"none",border:"1px solid "+T.bd}}>
+                                    <span style={{background:rgba(typeColor[ref.type]||T.ac,0.15),color:typeColor[ref.type]||T.ac,borderRadius:4,padding:"2px 8px",fontSize:9,fontWeight:700,flexShrink:0,textTransform:"uppercase"}}>{ref.type}</span>
+                                    <span style={{fontSize:12,color:T.t1,flex:1}}>{ref.title}</span>
+                                    <span style={{fontSize:11,color:T.t3,flexShrink:0}}>→</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ToolsView=({userField})=>{
   const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
   const myTools=(FIELD_DATA[userField]&&FIELD_DATA[userField].tools)||["Python","R","STATA","SPSS"];
@@ -3783,6 +3989,7 @@ export default function App(){
     transcript:<TranscriptView userField={userField}/>,
     peers:<PeersView setTab={persistTab} userField={userField}/>,
     innovation:<InnovationHub userName={userName} role={role} userField={userField}/>,
+    programme:<ProgrammeView userField={userField} role={role} userName={userName}/>,
     classroom:<ClassroomView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
