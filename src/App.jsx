@@ -3206,13 +3206,13 @@ const ToolsView=({userField,userName})=>{
   const fmt=(n)=>Number(n).toLocaleString("en-KE");
 
   const tools=[
+    {id:"platforms",icon:"🌐",label:"Field Platforms",featured:true},
     {id:"calculator",icon:"🧮",label:"Scientific Calc"},
     {id:"gpa",icon:"🎓",label:"GPA Calculator"},
     {id:"annuity",icon:"📈",label:"Annuity & PV"},
     {id:"mortgage",icon:"🏠",label:"Mortgage Calc"},
     {id:"loan",icon:"💳",label:"Loan Calculator"},
     {id:"currency",icon:"💱",label:"Currency Converter"},
-    {id:"platforms",icon:"🔗",label:"Field Platforms 🌐"},
     {id:"ai",icon:"🤖",label:"AI Formula Helper"},
   ];
 
@@ -3222,21 +3222,38 @@ const ToolsView=({userField,userName})=>{
       <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Live interactive tools for actuarial and financial computation</p>
 
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1.5rem"}}>
-        {tools.map(t=>(
-          <button key={t.id} onClick={()=>setSel(t.id)} style={{
-            ...(sel===t.id?s.btnP:s.btnS),
-            fontSize:11,padding:"7px 14px",
-            display:"flex",alignItems:"center",gap:5,
-            ...(t.id==="platforms"?{
-              background:sel==="platforms"?T.teal:rgba(T.teal,0.12),
-              border:"1px solid "+rgba(T.teal,0.5),
-              color:sel==="platforms"?"#000":T.teal,
-              fontWeight:600
-            }:{})
+        <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%"}}>
+          {/* Featured platforms button */}
+          <button onClick={()=>setSel("platforms")} style={{
+            width:"100%",padding:"14px 20px",borderRadius:12,cursor:"pointer",
+            display:"flex",alignItems:"center",gap:12,
+            background:sel==="platforms"
+              ?"linear-gradient(135deg,#D4A017,#F59E0B)"
+              :"linear-gradient(135deg,"+rgba("#D4A017",0.15)+","+rgba("#F59E0B",0.1)+")",
+            border:"2px solid "+(sel==="platforms"?"#D4A017":rgba("#D4A017",0.4)),
+            boxShadow:sel==="platforms"?"0 4px 16px "+rgba("#D4A017",0.4):"none",
+            transition:"all 0.2s"
           }}>
-            <span>{t.icon}</span>{t.label}
+            <span style={{fontSize:28}}>🌐</span>
+            <div style={{textAlign:"left",flex:1}}>
+              <div style={{fontSize:14,fontWeight:800,color:sel==="platforms"?"#000":"#D4A017",letterSpacing:0.5}}>Field Platforms & Tools</div>
+              <div style={{fontSize:11,color:sel==="platforms"?"#000":T.t3,marginTop:1}}>Open your field-specific professional tools</div>
+            </div>
+            <span style={{fontSize:20,color:sel==="platforms"?"#000":"#D4A017"}}>→</span>
           </button>
-        ))}
+          {/* Other tools */}
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {tools.filter(t=>t.id!=="platforms").map(t=>(
+              <button key={t.id} onClick={()=>setSel(t.id)} style={{
+                ...(sel===t.id?s.btnP:s.btnS),
+                fontSize:11,padding:"7px 14px",
+                display:"flex",alignItems:"center",gap:5
+              }}>
+                <span>{t.icon}</span>{t.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {sel==="calculator"&&(
