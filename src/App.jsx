@@ -3109,7 +3109,7 @@ const ToolsView=({userField,userName})=>{
   const [unitFrom,setUnitFrom]=useState("KES");
   const [unitTo,setUnitTo]=useState("USD");
   const [unitResult,setUnitResult]=useState(null);
-  const [fxRates,setFxRates]=useState({USD:0.0077,EUR:0.0071,GBP:0.0061,UGX:28.5,TZS:20.1,ETB:0.43,ZAR:0.14});
+  const [fxRates,setFxRates]=useState({USD:129.5,EUR:140.2,GBP:164.8,UGX:0.034,TZS:0.051,ETB:2.31,ZAR:7.1});
   const [aiTool,setAiTool]=useState("");
   const [aiPrompt,setAiPrompt]=useState("");
   const [aiResult,setAiResult]=useState("");
@@ -3171,13 +3171,19 @@ const ToolsView=({userField,userName})=>{
   const convertCurrency=()=>{
     const amt=parseFloat(unitInput);
     if(isNaN(amt))return;
-    if(unitFrom==="KES"&&fxRates[unitTo]){
-      setUnitResult((amt*fxRates[unitTo]).toFixed(2)+" "+unitTo);
+    // fxRates stores: how many KES = 1 unit of foreign currency
+    if(unitFrom==="KES"&&unitTo==="KES"){
+      setUnitResult(amt.toFixed(2)+" KES");
+    }else if(unitFrom==="KES"&&fxRates[unitTo]){
+      // KES to foreign: divide by rate
+      setUnitResult((amt/fxRates[unitTo]).toFixed(4)+" "+unitTo);
     }else if(unitTo==="KES"&&fxRates[unitFrom]){
-      setUnitResult((amt/fxRates[unitFrom]).toFixed(2)+" KES");
-    }else{
-      const inKES=amt/fxRates[unitFrom];
-      setUnitResult((inKES*fxRates[unitTo]).toFixed(2)+" "+unitTo);
+      // foreign to KES: multiply by rate
+      setUnitResult((amt*fxRates[unitFrom]).toFixed(2)+" KES");
+    }else if(fxRates[unitFrom]&&fxRates[unitTo]){
+      // foreign to foreign: via KES
+      const inKES=amt*fxRates[unitFrom];
+      setUnitResult((inKES/fxRates[unitTo]).toFixed(4)+" "+unitTo);
     }
   };
 
@@ -3206,7 +3212,7 @@ const ToolsView=({userField,userName})=>{
     {id:"mortgage",icon:"🏠",label:"Mortgage Calc"},
     {id:"loan",icon:"💳",label:"Loan Calculator"},
     {id:"currency",icon:"💱",label:"Currency Converter"},
-    {id:"platforms",icon:"🔗",label:"Field Platforms"},
+    {id:"platforms",icon:"🔗",label:"Field Platforms 🌐"},
     {id:"ai",icon:"🤖",label:"AI Formula Helper"},
   ];
 
@@ -3217,7 +3223,17 @@ const ToolsView=({userField,userName})=>{
 
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1.5rem"}}>
         {tools.map(t=>(
-          <button key={t.id} onClick={()=>setSel(t.id)} style={{...( sel===t.id?s.btnP:s.btnS),fontSize:11,padding:"7px 14px",display:"flex",alignItems:"center",gap:5}}>
+          <button key={t.id} onClick={()=>setSel(t.id)} style={{
+            ...(sel===t.id?s.btnP:s.btnS),
+            fontSize:11,padding:"7px 14px",
+            display:"flex",alignItems:"center",gap:5,
+            ...(t.id==="platforms"?{
+              background:sel==="platforms"?T.teal:rgba(T.teal,0.12),
+              border:"1px solid "+rgba(T.teal,0.5),
+              color:sel==="platforms"?"#000":T.teal,
+              fontWeight:600
+            }:{})
+          }}>
             <span>{t.icon}</span>{t.label}
           </button>
         ))}
@@ -3236,8 +3252,14 @@ const ToolsView=({userField,userName})=>{
                 if(btn==="C"){setCalcInput("");setCalcResult("");}
                 else if(btn==="="){
                   try{
-                    const expr=calcInput.replace(/÷/g,"/").replace(/×/g,"*").replace(/√/g,"Math.sqrt(").replace(/x²/g,"**2").replace(/\^/g,"**").replace(/ln/g,"Math.log(").replace(/1\/x/g,"1/");
-                    setCalcResult(String(eval(expr)));
+                    let expr=calcInput
+                      .replace(/÷/g,"/").replace(/×/g,"*")
+                      .replace(/√\(/g,"Math.sqrt(")
+                      .replace(/x²/g,"**2").replace(/\^/g,"**")
+                      .replace(/ln\(/g,"Math.log(")
+                      .replace(/π/g,"Math.PI");
+                    const result=new Function("return "+expr)();
+                    setCalcResult(Number.isFinite(result)?String(Math.round(result*1e10)/1e10):"Error");
                   }catch{setCalcResult("Error");}
                 }else{
                   setCalcInput(p=>p+(btn==="√"?"Math.sqrt(":btn==="ln"?"Math.log(":btn));
@@ -3370,15 +3392,15 @@ const ToolsView=({userField,userName})=>{
           </div>
           <button onClick={convertCurrency} style={{...s.btnP,marginBottom:"1rem"}}>Convert</button>
           {unitResult&&<div style={{background:rgba(T.ac,0.1),border:"1px solid "+rgba(T.ac,0.3),borderRadius:10,padding:"1rem",fontSize:24,fontWeight:700,color:T.ac,textAlign:"center"}}>{unitInput} {unitFrom} = {unitResult}</div>}
-          <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:8}}>
+          <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
             {Object.entries(fxRates).map(([cur,rate])=>(
               <div key={cur} style={{background:T.bg3,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
-                <div style={{fontSize:11,color:T.t3}}>1 KES</div>
-                <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{rate.toFixed(4)} {cur}</div>
+                <div style={{fontSize:11,color:T.t3}}>1 {cur} =</div>
+                <div style={{fontSize:13,fontWeight:600,color:T.ac}}>KES {rate.toFixed(2)}</div>
               </div>
             ))}
           </div>
-          <div style={{fontSize:10,color:T.t3,marginTop:8}}>Rates are approximate. Verify on CBK or your bank for official rates.</div>
+          <div style={{fontSize:10,color:T.t3,marginTop:8}}>Indicative rates. Verify at cbk.go.ke or your bank for official CBK rates.</div>
         </div>
       )}
 
