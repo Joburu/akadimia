@@ -4771,7 +4771,7 @@ const AdminView=()=>{
             <UserCard key={u.id} u={u} actions={u=>(<>
               <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>Approve</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>Reject</button>
-              <button onClick={async()=>{if(!confirm("Delete "+u.full_name+" completely from AKADIMIA? They will be able to re-register with the same email."))return;const {supabase}=await import("./supabase.js");await fetch(supabase.supabaseUrl+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+supabase.supabaseKey},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"7px 10px"}}>🗑</button>
+              <button onClick={async()=>{if(!confirm("Delete "+u.full_name+" completely from AKADIMIA? They will be able to re-register with the same email."))return;const {supabase}=await import("./supabase.js");await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"7px 10px"}}>🗑</button>
             </>)}/>
           ))}
         </div>
@@ -4795,7 +4795,7 @@ const AdminView=()=>{
                 <option value="researcher">Researcher</option>
               </select>
               <button onClick={()=>{setEditUser(u);setEditData({full_name:u.full_name,student_id:u.student_id||"",field:u.field,year_level:u.year_level||"",programme_level:u.programme_level||"undergraduate",role:u.role});}} style={{background:"none",border:"1px solid "+T.blue+"55",borderRadius:6,color:T.blue,cursor:"pointer",fontSize:11,padding:"6px 10px"}}>✏️ Edit</button>
-              <button onClick={async()=>{if(!confirm("Remove "+u.full_name+" completely? They can re-register with the same email afterwards."))return;const {supabase}=await import("./supabase.js");await fetch(supabase.supabaseUrl+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+supabase.supabaseKey},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
+              <button onClick={async()=>{if(!confirm("Remove "+u.full_name+" completely? They can re-register with the same email afterwards."))return;await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
             </>)}/>
           ))}
