@@ -4612,6 +4612,8 @@ const exportPDF=(title,subtitle,headers,rows)=>{
 
 const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
+  const [editUser,setEditUser]=useState(null);
+  const [editData,setEditData]=useState({});
   const [pending,setPending]=useState([]);
   const [approved,setApproved]=useState([]);
   const [rejected,setRejected]=useState([]);
@@ -4712,6 +4714,52 @@ const AdminView=()=>{
         ))}
       </div>
       {loading&&<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading users from database...</div>}
+      {editUser&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+          <div style={{background:T.bg1,borderRadius:16,padding:"1.5rem",width:"100%",maxWidth:500,border:"1px solid "+T.bd}}>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:"1rem"}}>Edit User — {editUser.full_name}</div>
+            <div style={{display:"grid",gap:10,marginBottom:"1rem"}}>
+              <div><label style={s.lbl}>FULL NAME</label><input style={s.input} value={editData.full_name||""} onChange={e=>setEditData({...editData,full_name:e.target.value})}/></div>
+              <div><label style={s.lbl}>ADMISSION / STUDENT NUMBER</label><input style={s.input} value={editData.student_id||""} onChange={e=>setEditData({...editData,student_id:e.target.value})}/></div>
+              <div><label style={s.lbl}>FIELD OF STUDY</label>
+                <select style={s.input} value={editData.field||""} onChange={e=>setEditData({...editData,field:e.target.value})}>
+                  {Object.entries(FIELDS).map(([k,v])=><option key={k} value={k}>{v.name}</option>)}
+                </select>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div><label style={s.lbl}>YEAR LEVEL</label>
+                  <select style={s.input} value={editData.year_level||""} onChange={e=>setEditData({...editData,year_level:e.target.value})}>
+                    <option value="">Not set</option>
+                    {["Year 1","Year 2","Year 3","Year 4","Masters Sem 1","Masters Sem 2","PhD Year 1","PhD Year 2","PhD Year 3+"].map(v=><option key={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div><label style={s.lbl}>ROLE</label>
+                  <select style={s.input} value={editData.role||"student"} onChange={e=>setEditData({...editData,role:e.target.value})}>
+                    {["student","lecturer","researcher","admin"].map(r=><option key={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div><label style={s.lbl}>PROGRAMME LEVEL</label>
+                <select style={s.input} value={editData.programme_level||"undergraduate"} onChange={e=>setEditData({...editData,programme_level:e.target.value})}>
+                  <option value="undergraduate">Undergraduate</option>
+                  <option value="masters">Masters</option>
+                  <option value="phd">PhD</option>
+                  <option value="tvet">TVET</option>
+                </select>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={async()=>{
+                const {supabase}=await import("./supabase.js");
+                await supabase.from("profiles").update({full_name:editData.full_name,student_id:editData.student_id,field:editData.field,year_level:editData.year_level,role:editData.role,programme_level:editData.programme_level}).eq("id",editUser.id);
+                setEditUser(null);loadUsers();
+              }} style={s.btnP}>Save Changes</button>
+              <button onClick={()=>setEditUser(null)} style={s.btnS}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!loading&&atab==="approvals"&&(pending.length===0?(
         <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
           <div style={{fontSize:40,marginBottom:12}}>✅</div>
@@ -4723,7 +4771,7 @@ const AdminView=()=>{
             <UserCard key={u.id} u={u} actions={u=>(<>
               <button onClick={()=>approve(u.id)} style={{...s.btnP,fontSize:12,padding:"7px 16px"}}>Approve</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 16px"}}>Reject</button>
-              <button onClick={async()=>{if(!confirm("Delete "+u.full_name+"?"))return;const {supabase}=await import("./supabase.js");await supabase.from("profiles").delete().eq("id",u.id);loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"7px 10px"}}>🗑</button>
+              <button onClick={async()=>{if(!confirm("Delete "+u.full_name+" completely from AKADIMIA? They will be able to re-register with the same email."))return;const {supabase}=await import("./supabase.js");await fetch(supabase.supabaseUrl+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+supabase.supabaseKey},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"7px 10px"}}>🗑</button>
             </>)}/>
           ))}
         </div>
@@ -4746,7 +4794,8 @@ const AdminView=()=>{
                 <option value="admin">Admin</option>
                 <option value="researcher">Researcher</option>
               </select>
-              <button onClick={async()=>{if(!confirm("Permanently remove "+u.full_name+"?"))return;const {supabase}=await import("./supabase.js");await supabase.from("profiles").delete().eq("id",u.id);loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
+              <button onClick={()=>{setEditUser(u);setEditData({full_name:u.full_name,student_id:u.student_id||"",field:u.field,year_level:u.year_level||"",programme_level:u.programme_level||"undergraduate",role:u.role});}} style={{background:"none",border:"1px solid "+T.blue+"55",borderRadius:6,color:T.blue,cursor:"pointer",fontSize:11,padding:"6px 10px"}}>✏️ Edit</button>
+              <button onClick={async()=>{if(!confirm("Remove "+u.full_name+" completely? They can re-register with the same email afterwards."))return;const {supabase}=await import("./supabase.js");await fetch(supabase.supabaseUrl+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+supabase.supabaseKey},body:JSON.stringify({userId:u.id})});loadUsers();}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
             </>)}/>
           ))}
