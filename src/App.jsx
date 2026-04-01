@@ -3737,6 +3737,29 @@ const PeersView=({setTab,userField,userName})=>{
     </div>
   );
 };
+const WellnessResponses=({userField,T,s})=>{
+  const [responses,setResponses]=useState([]);
+  useEffect(()=>{
+    (async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data}=await supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(5);
+      setResponses(data||[]);
+    })();
+  },[userField]);
+  if(responses.length===0)return null;
+  return(
+    <div style={{marginBottom:"1rem"}}>
+      {responses.map((r,i)=>(
+        <div key={i} style={{padding:"12px 14px",background:rgba(T.blue,0.08),border:"1px solid "+rgba(T.blue,0.25),borderRadius:8,marginBottom:8,borderLeft:"3px solid "+T.blue}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.blue,marginBottom:4}}>💙 Message from Wellness Team</div>
+          <div style={{fontSize:12,color:T.t1,lineHeight:1.7}}>{r.message}</div>
+          <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(r.created_at).toLocaleDateString("en-KE")}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const ClassroomView=({userField,role,userName,addNotif})=>{
   const T=useT();const s=sx(T);const fld=FIELDS[userField];
   const [assignments,setAssignments]=useState([]);
@@ -3911,6 +3934,9 @@ const ClassroomView=({userField,role,userName,addNotif})=>{
 
       {tab==="wellness"&&(
         <div>
+          {/* Show responses from wellness team */}
+          <WellnessResponses userField={userField} T={T} s={s}/>
+
           {!wellnessDone?(
             <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
               <div style={{fontSize:14,fontWeight:600,color:T.green,marginBottom:8}}>💚 Wellness Check-in</div>
@@ -3976,16 +4002,38 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
   const [wellness,setWellness]=useState([]);
   const [loading,setLoading]=useState(true);
 
+  const [responding,setResponding]=useState(false);
+  const [responseText,setResponseText]=useState("");
+  const [responses,setResponses]=useState([]);
+  const [responseSent,setResponseSent]=useState(false);
+
   useEffect(()=>{
     (async()=>{
       const {supabase}=await import("./supabase.js");
-      const [rRes,wRes]=await Promise.all([
+      const [rRes,wRes,respRes]=await Promise.all([
         supabase.from("class_ratings").select("*").eq("field",userField),
-        supabase.from("wellness_checkins").select("created_at,field,message").eq("field",userField)
+        supabase.from("wellness_checkins").select("created_at,field,message,id").eq("field",userField).order("created_at",{ascending:false}),
+        supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false})
       ]);
-      setRatings(rRes.data||[]);setWellness(wRes.data||[]);setLoading(false);
+      setRatings(rRes.data||[]);setWellness(wRes.data||[]);setResponses(respRes.data||[]);setLoading(false);
     })();
   },[]);
+
+  const sendResponse=async()=>{
+    if(!responseText.trim())return;
+    setResponseSent(false);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("wellness_responses").insert({
+      field:userField,message:responseText.trim(),
+      sender_name:"Wellness Team",sender_id:user.id,
+      created_at:new Date().toISOString()
+    });
+    setResponseText("");setResponding(false);setResponseSent(true);
+    setTimeout(()=>setResponseSent(false),3000);
+    const {data}=await supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false});
+    setResponses(data||[]);
+  };
 
   const avgRating=ratings.length>0?(ratings.reduce((a,r)=>a+(r.rating||0),0)/ratings.length).toFixed(1):null;
   const submissionRate=assignments.length>0?Math.round((submissions.length/Math.max(assignments.length,1))*100):0;
@@ -4031,9 +4079,39 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
         <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
           <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:10}}>💚 Anonymous Wellness Flags ({wellness.length})</div>
           <div style={{fontSize:12,color:T.t2,marginBottom:8}}>These messages were sent anonymously by students. No names are attached.</div>
-          {wellness.slice(0,5).map((w,i)=>(
-            <div key={i} style={{padding:"8px 12px",background:rgba(T.green,0.06),borderRadius:6,fontSize:12,color:T.t1,marginBottom:6,borderLeft:"3px solid "+T.green}}>{w.message}</div>
+          {wellness.slice(0,10).map((w,i)=>(
+            <div key={i} style={{padding:"10px 12px",background:rgba(T.green,0.06),borderRadius:6,fontSize:12,color:T.t1,lineHeight:1.6,fontStyle:"italic",marginBottom:6,borderLeft:"3px solid "+T.green}}>
+              <div>{w.message}</div>
+              <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(w.created_at).toLocaleDateString("en-KE")} — Anonymous Student</div>
+            </div>
           ))}
+          <div style={{marginTop:"1rem",padding:"12px",background:rgba(T.blue,0.06),border:"1px solid "+rgba(T.blue,0.2),borderRadius:8}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.blue,marginBottom:6}}>📢 Send Anonymous Response to Students</div>
+            <div style={{fontSize:11,color:T.t2,marginBottom:10}}>Your response appears in all students Wellness tab as a message from the Wellness Team — no name attached.</div>
+            {responseSent&&<div style={{background:rgba(T.green,0.1),border:"1px solid "+rgba(T.green,0.3),borderRadius:6,padding:"8px 12px",fontSize:12,color:T.green,marginBottom:8}}>Response sent to all students.</div>}
+            {responding?(
+              <div>
+                <textarea style={{...s.input,height:80,resize:"vertical",fontSize:12,marginBottom:8}} placeholder="e.g. We hear you. Please visit the counselling office Room 12, Mon-Fri 8am-5pm. You are not alone." value={responseText} onChange={e=>setResponseText(e.target.value)}/>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={sendResponse} style={{...s.btnP,fontSize:12,background:T.blue}} disabled={!responseText.trim()}>Send to All Students</button>
+                  <button onClick={()=>setResponding(false)} style={{...s.btnS,fontSize:12}}>Cancel</button>
+                </div>
+              </div>
+            ):(
+              <button onClick={()=>setResponding(true)} style={{...s.btnS,fontSize:12,borderColor:T.blue,color:T.blue}}>+ Write Response</button>
+            )}
+          </div>
+          {responses.length>0&&(
+            <div style={{marginTop:"1rem"}}>
+              <div style={{fontSize:11,fontWeight:600,color:T.t3,marginBottom:8}}>SENT RESPONSES ({responses.length})</div>
+              {responses.map((r,i)=>(
+                <div key={i} style={{padding:"8px 12px",background:rgba(T.blue,0.06),borderRadius:6,fontSize:12,color:T.t1,marginBottom:6,borderLeft:"3px solid "+T.blue}}>
+                  <div>{r.message}</div>
+                  <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(r.created_at).toLocaleDateString("en-KE")} — {r.sender_name}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
