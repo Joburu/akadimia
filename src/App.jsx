@@ -3121,6 +3121,18 @@ const ToolsView=({userField,userName})=>{
   const [mortYears,setMortYears]=useState("20");
   const [mortResult,setMortResult]=useState(null);
   const [loanRate,setLoanRate]=useState("14");
+  const [penSalary,setPenSalary]=useState("150000");
+  const [penYears,setPenYears]=useState("30");
+  const [penRate,setPenRate]=useState("12");
+  const [penContrib,setPenContrib]=useState("10");
+  const [penEmployer,setPenEmployer]=useState("5");
+  const [penResult,setPenResult]=useState(null);
+  const [nssf,setNssf]=useState({salary:"150000",tier:"2"});
+  const [nssfResult,setNssfResult]=useState(null);
+  const [dbSalary,setDbSalary]=useState("150000");
+  const [dbYears,setDbYears]=useState("30");
+  const [dbFactor,setDbFactor]=useState("1.67");
+  const [dbResult,setDbResult]=useState(null);
   const [loanAmount,setLoanAmount]=useState("500000");
   const [loanYears,setLoanYears]=useState("3");
   const [loanResult,setLoanResult]=useState(null);
@@ -3205,6 +3217,68 @@ const ToolsView=({userField,userName})=>{
 
   const fmt=(n)=>Number(n).toLocaleString("en-KE");
 
+  const calcPension=()=>{
+    const sal=parseFloat(penSalary);
+    const yrs=parseFloat(penYears);
+    const r=parseFloat(penRate)/100/12;
+    const n=yrs*12;
+    const empContrib=sal*(parseFloat(penContrib)/100);
+    const emplContrib=sal*(parseFloat(penEmployer)/100);
+    const totalMonthly=empContrib+emplContrib;
+    const fv=totalMonthly*((Math.pow(1+r,n)-1)/r);
+    const monthlyPension=fv*(parseFloat(penRate)/100/12)/
+      (1-Math.pow(1+(parseFloat(penRate)/100/12),-240));
+    setPenResult({
+      fv:fv.toFixed(0),
+      monthlyPension:monthlyPension.toFixed(0),
+      totalContrib:(totalMonthly*n).toFixed(0),
+      empMonthly:empContrib.toFixed(0),
+      emplMonthly:emplContrib.toFixed(0),
+      replacementRate:((monthlyPension/sal)*100).toFixed(1)
+    });
+  };
+
+  const calcNSSF=()=>{
+    const sal=parseFloat(nssf.salary);
+    // NSSF Act 2013 Kenya - Tier I and Tier II
+    const tier1Upper=7000;
+    const tier1Rate=0.06;
+    const tier2Rate=0.06;
+    const tier1Employee=Math.min(sal,tier1Upper)*tier1Rate;
+    const tier1Employer=Math.min(sal,tier1Upper)*tier1Rate;
+    let tier2Employee=0,tier2Employer=0;
+    if(nssf.tier==="2"&&sal>tier1Upper){
+      tier2Employee=(sal-tier1Upper)*tier2Rate;
+      tier2Employer=(sal-tier1Upper)*tier2Rate;
+    }
+    const totalEmployee=tier1Employee+tier2Employee;
+    const totalEmployer=tier1Employer+tier2Employer;
+    setNssfResult({
+      tier1Employee:tier1Employee.toFixed(0),
+      tier1Employer:tier1Employer.toFixed(0),
+      tier2Employee:tier2Employee.toFixed(0),
+      tier2Employer:tier2Employer.toFixed(0),
+      totalEmployee:totalEmployee.toFixed(0),
+      totalEmployer:totalEmployer.toFixed(0),
+      total:(totalEmployee+totalEmployer).toFixed(0)
+    });
+  };
+
+  const calcDB=()=>{
+    const sal=parseFloat(dbSalary);
+    const yrs=parseFloat(dbYears);
+    const factor=parseFloat(dbFactor)/100;
+    const annualPension=factor*yrs*sal;
+    const monthlyPension=annualPension/12;
+    const lumpsum=annualPension*3;
+    setDbResult({
+      annual:annualPension.toFixed(0),
+      monthly:monthlyPension.toFixed(0),
+      lumpsum:lumpsum.toFixed(0),
+      replacementRate:((monthlyPension/sal)*100).toFixed(1)
+    });
+  };
+
   const tools=[
     {id:"platforms",icon:"🌐",label:"Field Platforms",featured:true},
     {id:"calculator",icon:"🧮",label:"Scientific Calc"},
@@ -3213,6 +3287,7 @@ const ToolsView=({userField,userName})=>{
     {id:"mortgage",icon:"🏠",label:"Mortgage Calc"},
     {id:"loan",icon:"💳",label:"Loan Calculator"},
     {id:"currency",icon:"💱",label:"Currency Converter"},
+    {id:"pension",icon:"🏦",label:"Pension Calculator"},
     {id:"ai",icon:"🤖",label:"AI Formula Helper"},
   ];
 
@@ -3483,6 +3558,111 @@ const ToolsView=({userField,userName})=>{
                 </div>
               ))
             ]}
+          </div>
+        </div>
+      )}
+
+      {sel==="pension"&&(
+        <div>
+          <h2 style={{...s.h1,marginBottom:"0.5rem"}}>🏦 Pension Benefits Calculator</h2>
+          <p style={{...s.sub,marginBottom:"1.5rem"}}>Kenya pension computations — DC schemes, NSSF Act 2013, and Defined Benefit</p>
+
+          <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
+            {[["dc","Defined Contribution (DC)"],["nssf","NSSF Kenya"],["db","Defined Benefit (DB)"]].map(([id,label])=>(
+              <button key={id} onClick={()=>{setPenResult(null);setNssfResult(null);setDbResult(null);setSel("pension_"+id);}} style={{...s.btnS,fontSize:12}}>{label}</button>
+            ))}
+          </div>
+
+          {/* DC Scheme */}
+          <div style={{...s.card,marginBottom:"1rem"}}>
+            <div style={{fontSize:14,fontWeight:600,color:T.ac,marginBottom:"1rem"}}>Defined Contribution (DC) Pension Scheme</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+              <div><label style={s.lbl}>MONTHLY GROSS SALARY (KES)</label><input style={s.input} type="number" value={penSalary} onChange={e=>setPenSalary(e.target.value)}/></div>
+              <div><label style={s.lbl}>YEARS TO RETIREMENT</label><input style={s.input} type="number" value={penYears} onChange={e=>setPenYears(e.target.value)}/></div>
+              <div><label style={s.lbl}>EMPLOYEE CONTRIBUTION (%)</label><input style={s.input} type="number" value={penContrib} onChange={e=>setPenContrib(e.target.value)}/></div>
+              <div><label style={s.lbl}>EMPLOYER CONTRIBUTION (%)</label><input style={s.input} type="number" value={penEmployer} onChange={e=>setPenEmployer(e.target.value)}/></div>
+              <div><label style={s.lbl}>ANNUAL FUND RETURN (%)</label><input style={s.input} type="number" value={penRate} onChange={e=>setPenRate(e.target.value)}/></div>
+            </div>
+            <button onClick={calcPension} style={s.btnP}>Calculate DC Pension</button>
+            {penResult&&(
+              <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10}}>
+                {[
+                  ["Projected Fund Value","KES "+fmt(penResult.fv),T.ac],
+                  ["Est. Monthly Pension","KES "+fmt(penResult.monthlyPension),T.green],
+                  ["Total Contributions","KES "+fmt(penResult.totalContrib),T.blue],
+                  ["Your Monthly Contrib","KES "+fmt(penResult.empMonthly),T.purple],
+                  ["Employer Monthly","KES "+fmt(penResult.emplMonthly),T.teal],
+                  ["Income Replacement",penResult.replacementRate+"%",parseFloat(penResult.replacementRate)>=60?T.green:T.amber],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
+                    <div style={{fontSize:16,fontWeight:700,color:c}}>{v}</div>
+                    <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* NSSF */}
+          <div style={{...s.card,marginBottom:"1rem"}}>
+            <div style={{fontSize:14,fontWeight:600,color:T.green,marginBottom:"1rem"}}>NSSF Kenya — Act 2013 Contributions</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+              <div><label style={s.lbl}>GROSS SALARY (KES)</label><input style={s.input} type="number" value={nssf.salary} onChange={e=>setNssf({...nssf,salary:e.target.value})}/></div>
+              <div><label style={s.lbl}>NSSF TIER</label>
+                <select style={s.input} value={nssf.tier} onChange={e=>setNssf({...nssf,tier:e.target.value})}>
+                  <option value="1">Tier I only (up to KES 7,000)</option>
+                  <option value="2">Tier I + Tier II (above KES 7,000)</option>
+                </select>
+              </div>
+            </div>
+            <button onClick={calcNSSF} style={{...s.btnP,background:T.green}}>Calculate NSSF</button>
+            {nssfResult&&(
+              <div style={{marginTop:"1rem"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:10}}>
+                  {[
+                    ["Tier I Employee","KES "+fmt(nssfResult.tier1Employee),T.blue],
+                    ["Tier I Employer","KES "+fmt(nssfResult.tier1Employer),T.blue],
+                    ["Tier II Employee","KES "+fmt(nssfResult.tier2Employee),T.purple],
+                    ["Tier II Employer","KES "+fmt(nssfResult.tier2Employer),T.purple],
+                    ["Your Total","KES "+fmt(nssfResult.totalEmployee),T.green],
+                    ["Combined Total","KES "+fmt(nssfResult.total),T.ac],
+                  ].map(([l,v,c])=>(
+                    <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px",textAlign:"center"}}>
+                      <div style={{fontSize:15,fontWeight:700,color:c}}>{v}</div>
+                      <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:11,color:T.t3,padding:"8px 12px",background:T.bg3,borderRadius:6}}>Based on NSSF Act 2013: Tier I rate 6% employee + 6% employer on pensionable wages up to KES 7,000. Tier II rate 6%+6% on balance. Verify with RBA Kenya for current rates.</div>
+              </div>
+            )}
+          </div>
+
+          {/* Defined Benefit */}
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.amber,marginBottom:"1rem"}}>Defined Benefit (DB) — Final Salary Scheme</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:"1rem"}}>
+              <div><label style={s.lbl}>FINAL MONTHLY SALARY (KES)</label><input style={s.input} type="number" value={dbSalary} onChange={e=>setDbSalary(e.target.value)}/></div>
+              <div><label style={s.lbl}>YEARS OF SERVICE</label><input style={s.input} type="number" value={dbYears} onChange={e=>setDbYears(e.target.value)}/></div>
+              <div><label style={s.lbl}>ACCRUAL RATE (% per year)</label><input style={s.input} type="number" value={dbFactor} onChange={e=>setDbFactor(e.target.value)} placeholder="e.g. 1.67 for 1/60th"/></div>
+            </div>
+            <div style={{fontSize:11,color:T.t3,marginBottom:"0.75rem"}}>Common accrual rates: 1.67% (1/60th scheme), 1.25% (1/80th scheme), 2% (1/50th scheme)</div>
+            <button onClick={calcDB} style={{...s.btnP,background:T.amber,color:"#000"}}>Calculate DB Pension</button>
+            {dbResult&&(
+              <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10}}>
+                {[
+                  ["Annual Pension","KES "+fmt(dbResult.annual),T.amber],
+                  ["Monthly Pension","KES "+fmt(dbResult.monthly),T.green],
+                  ["Commutation (3x)","KES "+fmt(dbResult.lumpsum),T.ac],
+                  ["Income Replacement",dbResult.replacementRate+"%",parseFloat(dbResult.replacementRate)>=60?T.green:T.red],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"12px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                    <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
