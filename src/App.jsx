@@ -630,7 +630,7 @@ const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId,notifs,setNotifs})=>{
         <input placeholder="Search courses, resources, people..." style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"7px 12px 7px 30px",color:T.t1,fontSize:12,fontFamily:"'DM Sans',sans-serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
       </div>
       <div style={{flex:1}}/>
-      <select value={lang} onChange={e=>setLang(e.target.value)} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
+      <select value={lang} onChange={e=>{setLang(e.target.value);localStorage.setItem('ak_lang',e.target.value);}} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
         {langOpts.map(pair=><option key={pair[0]} value={pair[0]}>{pair[1].flag}</option>)}
       </select>
       <select value={themeId} onChange={e=>setThemeId(e.target.value)} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
@@ -3615,10 +3615,19 @@ const ToolsView=({userField,userName})=>{
         </div>
       )}
 
+      {["law","medicine","nursing","education","theology","history","artdesign","music","socialwork","communication"].includes(userField)&&(
+        <div style={{...s.card,background:"linear-gradient(135deg,"+rgba(T.ac,0.08)+","+rgba(T.purple,0.05)+")",border:"1px solid "+rgba(T.ac,0.2),marginBottom:"1rem"}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:6}}>💡 Tools available for {(fld&&fld.name)||userField}</div>
+          <div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>
+            The calculators (GPA, annuity, mortgage, loan, currency) are useful for all students. The actuarial tools (pension, VaR, bond pricing, life insurance) are primarily designed for finance and actuarial students but are available for cross-disciplinary learning. The Field Platforms section shows your field-specific professional tools.
+          </div>
+        </div>
+      )}
+
       {sel==="platforms"&&(
         <div>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🔗 Field Tools & Platforms</div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:"1.25rem"}}>Recommended tools and platforms for <strong>{(fld&&fld.name)||userField}</strong> students. All links open the official platform.</div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1.25rem"}}>Recommended tools and platforms for <strong>{(fld&&fld.name)||userField}</strong> students. All links open the official platform. Tools shown are specific to your field.</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
             {[
               ...(fld&&fld.tools||["Python","R","SPSS","Excel","LaTeX"]).map(tool=>{
@@ -3681,7 +3690,7 @@ const ToolsView=({userField,userName})=>{
         </div>
       )}
 
-      {sel==="pension"&&(
+      {sel==="pension"&&(!["law","medicine","nursing","education","theology","history","artdesign","music","socialwork","communication","tvet_fashion","tvet_beauty","tvet_food"].includes(userField)?(
         <div>
           <h2 style={{...s.h1,marginBottom:"0.5rem"}}>🏦 Pension Benefits Calculator</h2>
           <p style={{...s.sub,marginBottom:"1.5rem"}}>Kenya pension computations — DC schemes, NSSF Act 2013, and Defined Benefit</p>
@@ -4789,7 +4798,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Language</div>
           <div style={{display:"grid",gap:7}}>
             {langOpts.map(lo=>(
-              <div key={lo[0]} onClick={()=>setLang(lo[0])} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${lang===lo[0]?T.ac:T.bd}`,background:lang===lo[0]?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
+              <div key={lo[0]} onClick={()=>{setLang(lo[0]);localStorage.setItem("ak_lang",lo[0]);}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${lang===lo[0]?T.ac:T.bd}`,background:lang===lo[0]?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
                 <span style={{fontSize:18}}>{lo[1].flag}</span>
                 <span style={{fontSize:12,fontWeight:lang===lo[0]?600:400,color:lang===lo[0]?T.ac:T.t1,flex:1}}>{lo[1].name}</span>
                 {lang===lo[0]&&<span style={{color:T.ac}}>C</span>}
@@ -4852,7 +4861,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
 };
 
 export default function App(){
-  const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState("en"),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
+  const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState(()=>localStorage.getItem('ak_lang')||'en'),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
   const [showTerms,setShowTerms]=useState(false);
