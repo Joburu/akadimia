@@ -3699,7 +3699,7 @@ const ToolsView=({userField,userName})=>{
         </div>
       )}
 
-      {sel==="pension"&&(!["law","medicine","nursing","education","theology","history","artdesign","music","socialwork","communication","tvet_fashion","tvet_beauty","tvet_food"].includes(userField)?(
+      {sel==="pension"&&(
         <div>
           <h2 style={{...s.h1,marginBottom:"0.5rem"}}>🏦 Pension Benefits Calculator</h2>
           <p style={{...s.sub,marginBottom:"1.5rem"}}>Kenya pension computations — DC schemes, NSSF Act 2013, and Defined Benefit</p>
