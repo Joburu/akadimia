@@ -3126,6 +3126,7 @@ const ToolsView=({userField,userName})=>{
   const [penRate,setPenRate]=useState("12");
   const [penContrib,setPenContrib]=useState("10");
   const [penEmployer,setPenEmployer]=useState("5");
+  const [penSalaryGrowth,setPenSalaryGrowth]=useState("5");
   const [penResult,setPenResult]=useState(null);
   const [nssf,setNssf]=useState({salary:"150000",tier:"2"});
   const [nssfResult,setNssfResult]=useState(null);
@@ -3133,6 +3134,25 @@ const ToolsView=({userField,userName})=>{
   const [dbYears,setDbYears]=useState("30");
   const [dbFactor,setDbFactor]=useState("1.67");
   const [dbResult,setDbResult]=useState(null);
+  // Life insurance states
+  const [lifeAge,setLifeAge]=useState("35");
+  const [lifeSum,setLifeSum]=useState("5000000");
+  const [lifeTerm,setLifeTerm]=useState("20");
+  const [lifeSmoker,setLifeSmoker]=useState("no");
+  const [lifeResult,setLifeResult]=useState(null);
+  // VaR states
+  const [varPortfolio,setVarPortfolio]=useState("1000000");
+  const [varReturn,setVarReturn]=useState("12");
+  const [varVolatility,setVarVolatility]=useState("15");
+  const [varConfidence,setVarConfidence]=useState("95");
+  const [varResult,setVarResult]=useState(null);
+  // Bond states
+  const [bondFace,setBondFace]=useState("100000");
+  const [bondCoupon,setBondCoupon]=useState("12");
+  const [bondYield,setBondYield]=useState("10");
+  const [bondYears,setBondYears]=useState("5");
+  const [bondFreq,setBondFreq]=useState("2");
+  const [bondResult,setBondResult]=useState(null);
   const [loanAmount,setLoanAmount]=useState("500000");
   const [loanYears,setLoanYears]=useState("3");
   const [loanResult,setLoanResult]=useState(null);
@@ -3217,24 +3237,120 @@ const ToolsView=({userField,userName})=>{
 
   const fmt=(n)=>Number(n).toLocaleString("en-KE");
 
+  const calcLifeInsurance=()=>{
+    const age=parseInt(lifeAge);
+    const sum=parseFloat(lifeSum);
+    const term=parseInt(lifeTerm);
+    // Simplified mortality-based premium using Kenya life tables approximation
+    // Base mortality rate increases with age
+    const baseMortality=0.001*Math.exp(0.07*(age-20));
+    const smokerMult=lifeSmoker==="yes"?2.0:1.0;
+    const adjMortality=baseMortality*smokerMult;
+    // Net annual premium (simplified)
+    const r=0.08;
+    let apv=0;
+    for(let t=1;t<=term;t++){
+      const survProb=Math.exp(-adjMortality*t);
+      apv+=survProb*adjMortality*Math.pow(1+r,-t);
+    }
+    const annuity=(1-Math.pow(1+r,-term))/r;
+    const annualPremium=(sum*apv)/annuity;
+    const monthlyPremium=annualPremium/12;
+    const totalPremium=annualPremium*term;
+    setLifeResult({
+      annual:annualPremium.toFixed(0),
+      monthly:monthlyPremium.toFixed(0),
+      total:totalPremium.toFixed(0),
+      coverRatio:(sum/totalPremium).toFixed(1),
+      mortality:(adjMortality*1000).toFixed(2)
+    });
+  };
+
+  const calcVaR=()=>{
+    const p=parseFloat(varPortfolio);
+    const mu=parseFloat(varReturn)/100;
+    const sigma=parseFloat(varVolatility)/100;
+    const conf=parseFloat(varConfidence)/100;
+    // Z-scores for common confidence levels
+    const zScores={0.90:1.282,0.95:1.645,0.99:2.326,0.999:3.090};
+    const z=zScores[conf]||1.645;
+    // Daily VaR (assuming 252 trading days)
+    const dailySigma=sigma/Math.sqrt(252);
+    const dailyMu=mu/252;
+    const varDaily=p*(z*dailySigma-dailyMu);
+    const varMonthly=p*(z*sigma/Math.sqrt(12)-mu/12);
+    const varAnnual=p*(z*sigma-mu);
+    const cvarDaily=p*(dailySigma*Math.exp(-z*z/2)/(1-conf)/Math.sqrt(2*Math.PI));
+    setVarResult({
+      daily:varDaily.toFixed(0),
+      monthly:varMonthly.toFixed(0),
+      annual:varAnnual.toFixed(0),
+      cvar:cvarDaily.toFixed(0),
+      sharpe:((mu-0.08)/sigma).toFixed(3)
+    });
+  };
+
+  const calcBond=()=>{
+    const face=parseFloat(bondFace);
+    const c=parseFloat(bondCoupon)/100;
+    const y=parseFloat(bondYield)/100;
+    const n=parseFloat(bondYears);
+    const freq=parseFloat(bondFreq);
+    const couponPayment=face*c/freq;
+    const periodsPerYear=freq;
+    const totalPeriods=n*periodsPerYear;
+    const periodYield=y/periodsPerYear;
+    // Price = PV of coupons + PV of face
+    let price=0;
+    for(let t=1;t<=totalPeriods;t++){
+      price+=couponPayment/Math.pow(1+periodYield,t);
+    }
+    price+=face/Math.pow(1+periodYield,totalPeriods);
+    // Duration (Macaulay)
+    let duration=0;
+    for(let t=1;t<=totalPeriods;t++){
+      duration+=(t/freq)*(couponPayment/Math.pow(1+periodYield,t))/price;
+    }
+    duration+=(n)*(face/Math.pow(1+periodYield,totalPeriods))/price;
+    const modDuration=duration/(1+periodYield);
+    const convexity=price*Math.pow(1+periodYield,-2)*(totalPeriods*(totalPeriods+1)*face/Math.pow(1+periodYield,totalPeriods)+couponPayment*2/Math.pow(periodYield,3)*(totalPeriods*periodYield-(1+periodYield)*(1-Math.pow(1+periodYield,-totalPeriods))))/price;
+    setBondResult({
+      price:price.toFixed(2),
+      pricePercentage:(price/face*100).toFixed(2),
+      duration:duration.toFixed(4),
+      modDuration:modDuration.toFixed(4),
+      premium:price>face?"Premium":"Discount",
+      totalCoupon:(couponPayment*totalPeriods).toFixed(0)
+    });
+  };
+
   const calcPension=()=>{
     const sal=parseFloat(penSalary);
     const yrs=parseFloat(penYears);
     const r=parseFloat(penRate)/100/12;
+    const g=parseFloat(penSalaryGrowth)/100/12;
     const n=yrs*12;
-    const empContrib=sal*(parseFloat(penContrib)/100);
-    const emplContrib=sal*(parseFloat(penEmployer)/100);
-    const totalMonthly=empContrib+emplContrib;
-    const fv=totalMonthly*((Math.pow(1+r,n)-1)/r);
-    const monthlyPension=fv*(parseFloat(penRate)/100/12)/
-      (1-Math.pow(1+(parseFloat(penRate)/100/12),-240));
+    // Project salary to retirement with annual growth
+    const finalSalary=sal*Math.pow(1+parseFloat(penSalaryGrowth)/100,yrs);
+    // Use growing annuity formula for FV when salary grows
+    let fv=0;
+    for(let i=1;i<=n;i++){
+      const salAtTime=sal*Math.pow(1+g,i-1);
+      const contrib=salAtTime*(parseFloat(penContrib)+parseFloat(penEmployer))/100;
+      fv+=contrib*Math.pow(1+r,n-i);
+    }
+    // Monthly pension as 20-year annuity at retirement
+    const monthlyPension=fv*(r)/(1-Math.pow(1+r,-240));
+    const totalContrib=sal*(parseFloat(penContrib)+parseFloat(penEmployer))/100*n;
+    const replacementRate=(monthlyPension/finalSalary)*100;
     setPenResult({
       fv:fv.toFixed(0),
       monthlyPension:monthlyPension.toFixed(0),
-      totalContrib:(totalMonthly*n).toFixed(0),
-      empMonthly:empContrib.toFixed(0),
-      emplMonthly:emplContrib.toFixed(0),
-      replacementRate:((monthlyPension/sal)*100).toFixed(1)
+      finalSalary:finalSalary.toFixed(0),
+      totalContrib:totalContrib.toFixed(0),
+      empMonthly:(sal*parseFloat(penContrib)/100).toFixed(0),
+      emplMonthly:(sal*parseFloat(penEmployer)/100).toFixed(0),
+      replacementRate:replacementRate.toFixed(1)
     });
   };
 
@@ -3288,6 +3404,9 @@ const ToolsView=({userField,userName})=>{
     {id:"loan",icon:"💳",label:"Loan Calculator"},
     {id:"currency",icon:"💱",label:"Currency Converter"},
     {id:"pension",icon:"🏦",label:"Pension Calculator"},
+    {id:"life",icon:"❤️",label:"Life Insurance"},
+    {id:"risk",icon:"⚠️",label:"Risk & VaR"},
+    {id:"bond",icon:"📑",label:"Bond Pricing"},
     {id:"ai",icon:"🤖",label:"AI Formula Helper"},
   ];
 
@@ -3582,17 +3701,19 @@ const ToolsView=({userField,userName})=>{
               <div><label style={s.lbl}>EMPLOYEE CONTRIBUTION (%)</label><input style={s.input} type="number" value={penContrib} onChange={e=>setPenContrib(e.target.value)}/></div>
               <div><label style={s.lbl}>EMPLOYER CONTRIBUTION (%)</label><input style={s.input} type="number" value={penEmployer} onChange={e=>setPenEmployer(e.target.value)}/></div>
               <div><label style={s.lbl}>ANNUAL FUND RETURN (%)</label><input style={s.input} type="number" value={penRate} onChange={e=>setPenRate(e.target.value)}/></div>
+              <div><label style={s.lbl}>ANNUAL SALARY GROWTH (%)</label><input style={s.input} type="number" value={penSalaryGrowth} onChange={e=>setPenSalaryGrowth(e.target.value)} placeholder="e.g. 5"/></div>
             </div>
+            <div style={{fontSize:11,color:T.t3,marginBottom:"0.75rem",padding:"8px 12px",background:T.bg3,borderRadius:6}}>Assumes salary grows annually. Income replacement is against projected final salary at retirement — a more realistic measure than today's salary.</div>
             <button onClick={calcPension} style={s.btnP}>Calculate DC Pension</button>
             {penResult&&(
               <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10}}>
                 {[
                   ["Projected Fund Value","KES "+fmt(penResult.fv),T.ac],
                   ["Est. Monthly Pension","KES "+fmt(penResult.monthlyPension),T.green],
-                  ["Total Contributions","KES "+fmt(penResult.totalContrib),T.blue],
-                  ["Your Monthly Contrib","KES "+fmt(penResult.empMonthly),T.purple],
-                  ["Employer Monthly","KES "+fmt(penResult.emplMonthly),T.teal],
-                  ["Income Replacement",penResult.replacementRate+"%",parseFloat(penResult.replacementRate)>=60?T.green:T.amber],
+                  ["Projected Final Salary","KES "+fmt(penResult.finalSalary),T.blue],
+                  ["Total Contributions","KES "+fmt(penResult.totalContrib),T.purple],
+                  ["Your Monthly (Today)","KES "+fmt(penResult.empMonthly),T.teal],
+                  ["Income Replacement",penResult.replacementRate+"%",parseFloat(penResult.replacementRate)>=60?T.green:parseFloat(penResult.replacementRate)>=40?T.amber:T.red],
                 ].map(([l,v,c])=>(
                   <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
                     <div style={{fontSize:16,fontWeight:700,color:c}}>{v}</div>
@@ -3664,6 +3785,123 @@ const ToolsView=({userField,userName})=>{
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {sel==="life"&&(
+        <div style={s.card}>
+          <h2 style={{fontSize:15,fontWeight:700,color:T.t1,marginBottom:4}}>❤️ Life Insurance Premium Estimator</h2>
+          <p style={{fontSize:12,color:T.t2,marginBottom:"1rem"}}>Indicative term life premiums using simplified Kenya mortality assumptions. For actual quotes contact an IRA-licensed insurer.</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>CURRENT AGE</label><input style={s.input} type="number" value={lifeAge} onChange={e=>setLifeAge(e.target.value)}/></div>
+            <div><label style={s.lbl}>SUM ASSURED (KES)</label><input style={s.input} type="number" value={lifeSum} onChange={e=>setLifeSum(e.target.value)}/></div>
+            <div><label style={s.lbl}>POLICY TERM (YEARS)</label><input style={s.input} type="number" value={lifeTerm} onChange={e=>setLifeTerm(e.target.value)}/></div>
+            <div><label style={s.lbl}>SMOKER STATUS</label>
+              <select style={s.input} value={lifeSmoker} onChange={e=>setLifeSmoker(e.target.value)}>
+                <option value="no">Non-Smoker</option>
+                <option value="yes">Smoker (2x mortality)</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={calcLifeInsurance} style={s.btnP}>Estimate Premium</button>
+          {lifeResult&&(
+            <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10}}>
+              {[
+                ["Annual Premium","KES "+fmt(lifeResult.annual),T.ac],
+                ["Monthly Premium","KES "+fmt(lifeResult.monthly),T.green],
+                ["Total Premiums Paid","KES "+fmt(lifeResult.total),T.blue],
+                ["Cover Ratio",lifeResult.coverRatio+"x",T.purple],
+                ["Mortality Rate (‰)",lifeResult.mortality+" per 1000",T.amber],
+              ].map(([l,v,c])=>(
+                <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:700,color:c}}>{v}</div>
+                  <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{fontSize:10,color:T.t3,marginTop:"1rem",padding:"8px",background:T.bg3,borderRadius:6}}>Disclaimer: This is an educational estimate only. Actual premiums depend on full medical underwriting. Verify with IRA Kenya licensed insurers.</div>
+        </div>
+      )}
+
+      {sel==="risk"&&(
+        <div style={s.card}>
+          <h2 style={{fontSize:15,fontWeight:700,color:T.t1,marginBottom:4}}>⚠️ Value at Risk (VaR) & Portfolio Risk</h2>
+          <p style={{fontSize:12,color:T.t2,marginBottom:"1rem"}}>Parametric VaR using normal distribution. Used in risk management and Solvency II reporting.</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>PORTFOLIO VALUE (KES)</label><input style={s.input} type="number" value={varPortfolio} onChange={e=>setVarPortfolio(e.target.value)}/></div>
+            <div><label style={s.lbl}>EXPECTED ANNUAL RETURN (%)</label><input style={s.input} type="number" value={varReturn} onChange={e=>setVarReturn(e.target.value)}/></div>
+            <div><label style={s.lbl}>ANNUAL VOLATILITY / STD DEV (%)</label><input style={s.input} type="number" value={varVolatility} onChange={e=>setVarVolatility(e.target.value)}/></div>
+            <div><label style={s.lbl}>CONFIDENCE LEVEL</label>
+              <select style={s.input} value={varConfidence} onChange={e=>setVarConfidence(e.target.value)}>
+                <option value="90">90% (z = 1.282)</option>
+                <option value="95">95% (z = 1.645)</option>
+                <option value="99">99% (z = 2.326)</option>
+                <option value="99.9">99.9% (z = 3.090)</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={calcVaR} style={{...s.btnP,background:T.red}}>Calculate VaR</button>
+          {varResult&&(
+            <div style={{marginTop:"1rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10,marginBottom:"1rem"}}>
+                {[
+                  ["1-Day VaR","KES "+fmt(varResult.daily),T.red],
+                  ["1-Month VaR","KES "+fmt(varResult.monthly),T.amber],
+                  ["1-Year VaR","KES "+fmt(varResult.annual),T.purple],
+                  ["1-Day CVaR (ES)","KES "+fmt(varResult.cvar),T.red],
+                  ["Sharpe Ratio",varResult.sharpe,parseFloat(varResult.sharpe)>1?T.green:T.amber],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:16,fontWeight:700,color:c}}>{v}</div>
+                    <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:11,color:T.t3,padding:"8px 12px",background:T.bg3,borderRadius:6}}>VaR: Maximum expected loss at given confidence level. CVaR (Expected Shortfall): Average loss beyond VaR threshold. Parametric method assumes normality.</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {sel==="bond"&&(
+        <div style={s.card}>
+          <h2 style={{fontSize:15,fontWeight:700,color:T.t1,marginBottom:4}}>📑 Bond Pricing & Duration Calculator</h2>
+          <p style={{fontSize:12,color:T.t2,marginBottom:"1rem"}}>Price fixed-income securities, compute Macaulay and modified duration. Relevant for Kenya government bonds and corporate debt.</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>FACE VALUE (KES)</label><input style={s.input} type="number" value={bondFace} onChange={e=>setBondFace(e.target.value)}/></div>
+            <div><label style={s.lbl}>COUPON RATE (% p.a.)</label><input style={s.input} type="number" value={bondCoupon} onChange={e=>setBondCoupon(e.target.value)}/></div>
+            <div><label style={s.lbl}>MARKET YIELD / YTM (%)</label><input style={s.input} type="number" value={bondYield} onChange={e=>setBondYield(e.target.value)}/></div>
+            <div><label style={s.lbl}>YEARS TO MATURITY</label><input style={s.input} type="number" value={bondYears} onChange={e=>setBondYears(e.target.value)}/></div>
+            <div><label style={s.lbl}>COUPON FREQUENCY</label>
+              <select style={s.input} value={bondFreq} onChange={e=>setBondFreq(e.target.value)}>
+                <option value="1">Annual</option>
+                <option value="2">Semi-Annual</option>
+                <option value="4">Quarterly</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={calcBond} style={{...s.btnP,background:T.purple}}>Price Bond</button>
+          {bondResult&&(
+            <div style={{marginTop:"1rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10,marginBottom:"1rem"}}>
+                {[
+                  ["Clean Price","KES "+fmt(bondResult.price),T.purple],
+                  ["Price (% of Face)",bondResult.pricePercentage+"%",T.ac],
+                  ["Macaulay Duration",bondResult.duration+" yrs",T.blue],
+                  ["Modified Duration",bondResult.modDuration+" yrs",T.teal],
+                  ["Total Coupon Income","KES "+fmt(bondResult.totalCoupon),T.green],
+                  ["Trading At",bondResult.premium,bondResult.premium==="Premium"?T.amber:T.green],
+                ].map(([l,v,c])=>(
+                  <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"10px",textAlign:"center"}}>
+                    <div style={{fontSize:16,fontWeight:700,color:c}}>{v}</div>
+                    <div style={{fontSize:10,color:T.t3,marginTop:2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:11,color:T.t3,padding:"8px 12px",background:T.bg3,borderRadius:6}}>Modified Duration measures price sensitivity to yield changes. A duration of {bondResult.modDuration} means a 1% yield rise reduces price by ~{bondResult.modDuration}%. Relevant for Kenya Treasury bonds traded on NSE.</div>
+            </div>
+          )}
         </div>
       )}
 
