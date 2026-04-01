@@ -3197,6 +3197,7 @@ const ToolsView=({userField,userName})=>{
     {id:"mortgage",icon:"🏠",label:"Mortgage Calc"},
     {id:"loan",icon:"💳",label:"Loan Calculator"},
     {id:"currency",icon:"💱",label:"Currency Converter"},
+    {id:"platforms",icon:"🔗",label:"Field Platforms"},
     {id:"ai",icon:"🤖",label:"AI Formula Helper"},
   ];
 
@@ -3369,6 +3370,72 @@ const ToolsView=({userField,userName})=>{
             ))}
           </div>
           <div style={{fontSize:10,color:T.t3,marginTop:8}}>Rates are approximate. Verify on CBK or your bank for official rates.</div>
+        </div>
+      )}
+
+      {sel==="platforms"&&(
+        <div>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🔗 Field Tools & Platforms</div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1.25rem"}}>Recommended tools and platforms for <strong>{(fld&&fld.name)||userField}</strong> students. All links open the official platform.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+            {[
+              ...(fld&&fld.tools||["Python","R","SPSS","Excel","LaTeX"]).map(tool=>{
+                const TOOL_INFO={
+                  "Python":{icon:"🐍",desc:"General purpose programming, data analysis, machine learning",url:"https://colab.research.google.com",site:"Google Colab (Free)",color:"#3776AB"},
+                  "R":{icon:"📊",desc:"Statistical computing, data visualisation and modelling",url:"https://rstudio.cloud",site:"Posit Cloud (Free)",color:"#276DC3"},
+                  "STATA":{icon:"📉",desc:"Statistical analysis and econometrics",url:"https://www.stata.com/learning-resources/",site:"Stata Learning Resources",color:"#1A5276"},
+                  "SPSS":{icon:"🔢",desc:"Statistical analysis, surveys and social science research",url:"https://www.ibm.com/academic/topic/data-science",site:"IBM SPSS (Academic)",color:"#052FAD"},
+                  "LaTeX":{icon:"📝",desc:"Scientific document preparation and mathematical typesetting",url:"https://www.overleaf.com",site:"Overleaf (Free)",color:"#4CAF50"},
+                  "Excel":{icon:"📗",desc:"Spreadsheet analysis, financial modelling and data management",url:"https://office.com",site:"Microsoft 365 Online",color:"#217346"},
+                  "SAS":{icon:"📈",desc:"Advanced analytics, business intelligence and data management",url:"https://welcome.oda.sas.com",site:"SAS OnDemand (Free)",color:"#0076CE"},
+                  "NVivo":{icon:"🔍",desc:"Qualitative data analysis and research",url:"https://lumivero.com/products/nvivo/",site:"NVivo by Lumivero",color:"#8B4513"},
+                  "Zotero":{icon:"📚",desc:"Reference management and citation tool",url:"https://www.zotero.org",site:"Zotero (Free)",color:"#CC2936"},
+                  "LexisNexis":{icon:"⚖️",desc:"Legal research database and case law",url:"https://www.lexisnexis.com",site:"LexisNexis",color:"#CC0000"},
+                  "Westlaw":{icon:"📜",desc:"Legal research and case law database",url:"https://legal.thomsonreuters.com/en/products/westlaw",site:"Westlaw",color:"#003366"},
+                  "GIS":{icon:"🗺️",desc:"Geographic information systems and spatial analysis",url:"https://www.arcgis.com",site:"ArcGIS Online (Free)",color:"#2E7D32"},
+                  "AutoCAD":{icon:"📐",desc:"Computer-aided design and drafting",url:"https://www.autodesk.com/education/",site:"AutoCAD (Student Free)",color:"#E53935"},
+                  "MATLAB":{icon:"🔬",desc:"Numerical computing and simulation",url:"https://matlab.mathworks.com",site:"MATLAB Online",color:"#E87722"},
+                  "Python (ML)":{icon:"🤖",desc:"Machine learning and deep learning with Python",url:"https://colab.research.google.com",site:"Google Colab (Free)",color:"#3776AB"},
+                };
+                const info=TOOL_INFO[tool]||{icon:"🔧",desc:"Professional tool for "+((fld&&fld.name)||userField),url:"https://www.google.com/search?q="+tool+" tutorial",site:"Search Resources",color:T.ac};
+                return(
+                  <div key={tool} style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                    <div style={{background:info.color+"22",borderBottom:"1px solid "+T.bd,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:24}}>{info.icon}</span>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:700,color:T.t1}}>{tool}</div>
+                        <div style={{fontSize:10,color:info.color,fontWeight:600}}>{info.site}</div>
+                      </div>
+                    </div>
+                    <div style={{padding:"12px 16px"}}>
+                      <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:12}}>{info.desc}</div>
+                      <a href={info.url} target="_blank" rel="noreferrer" style={{...s.btnP,display:"block",textAlign:"center",textDecoration:"none",fontSize:12,padding:"8px",background:info.color,border:"none"}}>Open Platform →</a>
+                    </div>
+                  </div>
+                );
+              }),
+              ...[
+                {tool:"Google Scholar",icon:"🎓",desc:"Free academic search engine for research papers and citations",url:"https://scholar.google.com",site:"scholar.google.com",color:"#4285F4"},
+                {tool:"ResearchGate",icon:"🔬",desc:"Academic network to share papers and connect with researchers",url:"https://www.researchgate.net",site:"researchgate.net",color:"#00D2FF"},
+                {tool:"Wolfram Alpha",icon:"🧮",desc:"Computational knowledge engine for maths and science queries",url:"https://www.wolframalpha.com",site:"wolframalpha.com",color:"#E07000"},
+                {tool:"Coursera",icon:"🎒",desc:"Free audit access to university courses from top institutions",url:"https://www.coursera.org",site:"coursera.org",color:"#0056D2"},
+              ].map(({tool,icon,desc,url,site,color})=>(
+                <div key={tool} style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                  <div style={{background:color+"22",borderBottom:"1px solid "+T.bd,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:24}}>{icon}</span>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:700,color:T.t1}}>{tool}</div>
+                      <div style={{fontSize:10,color,fontWeight:600}}>{site}</div>
+                    </div>
+                  </div>
+                  <div style={{padding:"12px 16px"}}>
+                    <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:12}}>{desc}</div>
+                    <a href={url} target="_blank" rel="noreferrer" style={{...s.btnP,display:"block",textAlign:"center",textDecoration:"none",fontSize:12,padding:"8px",background:color,border:"none"}}>Open Platform →</a>
+                  </div>
+                </div>
+              ))
+            ]}
+          </div>
         </div>
       )}
 
