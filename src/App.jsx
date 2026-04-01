@@ -2971,6 +2971,15 @@ const ProgrammeView=({userField,role,userName})=>{
         <span style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:10,height:10,borderRadius:2,background:T.amber,display:"inline-block"}}/>Elective</span>
       </div>
 
+      {userField!=="actuarial"&&(
+        <div style={{...s.card,textAlign:"center",padding:"2.5rem",marginBottom:"1.5rem",border:"1px solid "+rgba(T.amber,0.3),background:rgba(T.amber,0.05)}}>
+          <div style={{fontSize:36,marginBottom:12}}>🏗️</div>
+          <div style={{fontSize:15,fontWeight:600,color:T.amber,marginBottom:8}}>Programme Coming Soon for {(FIELDS[userField]&&FIELDS[userField].name)||userField}</div>
+          <div style={{fontSize:12,color:T.t2,lineHeight:1.7,maxWidth:480,margin:"0 auto"}}>
+            The full programme structure for your field is being added. Currently showing the Actuarial Science programme as a reference. Your department can upload your official curriculum via the Admin panel, or contact the AKADIMIA administrator.
+          </div>
+        </div>
+      )}
       {loading?(
         <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
           <div style={{fontSize:32,marginBottom:12}}>📚</div>
