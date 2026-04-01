@@ -3624,6 +3624,15 @@ const ToolsView=({userField,userName})=>{
         </div>
       )}
 
+      {["law","medicine","nursing","education","theology","history","artdesign","music","socialwork","communication"].includes(userField)&&(
+        <div style={{...s.card,background:"linear-gradient(135deg,"+rgba(T.ac,0.08)+","+rgba(T.purple,0.05)+")",border:"1px solid "+rgba(T.ac,0.2),marginBottom:"1rem"}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.ac,marginBottom:6}}>💡 Tools available for {(fld&&fld.name)||userField}</div>
+          <div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>
+            The calculators (GPA, annuity, mortgage, loan, currency) are useful for all students. The actuarial tools (pension, VaR, bond pricing, life insurance) are primarily designed for finance and actuarial students but are available for cross-disciplinary learning. The Field Platforms section shows your field-specific professional tools.
+          </div>
+        </div>
+      )}
+
       {sel==="platforms"&&(
         <div>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🔗 Field Tools & Platforms</div>
