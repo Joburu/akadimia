@@ -564,8 +564,8 @@ const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exam
 
 const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
   const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
-  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme"};
-  const nav=[...NAV_BASE,...(role==="lecturer"||role==="admin"?[{id:"classroom",icon:"🎓"}]:[]),...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom"};
+  const nav=[...NAV_BASE,{id:"classroom",icon:"🏫"},...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
   return(
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
@@ -618,7 +618,7 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
 const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId,notifs,setNotifs})=>{
   const [showNotifs,setShowNotifs]=useState(false);
   const T=useT();const t=useLang();
-  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme"};
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom"};
   const langOpts=Object.entries(LANGS);
   const themeOpts=Object.values(THEMES);
   return(
@@ -2356,7 +2356,7 @@ const AnalyticsView=({userField,userName,role})=>{
 
       <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
         <button onClick={()=>setCertMode(false)} style={{...(certMode?s.btnS:s.btnP),fontSize:12}}>Career Score</button>
-        <button onClick={()=>setCertMode(true)} style={{...(certMode?s.btnP:s.btnS),fontSize:12}}>Digital Certificate</button>
+        {(role==="lecturer"||role==="admin")&&<button onClick={()=>setCertMode(true)} style={{...(certMode?s.btnP:s.btnS),fontSize:12}}>Digital Certificate</button>}
       </div>
 
       {!certMode&&(<div>
@@ -3087,63 +3087,307 @@ const ProgrammeView=({userField,role,userName})=>{
   );
 };
 
-const ToolsView=({userField})=>{
-  const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
-  const myTools=(FIELD_DATA[userField]&&FIELD_DATA[userField].tools)||["Python","R","STATA","SPSS"];
-  const [sel,setSel]=useState(myTools[0]);const info=TOOLS_INFO[sel]||{};
-  const resourceItems=[["Official Docs","Primary reference"],["Video Tutorials","Guided courses"],["Practice Datasets","Real-world data"],["Community Forum","Get help"]];
+const ToolsView=({userField,userName})=>{
+  const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const [sel,setSel]=useState("calculator");
+  const [calcInput,setCalcInput]=useState("");
+  const [calcResult,setCalcResult]=useState("");
+  const [pvRate,setPvRate]=useState("8");
+  const [pvN,setPvN]=useState("10");
+  const [pvPmt,setPvPmt]=useState("100000");
+  const [pvResult,setPvResult]=useState(null);
+  const [unitInput,setUnitInput]=useState("");
+  const [unitFrom,setUnitFrom]=useState("KES");
+  const [unitTo,setUnitTo]=useState("USD");
+  const [unitResult,setUnitResult]=useState(null);
+  const [fxRates,setFxRates]=useState({USD:0.0077,EUR:0.0071,GBP:0.0061,UGX:28.5,TZS:20.1,ETB:0.43,ZAR:0.14});
+  const [aiTool,setAiTool]=useState("");
+  const [aiPrompt,setAiPrompt]=useState("");
+  const [aiResult,setAiResult]=useState("");
+  const [aiLoading,setAiLoading]=useState(false);
+  const [gpaUnits,setGpaUnits]=useState([{name:"",credits:"3",grade:"A"}]);
+  const [gpaResult,setGpaResult]=useState(null);
+  const [mortRate,setMortRate]=useState("9");
+  const [mortAmount,setMortAmount]=useState("5000000");
+  const [mortYears,setMortYears]=useState("20");
+  const [mortResult,setMortResult]=useState(null);
+  const [loanRate,setLoanRate]=useState("14");
+  const [loanAmount,setLoanAmount]=useState("500000");
+  const [loanYears,setLoanYears]=useState("3");
+  const [loanResult,setLoanResult]=useState(null);
+
+  const gradePoints={"A+":4.0,"A":4.0,"A-":3.7,"B+":3.3,"B":3.0,"B-":2.7,"C+":2.3,"C":2.0,"C-":1.7,"D+":1.3,"D":1.0,"F":0.0};
+
+  const calcGPA=()=>{
+    const valid=gpaUnits.filter(u=>u.name&&u.credits&&u.grade);
+    if(valid.length===0)return;
+    const totalCredits=valid.reduce((a,u)=>a+parseFloat(u.credits||0),0);
+    const totalPoints=valid.reduce((a,u)=>a+(gradePoints[u.grade]||0)*parseFloat(u.credits||0),0);
+    const gpa=totalCredits>0?(totalPoints/totalCredits).toFixed(2):0;
+    const cls=gpa>=3.7?"First Class Honours":gpa>=3.3?"Upper Second Class":gpa>=3.0?"Second Class":gpa>=2.0?"Pass":"Fail";
+    setGpaResult({gpa,cls,totalCredits,totalPoints:totalPoints.toFixed(1)});
+  };
+
+  const calcPV=()=>{
+    const r=parseFloat(pvRate)/100;
+    const n=parseFloat(pvN);
+    const pmt=parseFloat(pvPmt);
+    if(isNaN(r)||isNaN(n)||isNaN(pmt))return;
+    const pv=pmt*((1-Math.pow(1+r,-n))/r);
+    const fv=pmt*((Math.pow(1+r,n)-1)/r);
+    const totalPaid=pmt*n;
+    setPvResult({pv:pv.toFixed(2),fv:fv.toFixed(2),totalPaid:totalPaid.toFixed(2)});
+  };
+
+  const calcMortgage=()=>{
+    const r=parseFloat(mortRate)/100/12;
+    const n=parseFloat(mortYears)*12;
+    const p=parseFloat(mortAmount);
+    if(isNaN(r)||isNaN(n)||isNaN(p))return;
+    const monthly=p*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+    const total=monthly*n;
+    setMortResult({monthly:monthly.toFixed(0),total:total.toFixed(0),interest:(total-p).toFixed(0)});
+  };
+
+  const calcLoan=()=>{
+    const r=parseFloat(loanRate)/100/12;
+    const n=parseFloat(loanYears)*12;
+    const p=parseFloat(loanAmount);
+    if(isNaN(r)||isNaN(n)||isNaN(p))return;
+    const monthly=p*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+    const total=monthly*n;
+    setLoanResult({monthly:monthly.toFixed(0),total:total.toFixed(0),interest:(total-p).toFixed(0)});
+  };
+
+  const convertCurrency=()=>{
+    const amt=parseFloat(unitInput);
+    if(isNaN(amt))return;
+    if(unitFrom==="KES"&&fxRates[unitTo]){
+      setUnitResult((amt*fxRates[unitTo]).toFixed(2)+" "+unitTo);
+    }else if(unitTo==="KES"&&fxRates[unitFrom]){
+      setUnitResult((amt/fxRates[unitFrom]).toFixed(2)+" KES");
+    }else{
+      const inKES=amt/fxRates[unitFrom];
+      setUnitResult((inKES*fxRates[unitTo]).toFixed(2)+" "+unitTo);
+    }
+  };
+
+  const askAI=async()=>{
+    if(!aiPrompt.trim())return;
+    setAiLoading(true);setAiResult("");
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,
+          messages:[{role:"user",content:"You are an expert in "+((fld&&fld.name)||"Actuarial Science")+". "+aiPrompt}]})
+      });
+      const d=await res.json();
+      setAiResult(d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"No response");
+    }catch(e){setAiResult("Error: "+e.message);}
+    setAiLoading(false);
+  };
+
+  const fmt=(n)=>Number(n).toLocaleString("en-KE");
+
+  const tools=[
+    {id:"calculator",icon:"🧮",label:"Scientific Calc"},
+    {id:"gpa",icon:"🎓",label:"GPA Calculator"},
+    {id:"annuity",icon:"📈",label:"Annuity & PV"},
+    {id:"mortgage",icon:"🏠",label:"Mortgage Calc"},
+    {id:"loan",icon:"💳",label:"Loan Calculator"},
+    {id:"currency",icon:"💱",label:"Currency Converter"},
+    {id:"ai",icon:"🤖",label:"AI Formula Helper"},
+  ];
+
   return(
     <div>
-      <h1 style={s.h1}>{t("tools")}</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{(fld&&fld.icon)} {(fld&&fld.name)}</span>Analytical tools used by professionals in your field</p>
-      <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
-        {myTools.map(tool=>{
-          const inf=TOOLS_INFO[tool]||{};const active=sel===tool;
-          return(
-            <button key={tool} onClick={()=>setSel(tool)} style={{padding:"8px 18px",borderRadius:9,border:`1px solid ${active?(inf.color||T.ac):T.bd}`,background:active?rgba(inf.color||T.ac,0.18):T.bg2,color:active?(inf.color||T.ac):T.t2,fontSize:13,fontWeight:active?600:400,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
-              {tool}
-            </button>
-          );
-        })}
+      <h1 style={s.h1}>Tools Hub</h1>
+      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>Live interactive tools for actuarial and financial computation</p>
+
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1.5rem"}}>
+        {tools.map(t=>(
+          <button key={t.id} onClick={()=>setSel(t.id)} style={{...( sel===t.id?s.btnP:s.btnS),fontSize:11,padding:"7px 14px",display:"flex",alignItems:"center",gap:5}}>
+            <span>{t.icon}</span>{t.label}
+          </button>
+        ))}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:14}}>
-        <div>
-          <div style={{...s.card,marginBottom:12}}>
-            <div style={{fontSize:14,fontWeight:600,color:info.color||T.ac,marginBottom:8}}>{sel}</div>
-            <div style={{fontSize:12,color:T.t2,lineHeight:1.65,marginBottom:"1rem"}}>{info.desc}</div>
-            <a href={info.link||"#"} target="_blank" rel="noreferrer" style={{...s.btnP,display:"block",textAlign:"center",textDecoration:"none",fontSize:12,padding:"8px"}}>Open {info.site||sel}</a>
+
+      {sel==="calculator"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🧮 Scientific Calculator</div>
+          <div style={{background:T.bg0,borderRadius:10,padding:"1rem",marginBottom:"1rem",border:"1px solid "+T.bd}}>
+            <input style={{...s.input,fontSize:20,fontFamily:"monospace",textAlign:"right",marginBottom:8}} value={calcInput} onChange={e=>setCalcInput(e.target.value)} placeholder="Enter expression e.g. Math.sqrt(25) * 1.08^10"/>
+            <div style={{background:T.bg3,borderRadius:8,padding:"10px 16px",fontSize:22,fontFamily:"monospace",color:T.ac,textAlign:"right",minHeight:44}}>{calcResult||"0"}</div>
           </div>
-          <div style={s.card}>
-            <div style={{fontSize:11,color:T.ac,fontWeight:700,letterSpacing:0.6,marginBottom:10}}>RESOURCES</div>
-            {resourceItems.map(ri=>(
-              <div key={ri[0]} style={{padding:"7px 0",borderBottom:`1px solid ${T.bd}`}}>
-                <div style={{fontSize:12,color:T.t1,fontWeight:500,marginBottom:2}}>{ri[0]}</div>
-                <div style={{fontSize:11,color:T.t3}}>{ri[1]}</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:8}}>
+            {["7","8","9","÷","√","4","5","6","×","x²","1","2","3","-","1/x","0",".","=","+","C","(",")","%","^","ln"].map(btn=>(
+              <button key={btn} onClick={()=>{
+                if(btn==="C"){setCalcInput("");setCalcResult("");}
+                else if(btn==="="){
+                  try{
+                    const expr=calcInput.replace(/÷/g,"/").replace(/×/g,"*").replace(/√/g,"Math.sqrt(").replace(/x²/g,"**2").replace(/\^/g,"**").replace(/ln/g,"Math.log(").replace(/1\/x/g,"1/");
+                    setCalcResult(String(eval(expr)));
+                  }catch{setCalcResult("Error");}
+                }else{
+                  setCalcInput(p=>p+(btn==="√"?"Math.sqrt(":btn==="ln"?"Math.log(":btn));
+                }
+              }} style={{padding:"10px 0",borderRadius:8,border:"1px solid "+T.bd,background:["=","C"].includes(btn)?T.ac:["÷","×","-","+","^"].includes(btn)?rgba(T.ac,0.15):T.bg3,color:btn==="="||btn==="C"?"#000":T.t1,cursor:"pointer",fontSize:13,fontWeight:["=","C"].includes(btn)?700:400}}>
+                {btn}
+              </button>
+            ))}
+          </div>
+          <div style={{fontSize:11,color:T.t3}}>Tip: Use Math.pow(1.08,10) for compound interest, Math.sqrt() for standard deviation</div>
+        </div>
+      )}
+
+      {sel==="gpa"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🎓 GPA / Degree Classification Calculator</div>
+          <div style={{display:"grid",gap:8,marginBottom:"1rem"}}>
+            {gpaUnits.map((u,i)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 100px 36px",gap:8,alignItems:"center"}}>
+                <input style={{...s.input,fontSize:12}} placeholder="Unit name e.g. WAB 201" value={u.name} onChange={e=>{const a=[...gpaUnits];a[i]={...a[i],name:e.target.value};setGpaUnits(a);}}/>
+                <input style={{...s.input,fontSize:12,textAlign:"center"}} placeholder="Credits" type="number" value={u.credits} onChange={e=>{const a=[...gpaUnits];a[i]={...a[i],credits:e.target.value};setGpaUnits(a);}}/>
+                <select style={{...s.input,fontSize:12}} value={u.grade} onChange={e=>{const a=[...gpaUnits];a[i]={...a[i],grade:e.target.value};setGpaUnits(a);}}>
+                  {Object.keys(gradePoints).map(g=><option key={g}>{g}</option>)}
+                </select>
+                <button onClick={()=>setGpaUnits(gpaUnits.filter((_,j)=>j!==i))} style={{background:"none",border:"1px solid "+T.red+"44",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px"}}>✕</button>
               </div>
             ))}
           </div>
+          <div style={{display:"flex",gap:8,marginBottom:"1rem"}}>
+            <button onClick={()=>setGpaUnits([...gpaUnits,{name:"",credits:"3",grade:"A"}])} style={{...s.btnS,fontSize:12}}>+ Add Unit</button>
+            <button onClick={calcGPA} style={{...s.btnP,fontSize:12}}>Calculate GPA</button>
+          </div>
+          {gpaResult&&(
+            <div style={{background:rgba(T.green,0.08),border:"1px solid "+rgba(T.green,0.25),borderRadius:10,padding:"1rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+                {[["GPA",gpaResult.gpa,T.ac],["Classification",gpaResult.cls,T.green],["Total Credits",gpaResult.totalCredits,T.blue],["Quality Points",gpaResult.totalPoints,T.purple]].map(([l,v,c])=>(
+                  <div key={l} style={{textAlign:"center"}}>
+                    <div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div>
+                    <div style={{fontSize:11,color:T.t3}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div style={s.card}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.85rem"}}>
-              <div style={{fontSize:14,fontWeight:600,color:T.t1}}>Getting Started with {sel}</div>
-              <Pill text={sel} color={info.color||T.ac}/>
+      )}
+
+      {sel==="annuity"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>📈 Annuity & Present Value Calculator</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>ANNUAL INTEREST RATE (%)</label><input style={s.input} type="number" value={pvRate} onChange={e=>setPvRate(e.target.value)}/></div>
+            <div><label style={s.lbl}>NUMBER OF PERIODS (n)</label><input style={s.input} type="number" value={pvN} onChange={e=>setPvN(e.target.value)}/></div>
+            <div><label style={s.lbl}>PAYMENT PER PERIOD (KES)</label><input style={s.input} type="number" value={pvPmt} onChange={e=>setPvPmt(e.target.value)}/></div>
+          </div>
+          <button onClick={calcPV} style={{...s.btnP,marginBottom:"1rem"}}>Calculate</button>
+          {pvResult&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {[["Present Value (PV)","KES "+fmt(pvResult.pv),T.ac],["Future Value (FV)","KES "+fmt(pvResult.fv),T.green],["Total Payments","KES "+fmt(pvResult.totalPaid),T.amber]].map(([l,v,c])=>(
+                <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"12px",textAlign:"center"}}>
+                  <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{l}</div>
+                </div>
+              ))}
             </div>
-            <div style={{background:T.bg0,border:`1px solid ${T.bd}`,borderRadius:10,padding:"1.1rem"}}>
-              <pre style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:T.t1,margin:0,lineHeight:1.65,whiteSpace:"pre-wrap"}}>{"# "+sel+" in "+(fld&&fld.name)+"\n# Open "+info.site+" to start coding\n# EduBot can generate field-specific examples"}</pre>
+          )}
+          <div style={{fontSize:11,color:T.t3,marginTop:"1rem"}}>Formula: PV = PMT × [1 - (1+r)^-n] / r</div>
+        </div>
+      )}
+
+      {sel==="mortgage"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>🏠 Mortgage Calculator (Kenya)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>LOAN AMOUNT (KES)</label><input style={s.input} type="number" value={mortAmount} onChange={e=>setMortAmount(e.target.value)}/></div>
+            <div><label style={s.lbl}>ANNUAL RATE (%)</label><input style={s.input} type="number" value={mortRate} onChange={e=>setMortRate(e.target.value)}/></div>
+            <div><label style={s.lbl}>TERM (YEARS)</label><input style={s.input} type="number" value={mortYears} onChange={e=>setMortYears(e.target.value)}/></div>
+          </div>
+          <button onClick={calcMortgage} style={{...s.btnP,marginBottom:"1rem"}}>Calculate</button>
+          {mortResult&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {[["Monthly Payment","KES "+fmt(mortResult.monthly),T.ac],["Total Paid","KES "+fmt(mortResult.total),T.amber],["Total Interest","KES "+fmt(mortResult.interest),T.red]].map(([l,v,c])=>(
+                <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"12px",textAlign:"center"}}>
+                  <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{l}</div>
+                </div>
+              ))}
             </div>
-            <div style={{display:"flex",gap:8,marginTop:"0.85rem"}}>
-              <a href={info.link||"#"} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"6px 14px"}}>Open Platform</a>
-              <button style={{...s.btnP,fontSize:11,padding:"6px 14px"}}>Ask EduBot</button>
+          )}
+        </div>
+      )}
+
+      {sel==="loan"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>💳 Loan Repayment Calculator</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div><label style={s.lbl}>LOAN AMOUNT (KES)</label><input style={s.input} type="number" value={loanAmount} onChange={e=>setLoanAmount(e.target.value)}/></div>
+            <div><label style={s.lbl}>ANNUAL RATE (%)</label><input style={s.input} type="number" value={loanRate} onChange={e=>setLoanRate(e.target.value)}/></div>
+            <div><label style={s.lbl}>TERM (YEARS)</label><input style={s.input} type="number" value={loanYears} onChange={e=>setLoanYears(e.target.value)}/></div>
+          </div>
+          <button onClick={calcLoan} style={{...s.btnP,marginBottom:"1rem"}}>Calculate</button>
+          {loanResult&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {[["Monthly Repayment","KES "+fmt(loanResult.monthly),T.ac],["Total Repayment","KES "+fmt(loanResult.total),T.amber],["Total Interest","KES "+fmt(loanResult.interest),T.red]].map(([l,v,c])=>(
+                <div key={l} style={{background:rgba(c,0.1),border:"1px solid "+rgba(c,0.25),borderRadius:8,padding:"12px",textAlign:"center"}}>
+                  <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {sel==="currency"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>💱 Currency Converter (KES Base)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 120px 120px",gap:12,marginBottom:"1rem",alignItems:"end"}}>
+            <div><label style={s.lbl}>AMOUNT</label><input style={s.input} type="number" value={unitInput} onChange={e=>setUnitInput(e.target.value)} placeholder="Enter amount"/></div>
+            <div><label style={s.lbl}>FROM</label>
+              <select style={s.input} value={unitFrom} onChange={e=>setUnitFrom(e.target.value)}>
+                {["KES","USD","EUR","GBP","UGX","TZS","ETB","ZAR"].map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div><label style={s.lbl}>TO</label>
+              <select style={s.input} value={unitTo} onChange={e=>setUnitTo(e.target.value)}>
+                {["KES","USD","EUR","GBP","UGX","TZS","ETB","ZAR"].map(c=><option key={c}>{c}</option>)}
+              </select>
             </div>
           </div>
-          <div style={s.acCard}>
-            <div style={{fontSize:11,color:T.ac,letterSpacing:0.8,marginBottom:8}}>AI-POWERED LEARNING</div>
-            <div style={{fontSize:12,color:T.t2,lineHeight:1.65,marginBottom:10}}>EduBot understands {sel} and can generate field-specific code examples for {(fld&&fld.name)}, explain errors, and suggest analysis workflows.</div>
-            <button style={s.btnP}>Open EduBot</button>
+          <button onClick={convertCurrency} style={{...s.btnP,marginBottom:"1rem"}}>Convert</button>
+          {unitResult&&<div style={{background:rgba(T.ac,0.1),border:"1px solid "+rgba(T.ac,0.3),borderRadius:10,padding:"1rem",fontSize:24,fontWeight:700,color:T.ac,textAlign:"center"}}>{unitInput} {unitFrom} = {unitResult}</div>}
+          <div style={{marginTop:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:8}}>
+            {Object.entries(fxRates).map(([cur,rate])=>(
+              <div key={cur} style={{background:T.bg3,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:11,color:T.t3}}>1 KES</div>
+                <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{rate.toFixed(4)} {cur}</div>
+              </div>
+            ))}
           </div>
+          <div style={{fontSize:10,color:T.t3,marginTop:8}}>Rates are approximate. Verify on CBK or your bank for official rates.</div>
         </div>
-      </div>
+      )}
+
+      {sel==="ai"&&(
+        <div style={s.card}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>🤖 AI Formula & Concept Helper</div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem"}}>Ask anything — formula derivations, actuarial concepts, statistical methods, financial models</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:"0.75rem"}}>
+            {["Derive the Black-Scholes formula","Explain credibility theory","Show the Kaplan-Meier estimator","Derive net premium for whole life policy","Explain VaR and CVaR","Show ARIMA model selection criteria"].map(q=>(
+              <button key={q} onClick={()=>setAiPrompt(q)} style={{...s.btnS,fontSize:10,padding:"4px 10px"}}>{q}</button>
+            ))}
+          </div>
+          <textarea style={{...s.input,height:80,resize:"vertical",fontSize:12,marginBottom:"0.75rem"}} placeholder={"Ask a "+((fld&&fld.name)||"actuarial")+" question..."} value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)}/>
+          <button onClick={askAI} style={{...s.btnP,marginBottom:"1rem"}} disabled={aiLoading||!aiPrompt.trim()}>{aiLoading?"Thinking...":"Ask AI"}</button>
+          {aiResult&&(
+            <div style={{background:T.bg3,borderRadius:10,padding:"1rem",fontSize:12,color:T.t1,lineHeight:1.8,whiteSpace:"pre-wrap",border:"1px solid "+T.bd}}>{aiResult}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -4119,7 +4363,7 @@ export default function App(){
     meetings:<MeetingsView role={role} userField={userField} userName={userName}/>,
     opps:<OppsView userField={userField}/>,
     analytics:<AnalyticsView userField={userField} userName={userName} role={role}/>,
-    tools:<ToolsView userField={userField}/>,
+    tools:<ToolsView userField={userField} userName={userName}/>,
     transcript:<TranscriptView userField={userField}/>,
     peers:<PeersView setTab={persistTab} userField={userField}/>,
     innovation:<InnovationHub userName={userName} role={role} userField={userField}/>,
