@@ -2879,7 +2879,7 @@ const ProgrammeView=({userField,role,userName})=>{
 
   const fieldCourses=courses.filter(c=>(c.field||"actuarial")===userField);
   const hasOwnCourses=fieldCourses.length>0;
-  const filtered=(hasOwnCourses?fieldCourses:courses.filter(c=>c.field==="actuarial")).filter(c=>{
+  const filtered=(hasOwnCourses?fieldCourses:[]).filter(c=>{
     if((c.programme_level||"undergraduate")!==progLevel)return false;
     if(c.year!==yearFilter)return false;
     if(semFilter!=="all"&&c.semester!==parseInt(semFilter))return false;
