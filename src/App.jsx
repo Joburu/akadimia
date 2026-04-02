@@ -4115,133 +4115,133 @@ const TranscriptView=({userField})=>{
     </div>
   );
 };
-const PeersView=({setTab,userField,userName,userId})=>{
-  const T=useT();const s=sx(T);
-  const [peersTab,setPeersTab]=useState("peers");
-  const [chatMsgs,setChatMsgs]=useState([]);
-  const [chatInput,setChatInput]=useState("");
-  const [chatLoading,setChatLoading]=useState(false);
-  const [chatSending,setChatSending]=useState(false);
-
-  const loadChat=async()=>{
-    setChatLoading(true);
-    const {supabase}=await import("./supabase.js");
-    const {data}=await supabase.from("community_messages").select("*").order("created_at",{ascending:true}).limit(100);
-    setChatMsgs(data||[]);setChatLoading(false);
-  };
-
-  const sendChat=async()=>{
-    if(!chatInput.trim())return;
-    setChatSending(true);
-    const {supabase}=await import("./supabase.js");
-    await supabase.from("community_messages").insert({user_id:userId,user_name:userName,user_field:userField,message:chatInput.trim()});
-    setChatInput("");loadChat();setChatSending(false);
-  };
-
-  useEffect(()=>{if(peersTab==="community")loadChat();},[peersTab]);
-  const [peers,setPeers]=useState([]);
+const CommunityChat=({userId,userName,userField,T,s})=>{
+  const [msgs,setMsgs]=useState([]);
+  const [input,setInput]=useState("");
   const [loading,setLoading]=useState(true);
-  const [filter,setFilter]=useState("all");
-  const fld=FIELDS[userField];
+  const [sending,setSending]=useState(false);
 
   const load=async()=>{
-    setLoading(true);
     const {supabase}=await import("./supabase.js");
-    const {data}=await supabase.from("profiles").select("full_name,field,year_level,programme_level,role").eq("status","approved").neq("full_name",userName);
-    setPeers(data||[]);setLoading(false);
+    const {data}=await supabase.from("community_messages").select("*").order("created_at",{ascending:true}).limit(100);
+    setMsgs(data||[]);setLoading(false);
   };
   useEffect(()=>{load();},[]);
 
-  const filtered=filter==="field"?peers.filter(p=>p.field===userField):filter==="year"?peers.filter(p=>p.field===userField&&p.year_level):filter==="lecturers"?peers.filter(p=>p.role==="lecturer"||p.role==="admin"):peers;
-  const getInitials=(n)=>n?n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():"??";
-  const fieldColors=Object.fromEntries(Object.entries(FIELDS).map(([k,v])=>[k,v.color]));
+  const send=async()=>{
+    if(!input.trim())return;
+    setSending(true);
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("community_messages").insert({user_id:userId,user_name:userName,user_field:userField,message:input.trim()});
+    setInput("");setSending(false);load();
+  };
 
   return(
-    <div>
-      <h1 style={s.h1}>Peers & Community</h1>
-      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-        <button onClick={()=>setPeersTab("peers")} style={{...(peersTab==="peers"?s.btnP:s.btnS),fontSize:12}}>👥 Peers Directory</button>
-        <button onClick={()=>setPeersTab("community")} style={{...(peersTab==="community"?s.btnP:s.btnS),fontSize:12,background:peersTab==="community"?T.purple:"none",border:"1px solid "+(peersTab==="community"?T.purple:rgba(T.purple,0.4)),color:peersTab==="community"?"#fff":T.purple}}>💬 Community Chat</button>
-      </div>
-      {peersTab==="community"&&(
-        <div style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,display:"flex",flexDirection:"column",height:"68vh",overflow:"hidden"}}>
-          <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{fontSize:13,fontWeight:600,color:T.t1}}>Community Chat</div>
-              <div style={{fontSize:11,color:T.t3}}>Open conversation for all students</div>
-            </div>
-            <button onClick={loadChat} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>Refresh</button>
-          </div>
-          <div style={{flex:1,overflowY:"auto",padding:"1rem"}}>
-            {chatLoading&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>}
-            {!chatLoading&&chatMsgs.length===0&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Start the conversation.</div>}
-            {!chatLoading&&chatMsgs.map(m=>{
-              const isMe=m.user_id===userId;
-              const fld=FIELDS[m.user_field];
-              return(
-                <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:10}}>
-                  <div style={{width:30,height:30,borderRadius:"50%",background:fld?fld.color+"33":T.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:fld?fld.color:T.ac,flexShrink:0}}>
-                    {(m.user_name||"?")[0].toUpperCase()}
-                  </div>
-                  <div style={{maxWidth:"70%"}}>
-                    <div style={{fontSize:10,color:T.t3,marginBottom:2,textAlign:isMe?"right":"left"}}>
-                      {isMe?"You":m.user_name}
-                    </div>
-                    <div style={{background:isMe?T.ac:T.bg3,color:isMe?"#000":T.t1,borderRadius:10,padding:"8px 12px",fontSize:12,lineHeight:1.5}}>
-                      {m.message}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{padding:"12px 16px",borderTop:"1px solid "+T.bd,display:"flex",gap:8}}>
-            <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();sendChat();}}}/>
-            <button onClick={sendChat} style={{...s.btnP,padding:"8px 16px",fontSize:12}} disabled={!chatInput.trim()||chatSending}>{chatSending?"...":"Send"}</button>
-          </div>
-        </div>
-      )}
-      {peersTab==="peers"&&(<div>
-      <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
-
-      <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
-        {[["all","All"],["field","My Field"],["year","My Field & Year"],["lecturers","Lecturers"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setFilter(id)} style={{...(filter===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
-        ))}
-      </div>
-
-      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading peers...</div>:(
+    <div style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,display:"flex",flexDirection:"column",height:"68vh",overflow:"hidden"}}>
+      <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontSize:12,color:T.t3,marginBottom:"0.75rem"}}>{filtered.length} student{filtered.length!==1?"s":""} found</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
-            {filtered.map((p,i)=>{
-              const fc=fieldColors[p.field]||T.ac;
-              const peerFld=FIELDS[p.field];
-              return(
-                <div key={i} style={{...s.card,textAlign:"center",padding:"1.25rem"}}>
-                  <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,"+fc+"44,"+fc+"22)",border:"2px solid "+fc+"55",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px",fontSize:18,fontWeight:700,color:fc}}>
-                    {getInitials(p.full_name)}
-                  </div>
-                  <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:4}}>{p.full_name}</div>
-                  <div style={{fontSize:11,color:fc,marginBottom:4}}>{peerFld?peerFld.icon+" "+peerFld.name:p.field}</div>
-                  {p.year_level&&<div style={{fontSize:10,color:T.t3,marginBottom:8}}>{p.year_level}</div>}
-                  <div style={{display:"inline-block",background:rgba(fc,0.12),color:fc,borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:500,textTransform:"capitalize"}}>{p.role==="admin"?"Admin":p.role==="lecturer"?"Lecturer":p.role==="researcher"?"Researcher":"Student"}</div>
-                </div>
-              );
-            })}
-          </div>
-          {filtered.length===0&&(
-            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-              <div style={{fontSize:40,marginBottom:12}}>👥</div>
-              <div style={{fontSize:14,color:T.t2}}>No peers found for this filter.</div>
-            </div>
-          )}
+          <div style={{fontSize:13,fontWeight:600,color:T.t1}}>Community Chat</div>
+          <div style={{fontSize:11,color:T.t3}}>Open to all students and staff</div>
         </div>
+        <button onClick={load} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>↻</button>
       </div>
-    )}
+      <div style={{flex:1,overflowY:"auto",padding:"1rem",display:"flex",flexDirection:"column",gap:8}}>
+        {loading&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>}
+        {!loading&&msgs.length===0&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Start the conversation!</div>}
+        {!loading&&msgs.map(m=>{
+          const isMe=m.user_id===userId;
+          const fld=FIELDS[m.user_field];
+          return(
+            <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end"}}>
+              <div style={{width:30,height:30,borderRadius:"50%",background:fld?fld.color+"33":T.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:fld?fld.color:T.ac,flexShrink:0}}>
+                {(m.user_name||"?")[0].toUpperCase()}
+              </div>
+              <div style={{maxWidth:"72%"}}>
+                <div style={{fontSize:10,color:T.t3,marginBottom:2,textAlign:isMe?"right":"left"}}>{isMe?"You":m.user_name}</div>
+                <div style={{background:isMe?T.ac:T.bg3,color:isMe?"#000":T.t1,borderRadius:10,padding:"8px 12px",fontSize:12,lineHeight:1.5}}>{m.message}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{padding:"12px 16px",borderTop:"1px solid "+T.bd,display:"flex",gap:8}}>
+        <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();send();}}}/>
+        <button onClick={send} style={{...s.btnP,padding:"8px 16px",fontSize:12}} disabled={!input.trim()||sending}>{sending?"...":"Send"}</button>
+      </div>
     </div>
   );
 };
+
+const PeersView=({setTab,userField,userName,userId})=>{
+  const T=useT();const s=sx(T);
+  const [peersTab,setPeersTab]=useState("peers");
+  const [peers,setPeers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState("all");
+
+  useEffect(()=>{
+    (async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data}=await supabase.from("profiles").select("*").eq("status","approved").neq("id",(await supabase.auth.getUser()).data.user?.id||"").order("full_name");
+      setPeers(data||[]);setLoading(false);
+    })();
+  },[]);
+
+  const fieldColors={};
+  Object.entries(FIELDS).forEach(([k,v])=>{fieldColors[k]=v.color;});
+  const getInitials=n=>(n||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const filtered=filter==="all"?peers:filter==="field"?peers.filter(p=>p.field===userField):filter==="year"?peers.filter(p=>p.field===userField&&p.year_level):peers.filter(p=>p.role==="lecturer"||p.role==="admin");
+
+  return(
+    <div>
+      <h1 style={s.h1}>Peers and Community</h1>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        <button onClick={()=>setPeersTab("peers")} style={{...(peersTab==="peers"?s.btnP:s.btnS),fontSize:12}}>Peers Directory</button>
+        <button onClick={()=>setPeersTab("community")} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+rgba(T.purple,0.5),background:peersTab==="community"?T.purple:"none",color:peersTab==="community"?"#fff":T.purple,fontSize:12,cursor:"pointer",fontWeight:peersTab==="community"?700:400}}>Community Chat</button>
+      </div>
+      {peersTab==="community"&&<CommunityChat userId={userId} userName={userName} userField={userField} T={T} s={s}/>}
+      {peersTab==="peers"&&(
+        <div>
+          <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
+          <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
+            {[["all","All"],["field","My Field"],["year","My Field and Year"],["lecturers","Lecturers"]].map(([id,label])=>(
+              <button key={id} onClick={()=>setFilter(id)} style={{...(filter===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
+            ))}
+          </div>
+          {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading peers...</div>:(
+            <div>
+              <div style={{fontSize:12,color:T.t3,marginBottom:"0.75rem"}}>{filtered.length} student{filtered.length!==1?"s":""}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+                {filtered.map((p,i)=>{
+                  const fc=fieldColors[p.field]||T.ac;
+                  const peerFld=FIELDS[p.field];
+                  return(
+                    <div key={i} style={{...s.card,textAlign:"center",padding:"1.25rem"}}>
+                      <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,"+fc+","+fc+"88)",margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:18}}>
+                        {getInitials(p.full_name)}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:4}}>{p.full_name}</div>
+                      <div style={{fontSize:11,color:fc,marginBottom:4}}>{peerFld?peerFld.icon+" "+peerFld.name:p.field}</div>
+                      {p.year_level&&<div style={{fontSize:10,color:T.t3,marginBottom:8}}>{p.year_level}</div>}
+                      <div style={{display:"inline-block",background:rgba(fc,0.12),color:fc,borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:600,textTransform:"capitalize"}}>{p.role||"student"}</div>
+                    </div>
+                  );
+                })}
+                {filtered.length===0&&(
+                  <div style={{...s.card,textAlign:"center",padding:"3rem",gridColumn:"1/-1"}}>
+                    <div style={{fontSize:40,marginBottom:12}}>👥</div>
+                    <div style={{fontSize:14,color:T.t2}}>No peers found for this filter.</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const WellnessResponses=({userField,T,s})=>{
   const [responses,setResponses]=useState([]);
   useEffect(()=>{
