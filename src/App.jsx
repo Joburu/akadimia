@@ -4164,27 +4164,39 @@ const PeersView=({setTab,userField,userName,userId})=>{
         <button onClick={()=>setPeersTab("community")} style={{...(peersTab==="community"?s.btnP:s.btnS),fontSize:12,background:peersTab==="community"?T.purple:"none",border:"1px solid "+(peersTab==="community"?T.purple:rgba(T.purple,0.4)),color:peersTab==="community"?"#fff":T.purple}}>💬 Community Chat</button>
       </div>
       {peersTab==="community"&&(
-        <div style={{...s.card,display:"flex",flexDirection:"column",height:"68vh",padding:0,overflow:"hidden"}}>
+        <div style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,display:"flex",flexDirection:"column",height:"68vh",overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:13,fontWeight:600,color:T.t1}}>Community Chat</div><div style={{fontSize:11,color:T.t3}}>Open conversation — all fields, all years</div></div>
-            <button onClick={loadChat} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>↻ Refresh</button>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:T.t1}}>Community Chat</div>
+              <div style={{fontSize:11,color:T.t3}}>Open conversation for all students</div>
+            </div>
+            <button onClick={loadChat} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>Refresh</button>
           </div>
-          <div style={{flex:1,overflowY:"auto",padding:"1rem",display:"flex",flexDirection:"column",gap:8}}>
-            {chatLoading?(<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>):
-            chatMsgs.length===0?(<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Be the first to say something!</div>):(
-            chatMsgs.map(m=>{const isMe=m.user_id===userId;const fld=FIELDS[m.user_field];return(
-              <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end"}}>
-                <div style={{width:32,height:32,borderRadius:"50%",background:fld?fld.color+"44":rgba(T.ac,0.2),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,fontWeight:700,color:fld?fld.color:T.ac}}>{(m.user_name||"?")[0].toUpperCase()}</div>
-                <div style={{maxWidth:"70%"}}>
-                  <div style={{fontSize:10,color:T.t3,marginBottom:2,textAlign:isMe?"right":"left"}}>{isMe?"You":m.user_name}{fld&&<span style={{color:fld.color}}> · {fld.icon} {fld.name}</span>}</div>
-                  <div style={{background:isMe?T.ac:T.bg3,color:isMe?"#000":T.t1,borderRadius:isMe?"12px 12px 4px 12px":"12px 12px 12px 4px",padding:"8px 12px",fontSize:12,lineHeight:1.5}}>{m.message}</div>
-                  <div style={{fontSize:9,color:T.t3,marginTop:2,textAlign:isMe?"right":"left"}}>{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</div>
+          <div style={{flex:1,overflowY:"auto",padding:"1rem"}}>
+            {chatLoading&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>}
+            {!chatLoading&&chatMsgs.length===0&&<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Start the conversation.</div>}
+            {!chatLoading&&chatMsgs.map(m=>{
+              const isMe=m.user_id===userId;
+              const fld=FIELDS[m.user_field];
+              return(
+                <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:10}}>
+                  <div style={{width:30,height:30,borderRadius:"50%",background:fld?fld.color+"33":T.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:fld?fld.color:T.ac,flexShrink:0}}>
+                    {(m.user_name||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{maxWidth:"70%"}}>
+                    <div style={{fontSize:10,color:T.t3,marginBottom:2,textAlign:isMe?"right":"left"}}>
+                      {isMe?"You":m.user_name}
+                    </div>
+                    <div style={{background:isMe?T.ac:T.bg3,color:isMe?"#000":T.t1,borderRadius:10,padding:"8px 12px",fontSize:12,lineHeight:1.5}}>
+                      {m.message}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );}))}
+              );
+            })}
           </div>
           <div style={{padding:"12px 16px",borderTop:"1px solid "+T.bd,display:"flex",gap:8}}>
-            <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something to the community..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}}/>
+            <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();sendChat();}}}/>
             <button onClick={sendChat} style={{...s.btnP,padding:"8px 16px",fontSize:12}} disabled={!chatInput.trim()||chatSending}>{chatSending?"...":"Send"}</button>
           </div>
         </div>
