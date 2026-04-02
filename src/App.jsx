@@ -4606,7 +4606,7 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
           )}
         </div>
       )}
-    </div>}
+    </div>
   );
 };
 
