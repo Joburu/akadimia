@@ -5244,7 +5244,8 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
         </div>
       </div>
     </div>
-    </div></div>}
+    </div>
+    </div>}
   );
 };
 
