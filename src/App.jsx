@@ -4181,7 +4181,7 @@ const PeersView=({setTab,userField,userName,userId})=>{
                   <div style={{fontSize:9,color:T.t3,marginTop:2,textAlign:isMe?"right":"left"}}>{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</div>
                 </div>
               </div>
-            );})}
+            );}))}
           </div>
           <div style={{padding:"12px 16px",borderTop:"1px solid "+T.bd,display:"flex",gap:8}}>
             <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something to the community..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}}/>
