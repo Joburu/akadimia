@@ -5393,7 +5393,7 @@ export default function App(){
       setPendingLogin({role:p.role||"student",field:p.field||"actuarial",name:p.full_name||email,termsKey});
       setShowTerms(true);
     } else {
-      setRole(p.role||"student");setUserField(p.field||"actuarial");setUserId(session.user.id);
+      setRole(p.role||"student");setUserField(p.field||"actuarial");setUserId(p.id);
       setUserName(p.full_name||email);setAuthed(true);
       flash((LS[lang]||LS.en).welcome+", "+(p.full_name||email).split(" ")[0]+"!");
     }
