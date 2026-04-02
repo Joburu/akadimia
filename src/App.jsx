@@ -5242,7 +5242,9 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
             <span style={{fontSize:12,color:T.t1}}>{highContrast?"On — High contrast":"Off — Standard"}</span>
           </div>
         </div>
-      </div>}
+      </div>
+    </div>
+    </div>}
   );
 };
 
