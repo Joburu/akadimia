@@ -5180,7 +5180,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
         </div>
       )}
       {profTab==="security"&&<div style={{marginBottom:"1.5rem"}}><div style={{...s.card,border:"1px solid "+rgba(T.red,0.2)}}><div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:8}}>🔒 Data & Privacy</div><div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>Your data is protected under the Kenya Data Protection Act 2019. AKADIMIA does not sell your personal data. To request deletion of your account and data, contact your institution administrator.</div></div></div>}
-      {profTab==="appearance"&&<div><p style={s.sub}>Language · Theme · Field of Study</p>
+      {profTab==="appearance"&&(<div><p style={s.sub}>Language · Theme · Field of Study</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
         <div style={s.card}>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Language</div>
@@ -5189,7 +5189,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
               <div key={lo[0]} onClick={()=>{setLang(lo[0]);localStorage.setItem("ak_lang",lo[0]);}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${lang===lo[0]?T.ac:T.bd}`,background:lang===lo[0]?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
                 <span style={{fontSize:18}}>{lo[1].flag}</span>
                 <span style={{fontSize:12,fontWeight:lang===lo[0]?600:400,color:lang===lo[0]?T.ac:T.t1,flex:1}}>{lo[1].name}</span>
-                {lang===lo[0]&&<span style={{color:T.ac}}>C</span>}
+                {lang===lo[0]&&<span style={{color:T.ac}}>✓</span>}
               </div>
             ))}
           </div>
@@ -5200,53 +5200,51 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
             {themeOpts.map(th=>(
               <div key={th.id} onClick={()=>setThemeId(th.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${themeId===th.id?T.ac:T.bd}`,background:themeId===th.id?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
                 <div style={{width:28,height:28,borderRadius:7,background:`linear-gradient(135deg,${th.ac},${th.acL})`,flexShrink:0}}/>
-                <div>
-                  <div style={{fontSize:12,fontWeight:themeId===th.id?600:400,color:themeId===th.id?T.ac:T.t1}}>{th.emoji} {th.name}</div>
-                </div>
-                {themeId===th.id&&<span style={{color:T.ac,marginLeft:"auto"}}>C</span>}
+                <div style={{fontSize:12,fontWeight:themeId===th.id?600:400,color:themeId===th.id?T.ac:T.t1}}>{th.emoji} {th.name}</div>
+                {themeId===th.id&&<span style={{color:T.ac,marginLeft:"auto"}}>✓</span>}
               </div>
             ))}
           </div>
         </div>
         <div style={s.card}>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Field of Study</div>
-          <p style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.6}}>Switch your field to see relevant courses, tools and opportunities.</p>
           <div style={{display:"grid",gap:7}}>
             {fieldOpts.map(f=>(
               <div key={f.id} onClick={()=>setUserField(f.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,border:`1px solid ${userField===f.id?f.color:T.bd}`,background:userField===f.id?rgba(f.color,0.14):T.bg3,cursor:"pointer"}}>
                 <span style={{fontSize:16}}>{f.icon}</span>
                 <span style={{fontSize:11,fontWeight:userField===f.id?600:400,color:userField===f.id?f.color:T.t1,flex:1}}>{f.name}</span>
-                {userField===f.id&&<span style={{color:f.color,fontSize:12}}>C</span>}
+                {userField===f.id&&<span style={{color:f.color,fontSize:12}}>✓</span>}
               </div>
             ))}
           </div>
         </div>
       </div>
-    <div style={{...s.card,marginTop:16}}>
-      <div style={{fontSize:14,fontWeight:500,color:T.t1,marginBottom:"1rem"}}>Accessibility</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>Text size</div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <button onClick={()=>setFontSize(f=>Math.max(12,f-1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A-</button>
-            <span style={{fontSize:13,color:T.t1,minWidth:40,textAlign:"center"}}>{fontSize}px</span>
-            <button onClick={()=>setFontSize(f=>Math.min(20,f+1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A+</button>
-          </div>
-        </div>
-        <div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>High contrast mode</div>
-          <div onClick={()=>setHighContrast(h=>!h)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${highContrast?T.ac:T.bd}`,background:highContrast?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
-            <div style={{width:36,height:20,borderRadius:10,background:highContrast?T.ac:T.bg4,position:"relative",transition:"background 0.2s"}}>
-              <div style={{position:"absolute",top:2,left:highContrast?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+      <div style={{...s.card,marginTop:16}}>
+        <div style={{fontSize:14,fontWeight:500,color:T.t1,marginBottom:"1rem"}}>Accessibility</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div>
+            <div style={{fontSize:12,color:T.t2,marginBottom:8}}>Text size</div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setFontSize(f=>Math.max(12,f-1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A-</button>
+              <span style={{fontSize:13,color:T.t1,minWidth:40,textAlign:"center"}}>{fontSize}px</span>
+              <button onClick={()=>setFontSize(f=>Math.min(20,f+1))} style={{...s.btnS,padding:"6px 14px",fontSize:16}}>A+</button>
             </div>
-            <span style={{fontSize:12,color:T.t1}}>{highContrast?"On — High contrast":"Off — Standard"}</span>
+          </div>
+          <div>
+            <div style={{fontSize:12,color:T.t2,marginBottom:8}}>High contrast mode</div>
+            <div onClick={()=>setHighContrast(h=>!h)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,border:`1px solid ${highContrast?T.ac:T.bd}`,background:highContrast?rgba(T.ac,0.1):T.bg3,cursor:"pointer"}}>
+              <div style={{width:36,height:20,borderRadius:10,background:highContrast?T.ac:T.bg4,position:"relative",transition:"background 0.2s"}}>
+                <div style={{position:"absolute",top:2,left:highContrast?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.2s"}}/>
+              </div>
+              <span style={{fontSize:12,color:T.t1}}>{highContrast?"On":"Off"}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    </div>}
+    </div>)}
   );
 };
+
 
 const AdminMessagesBanner=({userId})=>{
   const T=useT();const s=sx(T);
