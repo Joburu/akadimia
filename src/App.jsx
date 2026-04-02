@@ -5180,7 +5180,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
         </div>
       )}
       {profTab==="security"&&<div style={{marginBottom:"1.5rem"}}><div style={{...s.card,border:"1px solid "+rgba(T.red,0.2)}}><div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:8}}>🔒 Data & Privacy</div><div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>Your data is protected under the Kenya Data Protection Act 2019. AKADIMIA does not sell your personal data. To request deletion of your account and data, contact your institution administrator.</div></div></div>}
-      {profTab==="appearance"&&<p style={s.sub}>Language · Theme · Field of Study</p>
+      {profTab==="appearance"&&<div><p style={s.sub}>Language · Theme · Field of Study</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
         <div style={s.card}>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Language</div>
@@ -5244,7 +5244,7 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
         </div>
       </div>
     </div>
-    </div>
+    </div></div>}
   );
 };
 
