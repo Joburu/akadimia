@@ -4237,7 +4237,8 @@ const PeersView=({setTab,userField,userName,userId})=>{
             </div>
           )}
         </div>
-      </div>)}
+      </div>
+    )}
     </div>
   );
 };
