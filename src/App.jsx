@@ -630,6 +630,7 @@ const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId,notifs,setNotifs})=>{
         <input placeholder="Search courses, resources, people..." style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:8,padding:"7px 12px 7px 30px",color:T.t1,fontSize:12,fontFamily:"'DM Sans',sans-serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
       </div>
       <div style={{flex:1}}/>
+      <button onClick={()=>document.dispatchEvent(new CustomEvent('openFeedback'))} style={{background:"none",border:"1px solid "+rgba(T.ac,0.4),borderRadius:7,padding:"5px 12px",color:T.ac,fontSize:11,cursor:"pointer",fontWeight:600,marginRight:4}}>💬 Feedback</button>
       <select value={lang} onChange={e=>{setLang(e.target.value);localStorage.setItem('ak_lang',e.target.value);}} style={{background:T.bg2,border:`1px solid ${T.bd}`,borderRadius:7,padding:"5px 8px",color:T.t2,fontSize:11,cursor:"pointer",outline:"none"}}>
         {langOpts.map(pair=><option key={pair[0]} value={pair[0]}>{pair[1].flag}</option>)}
       </select>
@@ -4114,8 +4115,30 @@ const TranscriptView=({userField})=>{
     </div>
   );
 };
-const PeersView=({setTab,userField,userName})=>{
+const PeersView=({setTab,userField,userName,userId})=>{
   const T=useT();const s=sx(T);
+  const [peersTab,setPeersTab]=useState("peers");
+  const [chatMsgs,setChatMsgs]=useState([]);
+  const [chatInput,setChatInput]=useState("");
+  const [chatLoading,setChatLoading]=useState(false);
+  const [chatSending,setChatSending]=useState(false);
+
+  const loadChat=async()=>{
+    setChatLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("community_messages").select("*").order("created_at",{ascending:true}).limit(100);
+    setChatMsgs(data||[]);setChatLoading(false);
+  };
+
+  const sendChat=async()=>{
+    if(!chatInput.trim())return;
+    setChatSending(true);
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("community_messages").insert({user_id:userId,user_name:userName,user_field:userField,message:chatInput.trim()});
+    setChatInput("");loadChat();setChatSending(false);
+  };
+
+  useEffect(()=>{if(peersTab==="community")loadChat();},[peersTab]);
   const [peers,setPeers]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("all");
@@ -4135,7 +4158,38 @@ const PeersView=({setTab,userField,userName})=>{
 
   return(
     <div>
-      <h1 style={s.h1}>Peer Network</h1>
+      <h1 style={s.h1}>Peers & Community</h1>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        <button onClick={()=>setPeersTab("peers")} style={{...(peersTab==="peers"?s.btnP:s.btnS),fontSize:12}}>👥 Peers Directory</button>
+        <button onClick={()=>setPeersTab("community")} style={{...(peersTab==="community"?s.btnP:s.btnS),fontSize:12,background:peersTab==="community"?T.purple:"none",border:"1px solid "+(peersTab==="community"?T.purple:rgba(T.purple,0.4)),color:peersTab==="community"?"#fff":T.purple}}>💬 Community Chat</button>
+      </div>
+      {peersTab==="community"&&(
+        <div style={{...s.card,display:"flex",flexDirection:"column",height:"68vh",padding:0,overflow:"hidden"}}>
+          <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontSize:13,fontWeight:600,color:T.t1}}>Community Chat</div><div style={{fontSize:11,color:T.t3}}>Open conversation — all fields, all years</div></div>
+            <button onClick={loadChat} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>↻ Refresh</button>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"1rem",display:"flex",flexDirection:"column",gap:8}}>
+            {chatLoading?<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>:
+            chatMsgs.length===0?<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Be the first to say something!</div>:
+            chatMsgs.map(m=>{const isMe=m.user_id===userId;const fld=FIELDS[m.user_field];return(
+              <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end"}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:fld?fld.color+"44":rgba(T.ac,0.2),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,fontWeight:700,color:fld?fld.color:T.ac}}>{(m.user_name||"?")[0].toUpperCase()}</div>
+                <div style={{maxWidth:"70%"}}>
+                  <div style={{fontSize:10,color:T.t3,marginBottom:2,textAlign:isMe?"right":"left"}}>{isMe?"You":m.user_name}{fld&&<span style={{color:fld.color}}> · {fld.icon} {fld.name}</span>}</div>
+                  <div style={{background:isMe?T.ac:T.bg3,color:isMe?"#000":T.t1,borderRadius:isMe?"12px 12px 4px 12px":"12px 12px 12px 4px",padding:"8px 12px",fontSize:12,lineHeight:1.5}}>{m.message}</div>
+                  <div style={{fontSize:9,color:T.t3,marginTop:2,textAlign:isMe?"right":"left"}}>{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</div>
+                </div>
+              </div>
+            );})}
+          </div>
+          <div style={{padding:"12px 16px",borderTop:"1px solid "+T.bd,display:"flex",gap:8}}>
+            <input style={{...s.input,flex:1,fontSize:12}} placeholder="Say something to the community..." value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat();}}}/>
+            <button onClick={sendChat} style={{...s.btnP,padding:"8px 16px",fontSize:12}} disabled={!chatInput.trim()||chatSending}>{chatSending?"...":"Send"}</button>
+          </div>
+        </div>
+      )}
+      {peersTab==="peers"&&<div>
       <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
 
       <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
@@ -4552,7 +4606,7 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
           )}
         </div>
       )}
-    </div>
+    </div>}
   );
 };
 
@@ -4817,6 +4871,46 @@ const exportPDF=(title,subtitle,headers,rows)=>{
   w.document.write(html);w.document.close();
 };
 
+const FeedbackAdminView=({T,s})=>{
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState("all");
+  useEffect(()=>{(async()=>{
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("feedback").select("*").order("created_at",{ascending:false});
+    setItems(data||[]);setLoading(false);
+  })();},[]);
+  const cats={general:"💬",bug:"🐛",feature:"✨",content:"📚",ux:"🎨",praise:"⭐"};
+  const filtered=filter==="all"?items:items.filter(i=>i.category===filter);
+  return(
+    <div>
+      <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>User Feedback ({items.length})</div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1rem"}}>
+        {[["all","All"],["bug","🐛 Bugs"],["feature","✨ Features"],["general","💬 General"],["praise","⭐ Praise"],["ux","🎨 Design"],["content","📚 Content"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setFilter(id)} style={{...(filter===id?s.btnP:s.btnS),fontSize:11,padding:"5px 10px"}}>{label}</button>
+        ))}
+      </div>
+      {loading?<div style={{color:T.t3}}>Loading...</div>:filtered.length===0?<div style={{color:T.t3}}>No feedback yet.</div>:(
+        <div style={{display:"grid",gap:8}}>
+          {filtered.map(f=>(
+            <div key={f.id} style={{background:T.bg2,borderRadius:10,padding:"12px 16px",border:"1px solid "+T.bd}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span style={{fontSize:16}}>{cats[f.category]||"💬"}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:T.t1}}>{f.user_name||"Anonymous"}</span>
+                  <span style={{background:T.bg3,borderRadius:4,padding:"1px 8px",fontSize:10,color:T.t3,textTransform:"uppercase"}}>{f.category}</span>
+                </div>
+                <span style={{fontSize:10,color:T.t3}}>{new Date(f.created_at).toLocaleDateString("en-KE")}</span>
+              </div>
+              <div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>{f.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [editUser,setEditUser]=useState(null);
@@ -4885,7 +4979,7 @@ const AdminView=()=>{
     loadUsers();
   };
 
-  const atabs=[["approvals","Pending ("+pending.length+")"],["approved","Approved ("+approved.length+")"],["rejected","Rejected ("+rejected.length+")"],["roles","Roles"],["security","Security"]];
+  const atabs=[["approvals","Pending ("+pending.length+")"],["approved","Approved ("+approved.length+")"],["rejected","Rejected ("+rejected.length+")"],["roles","Roles"],["feedback","💬 Feedback"],["security","Security"]];
   const secControls=[["Registration Approval",true,T.green],["2-Factor Authentication",true,T.green],["Email Verification",true,T.green],["Audit Trail Logging",true,T.green],["Rate Limiting",true,T.green],["Session Timeout (30min)",true,T.green],["Role-Based Access (RBAC)",true,T.green],["AES-256 Encryption",true,T.green],["Institutional Email Only",true,T.green],["IP Allowlisting",false,T.amber]];
 
   const UserCard=({u,actions})=>(
@@ -5011,7 +5105,10 @@ const AdminView=()=>{
         </div>
       )}
 
-      {!loading&&atab==="approvals"&&(pending.length===0?(
+      {!loading&&atab==="feedback"&&(
+        <FeedbackAdminView T={T} s={s}/>
+      )}
+      {atab==="approvals"&&(pending.length===0?(
         <div style={{...s.card,textAlign:"center",padding:"2.5rem"}}>
           <div style={{fontSize:40,marginBottom:12}}>✅</div>
           <div style={{fontSize:14,color:T.t2}}>No pending registrations.</div>
@@ -5246,6 +5343,65 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
   );
 };
 
+const FeedbackModal=({userId,userName})=>{
+  const T=useT();const s=sx(T);
+  const [open,setOpen]=useState(false);
+  const [cat,setCat]=useState("general");
+  const [msg,setMsg]=useState("");
+  const [sent,setSent]=useState(false);
+  const [sending,setSending]=useState(false);
+
+  useEffect(()=>{
+    const handler=()=>setOpen(true);
+    document.addEventListener('openFeedback',handler);
+    return()=>document.removeEventListener('openFeedback',handler);
+  },[]);
+
+  const send=async()=>{
+    if(!msg.trim())return;
+    setSending(true);
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("feedback").insert({user_id:userId,user_name:userName,category:cat,message:msg.trim()});
+    setSending(false);setSent(true);setMsg("");
+    setTimeout(()=>{setSent(false);setOpen(false);},2500);
+  };
+
+  if(!open)return null;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+      <div style={{background:T.bg1,borderRadius:16,padding:"1.5rem",width:"100%",maxWidth:460,border:"1px solid "+T.bd,boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1}}>💬 Share Your Feedback</div>
+            <div style={{fontSize:11,color:T.t3}}>Your feedback shapes what gets built next</div>
+          </div>
+          <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:T.t3,cursor:"pointer",fontSize:20}}>✕</button>
+        </div>
+        {sent?(
+          <div style={{textAlign:"center",padding:"1.5rem"}}>
+            <div style={{fontSize:32,marginBottom:8}}>🙏</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.green}}>Thank you! Feedback received.</div>
+            <div style={{fontSize:12,color:T.t3,marginTop:4}}>Every submission is read and acted on.</div>
+          </div>
+        ):(
+          <>
+            <label style={s.lbl}>CATEGORY</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1rem"}}>
+              {[["general","💬 General"],["bug","🐛 Bug Report"],["feature","✨ Feature Request"],["content","📚 Content"],["ux","🎨 Design / UX"],["praise","⭐ Praise"]].map(([id,label])=>(
+                <button key={id} onClick={()=>setCat(id)} style={{...(cat===id?s.btnP:s.btnS),fontSize:10,padding:"5px 10px"}}>{label}</button>
+              ))}
+            </div>
+            <label style={s.lbl}>YOUR MESSAGE</label>
+            <textarea style={{...s.input,height:100,resize:"vertical",fontSize:12,marginBottom:"1rem"}} placeholder="Tell us what you think, what's broken, or what you'd love to see..." value={msg} onChange={e=>setMsg(e.target.value)}/>
+            <div style={{fontSize:11,color:T.t3,marginBottom:"1rem"}}>Submitted as {userName||"Anonymous"}. Responses go to the admin team.</div>
+            <button onClick={send} style={{...s.btnP,width:"100%"}} disabled={!msg.trim()||sending}>{sending?"Sending...":"Send Feedback"}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AdminMessagesBanner=({userId})=>{
   const T=useT();const s=sx(T);
   const [messages,setMessages]=useState([]);
@@ -5419,7 +5575,7 @@ export default function App(){
     analytics:<AnalyticsView userField={userField} userName={userName} role={role}/>,
     tools:<ToolsView userField={userField} userName={userName}/>,
     transcript:<TranscriptView userField={userField}/>,
-    peers:<PeersView setTab={persistTab} userField={userField}/>,
+    peers:<PeersView setTab={persistTab} userField={userField} userName={userName} userId={userId}/>,
     innovation:<InnovationHub userName={userName} role={role} userField={userField}/>,
     programme:<ProgrammeView userField={userField} role={role} userName={userName}/>,
     events:<EventsView userField={userField} role={role} userName={userName}/>,
@@ -5499,6 +5655,7 @@ export default function App(){
             <Sidebar tab={tab} setTab={persistTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
               <AdminMessagesBanner userId={userId}/>
+              <FeedbackModal userId={userId} userName={userName}/>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} notifs={notifs} setNotifs={setNotifs}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
                 {VIEWS[tab]||VIEWS.dashboard}
