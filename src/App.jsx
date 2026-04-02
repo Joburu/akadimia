@@ -5242,9 +5242,9 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
         </div>
       </div>
     </div>)}
+  </div>
   );
 };
-
 
 const AdminMessagesBanner=({userId})=>{
   const T=useT();const s=sx(T);
