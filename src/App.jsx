@@ -5069,6 +5069,7 @@ export default function App(){
             setRole(data.role||"student");
             setUserField(data.field||"actuarial");
             setUserName(data.full_name||session.user.email);
+            setUserId(session.user.id);
             setAuthed(true);
           }
         }
