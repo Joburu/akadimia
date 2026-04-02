@@ -4170,8 +4170,8 @@ const PeersView=({setTab,userField,userName,userId})=>{
             <button onClick={loadChat} style={{...s.btnS,fontSize:11,padding:"4px 10px"}}>↻ Refresh</button>
           </div>
           <div style={{flex:1,overflowY:"auto",padding:"1rem",display:"flex",flexDirection:"column",gap:8}}>
-            {chatLoading?<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>:
-            chatMsgs.length===0?<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Be the first to say something!</div>:
+            {chatLoading?(<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>Loading...</div>):
+            chatMsgs.length===0?(<div style={{textAlign:"center",color:T.t3,padding:"2rem"}}>No messages yet. Be the first to say something!</div>):(
             chatMsgs.map(m=>{const isMe=m.user_id===userId;const fld=FIELDS[m.user_field];return(
               <div key={m.id} style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end"}}>
                 <div style={{width:32,height:32,borderRadius:"50%",background:fld?fld.color+"44":rgba(T.ac,0.2),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,fontWeight:700,color:fld?fld.color:T.ac}}>{(m.user_name||"?")[0].toUpperCase()}</div>
