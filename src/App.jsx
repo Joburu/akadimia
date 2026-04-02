@@ -4614,6 +4614,9 @@ const AdminView=()=>{
   const T=useT();const t=useLang();const s=sx(T);
   const [editUser,setEditUser]=useState(null);
   const [editData,setEditData]=useState({});
+  const [msgUser,setMsgUser]=useState(null);
+  const [msgText,setMsgText]=useState("");
+  const [msgSending,setMsgSending]=useState(false);
   const [pending,setPending]=useState([]);
   const [approved,setApproved]=useState([]);
   const [rejected,setRejected]=useState([]);
@@ -4714,6 +4717,47 @@ const AdminView=()=>{
         ))}
       </div>
       {loading&&<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading users from database...</div>}
+      {msgUser&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+          <div style={{background:T.bg1,borderRadius:16,padding:"1.5rem",width:"100%",maxWidth:480,border:"1px solid "+T.bd}}>
+            <div style={{fontSize:16,fontWeight:700,color:T.t1,marginBottom:4}}>💬 Message — {msgUser.full_name}</div>
+            <div style={{fontSize:11,color:T.t3,marginBottom:"1rem"}}>{msgUser.student_id?"Adm: "+msgUser.student_id:"No admission number"} · {msgUser.field} · {msgUser.year_level||"Year not set"}</div>
+            <div style={{fontSize:11,fontWeight:600,color:T.t3,marginBottom:6}}>QUICK PRESETS</div>
+            <div style={{display:"grid",gap:5,marginBottom:"1rem"}}>
+              {[
+                "Please update your admission number in your profile — it appears to be missing or incorrect.",
+                "Your full name on the system does not match your admission records. Please contact admin to correct it.",
+                "Please confirm your field of study — you appear to be registered under the wrong programme.",
+                "Your year of study needs to be updated. Please contact admin or visit the office.",
+                "Your registration is incomplete. Please provide your official student ID to admin.",
+                "Action required: Please visit the academic office to verify your registration details.",
+              ].map((preset,i)=>(
+                <button key={i} onClick={()=>setMsgText(preset)} style={{...s.btnS,fontSize:11,textAlign:"left",padding:"7px 10px",borderColor:msgText===preset?T.purple:T.bd,color:msgText===preset?T.purple:T.t2}}>{preset}</button>
+              ))}
+            </div>
+            <label style={s.lbl}>CUSTOM MESSAGE</label>
+            <textarea style={{...s.input,height:80,resize:"vertical",fontSize:12,marginBottom:"1rem"}} placeholder="Type a custom message to this student..." value={msgText} onChange={e=>setMsgText(e.target.value)}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={async()=>{
+                if(!msgText.trim())return;
+                setMsgSending(true);
+                const {supabase}=await import("./supabase.js");
+                await supabase.from("admin_messages").insert({
+                  recipient_id:msgUser.id,
+                  recipient_name:msgUser.full_name,
+                  sender_name:"Admin",
+                  message:msgText.trim(),
+                  read:false
+                });
+                setMsgSending(false);setMsgUser(null);setMsgText("");
+                alert("Message sent to "+msgUser.full_name);
+              }} style={s.btnP} disabled={!msgText.trim()||msgSending}>{msgSending?"Sending...":"Send Message"}</button>
+              <button onClick={()=>{setMsgUser(null);setMsgText("");}} style={s.btnS}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editUser&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
           <div style={{background:T.bg1,borderRadius:16,padding:"1.5rem",width:"100%",maxWidth:500,border:"1px solid "+T.bd}}>
@@ -4795,6 +4839,7 @@ const AdminView=()=>{
                 <option value="researcher">Researcher</option>
               </select>
               <button onClick={()=>{setEditUser(u);setEditData({full_name:u.full_name,student_id:u.student_id||"",field:u.field,year_level:u.year_level||"",programme_level:u.programme_level||"undergraduate",role:u.role});}} style={{background:"none",border:"1px solid "+T.blue+"55",borderRadius:6,color:T.blue,cursor:"pointer",fontSize:11,padding:"6px 10px"}}>✏️ Edit</button>
+              <button onClick={()=>setMsgUser(u)} style={{background:"none",border:"1px solid "+T.purple+"55",borderRadius:6,color:T.purple,cursor:"pointer",fontSize:11,padding:"6px 10px"}}>💬 Message</button>
               <button onClick={async()=>{if(!confirm("Remove "+u.full_name+" completely? They can re-register with the same email afterwards."))return;const res2=await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/delete-user",{method:"POST",headers:{"Content-Type":"application/json","apikey":import.meta.env.VITE_SUPABASE_KEY,"Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},body:JSON.stringify({userId:u.id})});const result2=await res2.json();if(result2.success){loadUsers();}else{alert("Delete failed: "+result2.error);}}} style={{background:"none",border:"1px solid "+T.red+"55",borderRadius:6,color:T.red,cursor:"pointer",fontSize:12,padding:"6px 10px"}}>🗑 Remove</button>
               <button onClick={()=>reject(u.id)} style={{...s.btnD,fontSize:12,padding:"7px 12px"}}>Revoke</button>
             </>)}/>
@@ -4920,10 +4965,57 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
   );
 };
 
+const AdminMessagesBanner=({userId})=>{
+  const T=useT();const s=sx(T);
+  const [messages,setMessages]=useState([]);
+  const [dismissed,setDismissed]=useState(new Set());
+
+  useEffect(()=>{
+    if(!userId)return;
+    (async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data}=await supabase.from("admin_messages")
+        .select("*").eq("recipient_id",userId).eq("read",false)
+        .order("created_at",{ascending:false});
+      setMessages(data||[]);
+    })();
+  },[userId]);
+
+  const dismiss=async(id)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("admin_messages").update({read:true}).eq("id",id);
+    setDismissed(prev=>new Set([...prev,id]));
+  };
+
+  const visible=messages.filter(m=>!dismissed.has(m.id));
+  if(visible.length===0)return null;
+  return(
+    <div style={{position:"fixed",top:16,right:16,zIndex:2000,display:"flex",flexDirection:"column",gap:8,maxWidth:380}}>
+      {visible.map(m=>(
+        <div key={m.id} style={{background:T.bg1,border:"2px solid "+T.amber,borderRadius:12,padding:"14px 16px",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:18}}>📬</span>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:T.amber}}>Message from {m.sender_name}</div>
+                <div style={{fontSize:10,color:T.t3}}>{new Date(m.created_at).toLocaleDateString("en-KE")}</div>
+              </div>
+            </div>
+            <button onClick={()=>dismiss(m.id)} style={{background:"none",border:"none",color:T.t3,cursor:"pointer",fontSize:16,padding:"0 4px"}}>✕</button>
+          </div>
+          <div style={{fontSize:12,color:T.t1,lineHeight:1.7,marginBottom:10}}>{m.message}</div>
+          <button onClick={()=>dismiss(m.id)} style={{...s.btnP,fontSize:11,width:"100%",background:T.amber,color:"#000"}}>Acknowledged ✓</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function App(){
   const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState(()=>localStorage.getItem('ak_lang')||'en'),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
+  const [userId,setUserId]=useState(null);
   const [showTerms,setShowTerms]=useState(false);
   const [pendingLogin,setPendingLogin]=useState(null);
   const [tab,setTab]=useState(()=>localStorage.getItem("ak_tab")||"dashboard"),[sideOpen,setSideOpen]=useState(window.innerWidth > 768);
@@ -4998,7 +5090,7 @@ export default function App(){
       timer=setTimeout(async()=>{
         const {supabase}=await import("./supabase.js");
         await supabase.auth.signOut();
-        setAuthed(false);setRole("student");setUserName("");
+        setAuthed(false);setRole("student");setUserName("");setUserId(null);
         localStorage.removeItem("ak_tab");
         flash("Session expired. Please sign in again.","error");
       },5*60*1000);
@@ -5019,7 +5111,7 @@ export default function App(){
       setPendingLogin({role:p.role||"student",field:p.field||"actuarial",name:p.full_name||email,termsKey});
       setShowTerms(true);
     } else {
-      setRole(p.role||"student");setUserField(p.field||"actuarial");
+      setRole(p.role||"student");setUserField(p.field||"actuarial");setUserId(session.user.id);
       setUserName(p.full_name||email);setAuthed(true);
       flash((LS[lang]||LS.en).welcome+", "+(p.full_name||email).split(" ")[0]+"!");
     }
@@ -5122,6 +5214,7 @@ export default function App(){
           <div style={{display:"flex",height:"100vh",background:highContrast?"#000000":T.bg0,fontFamily:"'DM Sans',sans-serif",color:highContrast?"#ffffff":T.t1,overflow:"hidden",fontSize:fontSize}}>
             <Sidebar tab={tab} setTab={persistTab} open={sideOpen} role={role} userName={userName} userField={userField} offline={offline} setOffline={setOffline} onLogout={async()=>{const {supabase}=await import("./supabase.js");await supabase.auth.signOut();setAuthed(false);setRole("student");setUserName("");setTab("dashboard");}}/>
             <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <AdminMessagesBanner userId={userId}/>
               <Topbar toggle={()=>setSideOpen(o=>!o)} tab={tab} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} notifs={notifs} setNotifs={setNotifs}/>
               <div style={{flex:1,overflowY:"auto",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"stretch"}}><div style={{maxWidth:1280,width:"100%",margin:"0 auto",flex:1}}>
                 {VIEWS[tab]||VIEWS.dashboard}
