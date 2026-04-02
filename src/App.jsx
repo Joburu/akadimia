@@ -4189,7 +4189,7 @@ const PeersView=({setTab,userField,userName,userId})=>{
           </div>
         </div>
       )}
-      {peersTab==="peers"&&<div>
+      {peersTab==="peers"&&(<div>
       <p style={s.sub}>Connect with fellow students across AKADIMIA</p>
 
       <div style={{display:"flex",gap:8,marginBottom:"1.25rem",flexWrap:"wrap"}}>
