@@ -560,11 +560,11 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
   );
 };
 
-const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"},{id:"innovation",icon:"💡"},{id:"programme",icon:"🎓"}];
+const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"},{id:"innovation",icon:"💡"},{id:"programme",icon:"🎓"},{id:"events",icon:"📣"},{id:"services",icon:"🏛"}];
 
 const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
   const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
-  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom"};
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom",events:"Events",services:"Services"};
   const nav=[...NAV_BASE,{id:"classroom",icon:"🏫"},...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
   return(
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
@@ -618,7 +618,7 @@ const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLog
 const Topbar=({toggle,tab,lang,setLang,themeId,setThemeId,notifs,setNotifs})=>{
   const [showNotifs,setShowNotifs]=useState(false);
   const T=useT();const t=useLang();
-  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom"};
+  const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom",events:"Events",services:"Services"};
   const langOpts=Object.entries(LANGS);
   const themeOpts=Object.values(THEMES);
   return(
@@ -4556,6 +4556,213 @@ const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetin
   );
 };
 
+const EventsView=({userField,role,userName})=>{
+  const T=useT();const s=sx(T);
+  const [events,setEvents]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({title:"",description:"",event_type:"bootcamp",date:"",location:"",link:"",field:"all"});
+  const [submitting,setSubmitting]=useState(false);
+  const isStaff=role==="lecturer"||role==="admin";
+
+  const EVENT_TYPES={bootcamp:{icon:"💻",color:"#3B82F6"},hackathon:{icon:"⚡",color:"#F59E0B"},trip:{icon:"✈️",color:"#10B981"},seminar:{icon:"🎤",color:"#8B5CF6"},workshop:{icon:"🔧",color:"#EF4444"},career:{icon:"💼",color:"#F97316"},social:{icon:"🎉",color:"#EC4899"},other:{icon:"📌",color:"#6B7280"}};
+
+  const load=async()=>{
+    setLoading(true);
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.from("events").select("*").order("date",{ascending:true});
+    setEvents(data||[]);setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const submit=async()=>{
+    if(!form.title||!form.date)return;
+    setSubmitting(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    await supabase.from("events").insert({...form,author_name:userName,author_id:user.id,created_at:new Date().toISOString()});
+    setSubmitting(false);setShowForm(false);setForm({title:"",description:"",event_type:"bootcamp",date:"",location:"",link:"",field:"all"});load();
+  };
+
+  const upcoming=events.filter(e=>new Date(e.date)>=new Date());
+  const past=events.filter(e=>new Date(e.date)<new Date());
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1.5rem",flexWrap:"wrap",gap:12}}>
+        <div>
+          <h1 style={s.h1}>Events</h1>
+          <p style={s.sub}>Bootcamps, hackathons, trips, seminars and more</p>
+        </div>
+        <button onClick={()=>setShowForm(!showForm)} style={s.btnP}>+ Post Event</button>
+      </div>
+
+      {showForm&&(
+        <div style={{...s.card,marginBottom:"1.5rem",border:"1px solid "+rgba(T.ac,0.3)}}>
+          <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Post a New Event</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div style={{gridColumn:"1/-1"}}><label style={s.lbl}>EVENT TITLE</label><input style={s.input} placeholder="e.g. Python Bootcamp 2025" value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></div>
+            <div><label style={s.lbl}>EVENT TYPE</label>
+              <select style={s.input} value={form.event_type} onChange={e=>setForm({...form,event_type:e.target.value})}>
+                {Object.keys(EVENT_TYPES).map(t=><option key={t} value={t}>{EVENT_TYPES[t].icon} {t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
+              </select>
+            </div>
+            <div><label style={s.lbl}>DATE</label><input style={s.input} type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
+            <div><label style={s.lbl}>LOCATION / VENUE</label><input style={s.input} placeholder="e.g. JOOUST Main Campus Hall" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></div>
+            <div><label style={s.lbl}>REGISTER / INFO LINK</label><input style={s.input} placeholder="https://..." value={form.link} onChange={e=>setForm({...form,link:e.target.value})}/></div>
+            <div style={{gridColumn:"1/-1"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:70,resize:"vertical",fontSize:12}} placeholder="Describe the event..." value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div>
+            <div><label style={s.lbl}>TARGET FIELD</label>
+              <select style={s.input} value={form.field} onChange={e=>setForm({...form,field:e.target.value})}>
+                <option value="all">All Fields</option>
+                {Object.entries(FIELDS).map(([k,v])=><option key={k} value={k}>{v.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={submit} style={s.btnP} disabled={submitting||!form.title||!form.date}>{submitting?"Posting...":"Post Event"}</button>
+            <button onClick={()=>setShowForm(false)} style={s.btnS}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading events...</div>:(
+        <div>
+          {upcoming.length>0&&(
+            <div style={{marginBottom:"2rem"}}>
+              <div style={{fontSize:12,fontWeight:700,color:T.ac,letterSpacing:1,marginBottom:"1rem",textTransform:"uppercase"}}>Upcoming Events ({upcoming.length})</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>
+                {upcoming.map(ev=>{
+                  const et=EVENT_TYPES[ev.event_type]||EVENT_TYPES.other;
+                  const daysLeft=Math.ceil((new Date(ev.date)-new Date())/(1000*60*60*24));
+                  return(
+                    <div key={ev.id} style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                      <div style={{background:et.color+"22",borderBottom:"1px solid "+T.bd,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:20}}>{et.icon}</span>
+                          <span style={{fontSize:11,fontWeight:700,color:et.color,textTransform:"uppercase"}}>{ev.event_type}</span>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:600,color:daysLeft<=3?T.red:daysLeft<=7?T.amber:T.green}}>{daysLeft===0?"Today":daysLeft===1?"Tomorrow":daysLeft+" days away"}</span>
+                      </div>
+                      <div style={{padding:"12px 16px"}}>
+                        <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:6}}>{ev.title}</div>
+                        {ev.description&&<div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:8}}>{ev.description}</div>}
+                        <div style={{fontSize:11,color:T.t3,marginBottom:4}}>📅 {new Date(ev.date).toLocaleDateString("en-KE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+                        {ev.location&&<div style={{fontSize:11,color:T.t3,marginBottom:4}}>📍 {ev.location}</div>}
+                        <div style={{fontSize:11,color:T.t3,marginBottom:10}}>Posted by {ev.author_name}</div>
+                        <div style={{display:"flex",gap:8}}>
+                          {ev.link&&<a href={ev.link} target="_blank" rel="noreferrer" style={{...s.btnP,textDecoration:"none",fontSize:11,padding:"6px 14px",flex:1,textAlign:"center"}}>Register / Learn More</a>}
+                          {isStaff&&<button onClick={async()=>{const {supabase}=await import("./supabase.js");await supabase.from("events").delete().eq("id",ev.id);load();}} style={{background:"none",border:"1px solid "+T.red+"44",borderRadius:6,color:T.red,cursor:"pointer",fontSize:11,padding:"6px 10px"}}>🗑</button>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {upcoming.length===0&&<div style={{...s.card,textAlign:"center",padding:"2rem"}}>
+            <div style={{fontSize:32,marginBottom:8}}>📅</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>No upcoming events</div>
+            <div style={{fontSize:12,color:T.t3}}>Be the first to post an event for your peers.</div>
+          </div>}
+          {past.length>0&&(
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:T.t3,letterSpacing:1,marginBottom:"1rem",textTransform:"uppercase"}}>Past Events ({past.length})</div>
+              <div style={{display:"grid",gap:8}}>
+                {past.slice(0,5).map(ev=>(
+                  <div key={ev.id} style={{...s.card,display:"flex",justifyContent:"space-between",alignItems:"center",opacity:0.6}}>
+                    <div>
+                      <span style={{fontSize:14,marginRight:8}}>{EVENT_TYPES[ev.event_type]?.icon||"📌"}</span>
+                      <span style={{fontSize:13,color:T.t1}}>{ev.title}</span>
+                    </div>
+                    <span style={{fontSize:11,color:T.t3}}>{new Date(ev.date).toLocaleDateString("en-KE")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ServicesView=({userField})=>{
+  const T=useT();const s=sx(T);
+  const [search,setSearch]=useState("");
+  const [cat,setCat]=useState("all");
+
+  const SERVICES=[
+    {name:"HELB — Higher Education Loans Board",icon:"🎓",cat:"education",desc:"Apply for student loans and bursaries for university education in Kenya.",link:"https://www.helb.co.ke",action:"Apply / Check Status",color:"#1E3A8A",free:true},
+    {name:"NITSA — National Industrial Training Authority",icon:"🏭",cat:"education",desc:"Register for industrial attachment and get your NITA certificate.",link:"https://www.nita.go.ke",action:"Register",color:"#065F46",free:true},
+    {name:"eCitizen — Kenya Government Portal",icon:"🇰🇪",cat:"government",desc:"Apply for national ID, passport, business registration, driving licence and more.",link:"https://www.ecitizen.go.ke",action:"Open Portal",color:"#1D4ED8",free:false},
+    {name:"Kenya Revenue Authority (KRA) — PIN",icon:"📋",cat:"government",desc:"Register for a KRA PIN — required for employment and financial transactions.",link:"https://itax.kra.go.ke",action:"Get KRA PIN",color:"#7C3AED",free:true},
+    {name:"NHIF — National Hospital Insurance Fund",icon:"🏥",cat:"health",desc:"Register for NHIF student cover — affordable medical insurance for university students.",link:"https://www.nhif.or.ke",action:"Register",color:"#059669",free:false},
+    {name:"NSSF — National Social Security Fund",icon:"🏦",cat:"finance",desc:"Register and contribute to NSSF for retirement benefits.",link:"https://www.nssf.or.ke",action:"Register",color:"#0284C7",free:false},
+    {name:"Tala — Instant Mobile Loans",icon:"💰",cat:"lending",desc:"Instant mobile loans up to KES 50,000. No collateral required. Via M-Pesa.",link:"https://tala.co.ke",action:"Apply on App",color:"#7C3AED",free:false},
+    {name:"Branch — Mobile Lending",icon:"🌿",cat:"lending",desc:"Borrow up to KES 70,000 instantly on your phone. Flexible repayment.",link:"https://branch.co.ke",action:"Download App",color:"#059669",free:false},
+    {name:"Fuliza — M-Pesa Overdraft",icon:"📱",cat:"lending",desc:"M-Pesa overdraft facility. Borrow from KES 10 to KES 70,000 automatically.",link:"https://www.safaricom.co.ke/personal/m-pesa/do-more-with-m-pesa/fuliza-m-pesa",action:"Activate on M-Pesa",color:"#00A550",free:false},
+    {name:"KCB M-Pesa — Mobile Banking Loan",icon:"🏦",cat:"lending",desc:"KCB bank loans via M-Pesa. Up to KES 1,000,000 for eligible customers.",link:"https://ke.kcbgroup.com/personal/borrow/kcb-mpesa",action:"Apply via M-Pesa",color:"#1D4ED8",free:false},
+    {name:"Stawi — SME Mobile Loan",icon:"📈",cat:"lending",desc:"CBK-regulated mobile loan for small businesses. Up to KES 250,000.",link:"https://www.centralbank.go.ke",action:"Learn More",color:"#D97706",free:false},
+    {name:"Zidisha — P2P Microloans",icon:"🌍",cat:"lending",desc:"International peer-to-peer micro-lending platform. Low interest, no collateral.",link:"https://www.zidisha.org",action:"Apply Online",color:"#DC2626",free:false},
+    {name:"Kenya Youth Employment & Opportunities",icon:"👩‍💼",cat:"employment",desc:"Government programme for youth employment, internships and entrepreneurship funding.",link:"https://www.kenyayouth.go.ke",action:"Explore Opportunities",color:"#0369A1",free:true},
+    {name:"Ajira Digital — Remote Work",icon:"💻",cat:"employment",desc:"Government platform for digital jobs and remote work training for Kenyan youth.",link:"https://www.ajiradigital.go.ke",action:"Get Started",color:"#7C3AED",free:true},
+    {name:"Uwezo Fund — Youth & Women",icon:"✊",cat:"finance",desc:"Government fund for youth, women and persons with disability groups. Up to KES 500,000.",link:"https://www.uwezo.go.ke",action:"Apply",color:"#B45309",free:true},
+    {name:"Kenya National Qualifications Authority",icon:"📜",cat:"education",desc:"Verify and accredit your qualifications. Important for employment and further studies.",link:"https://www.knqa.go.ke",action:"Verify Certificate",color:"#1E3A8A",free:false},
+    {name:"TSC — Teachers Service Commission",icon:"✏️",cat:"employment",desc:"Register as a teacher and apply for TSC posts in Kenya.",link:"https://www.tsc.go.ke",action:"Register",color:"#065F46",free:false},
+    {name:"CPA Kenya — ICPAK",icon:"💼",cat:"education",desc:"Register for CPA examinations and professional accounting certification.",link:"https://www.icpak.com",action:"Register for CPA",color:"#0284C7",free:false},
+    {name:"Kenya Law — Free Legal Resources",icon:"⚖️",cat:"education",desc:"Free access to Kenya legislation, case law and legal notices.",link:"http://kenyalaw.org",action:"Access for Free",color:"#7C3AED",free:true},
+    {name:"M-Shwari — CBA Savings & Loans",icon:"💚",cat:"lending",desc:"Save and borrow via M-Pesa. Lock savings and access emergency loans.",link:"https://www.safaricom.co.ke/personal/m-pesa/do-more-with-m-pesa/m-shwari",action:"Activate on M-Pesa",color:"#059669",free:false},
+  ];
+
+  const CATS=[["all","All Services"],["education","Education"],["government","Government"],["health","Health"],["finance","Finance"],["lending","Loans & Lending"],["employment","Employment"]];
+
+  const filtered=SERVICES.filter(s=>{
+    if(cat!=="all"&&s.cat!==cat)return false;
+    if(search&&!s.name.toLowerCase().includes(search.toLowerCase())&&!s.desc.toLowerCase().includes(search.toLowerCase()))return false;
+    return true;
+  });
+
+  return(
+    <div>
+      <h1 style={s.h1}>Student Services</h1>
+      <p style={s.sub}>Government services, financial assistance, loans and professional registration relevant to Kenyan students</p>
+
+      <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          {CATS.map(([id,label])=>(
+            <button key={id} onClick={()=>setCat(id)} style={{...(cat===id?s.btnP:s.btnS),fontSize:11,padding:"6px 12px"}}>{label}</button>
+          ))}
+        </div>
+        <input style={{...s.input,flex:1,minWidth:160,fontSize:12}} placeholder="🔍 Search services..." value={search} onChange={e=>setSearch(e.target.value)}/>
+      </div>
+
+      <div style={{fontSize:12,color:T.t3,marginBottom:"1rem"}}>{filtered.length} services · <span style={{color:T.green}}>🆓 Free to use</span> marked below</div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12}}>
+        {filtered.map(svc=>(
+          <div key={svc.name} style={{background:T.bg2,borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden"}}>
+            <div style={{background:svc.color+"22",borderBottom:"1px solid "+T.bd,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:22}}>{svc.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.t1,lineHeight:1.3}}>{svc.name}</div>
+                <div style={{display:"flex",gap:6,marginTop:3}}>
+                  <span style={{background:rgba(svc.color,0.2),color:svc.color,borderRadius:4,padding:"1px 7px",fontSize:9,fontWeight:700,textTransform:"uppercase"}}>{svc.cat}</span>
+                  {svc.free&&<span style={{background:rgba(T.green,0.15),color:T.green,borderRadius:4,padding:"1px 7px",fontSize:9,fontWeight:700}}>🆓 FREE</span>}
+                </div>
+              </div>
+            </div>
+            <div style={{padding:"12px 16px"}}>
+              <div style={{fontSize:12,color:T.t2,lineHeight:1.6,marginBottom:12}}>{svc.desc}</div>
+              <a href={svc.link} target="_blank" rel="noreferrer" style={{...s.btnP,display:"block",textAlign:"center",textDecoration:"none",fontSize:12,padding:"8px",background:svc.color,border:"none"}}>{svc.action} →</a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const exportCSV=(filename,headers,rows)=>{
   const csv=[headers.join(","),...rows.map(r=>r.map(c=>'"'+(String(c||"").replace(/"/g,'""'))+'"').join(","))].join("\n");
   const a=document.createElement("a");
@@ -4889,7 +5096,41 @@ const AdminView=()=>{
     </div>
   );
 };
-const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,fontSize,setFontSize,highContrast,setHighContrast})=>{
+const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,fontSize,setFontSize,highContrast,setHighContrast,userId,userName})=>{
+  const [profTab,setProfTab]=useState("appearance");
+  const [bio,setBio]=useState("");
+  const [phone,setPhone]=useState("");
+  const [linkedin,setLinkedin]=useState("");
+  const [github,setGithub]=useState("");
+  const [twitter,setTwitter]=useState("");
+  const [avatarUrl,setAvatarUrl]=useState("");
+  const [uploading,setUploading]=useState(false);
+  const [profSaved,setProfSaved]=useState(false);
+
+  useEffect(()=>{
+    if(!userId)return;
+    (async()=>{
+      const {supabase}=await import("./supabase.js");
+      const {data}=await supabase.from("profiles").select("bio,phone,linkedin,github,twitter,avatar_url").eq("id",userId).single();
+      if(data){setBio(data.bio||"");setPhone(data.phone||"");setLinkedin(data.linkedin||"");setGithub(data.github||"");setTwitter(data.twitter||"");setAvatarUrl(data.avatar_url||"");}
+    })();
+  },[userId]);
+
+  const saveProfile=async()=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("profiles").update({bio,phone,linkedin,github,twitter,avatar_url:avatarUrl}).eq("id",userId);
+    setProfSaved(true);setTimeout(()=>setProfSaved(false),2500);
+  };
+
+  const uploadAvatar=async(e)=>{
+    const file=e.target.files[0];if(!file)return;
+    setUploading(true);
+    const {supabase}=await import("./supabase.js");
+    const path="avatars/"+userId+"/"+Date.now()+"_"+file.name;
+    const {data}=await supabase.storage.from("course-materials").upload(path,file,{upsert:true});
+    if(data){const {data:url}=supabase.storage.from("course-materials").getPublicUrl(path);setAvatarUrl(url.publicUrl);}
+    setUploading(false);
+  };
   const T=useT();const t=useLang();const s=sx(T);
   const langOpts=Object.entries(LANGS);
   const themeOpts=Object.values(THEMES);
@@ -4897,7 +5138,49 @@ const SettingsView=({lang,setLang,themeId,setThemeId,userField,setUserField,font
   return(
     <div>
       <h1 style={s.h1}>{t("settings")}</h1>
-      <p style={s.sub}>Language · Theme · Field of Study</p>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
+        {[["appearance","🎨 Appearance"],["profile","👤 My Profile"],["security","🔒 Security & Data"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setProfTab(id)} style={{...(profTab===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
+        ))}
+      </div>
+      {profTab==="profile"&&(
+        <div style={{display:"grid",gap:"1rem",marginBottom:"1.5rem"}}>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Profile Photo</div>
+            <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
+              <div style={{width:80,height:80,borderRadius:"50%",background:T.bg3,border:"2px solid "+T.ac,overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>
+                {avatarUrl?<img src={avatarUrl} alt="av" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(userName||"U")[0].toUpperCase()}
+              </div>
+              <div>
+                <label style={{...s.btnS,fontSize:12,cursor:"pointer",display:"inline-block",padding:"7px 14px"}}>
+                  {uploading?"Uploading...":"📷 Upload Photo"}
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={uploadAvatar} disabled={uploading}/>
+                </label>
+                <div style={{fontSize:11,color:T.t3,marginTop:4}}>JPG, PNG or WebP.</div>
+              </div>
+            </div>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>About Me</div>
+            <div style={{display:"grid",gap:10}}>
+              <div><label style={s.lbl}>SHORT BIO</label><textarea style={{...s.input,height:70,resize:"vertical",fontSize:12}} placeholder="Tell others a bit about yourself..." value={bio} onChange={e=>setBio(e.target.value)}/></div>
+              <div><label style={s.lbl}>PHONE / WHATSAPP</label><input style={s.input} placeholder="+254 7xx xxx xxx" value={phone} onChange={e=>setPhone(e.target.value)}/></div>
+            </div>
+          </div>
+          <div style={s.card}>
+            <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Social & Professional Links</div>
+            <div style={{display:"grid",gap:10}}>
+              <div><label style={s.lbl}>LINKEDIN</label><input style={s.input} placeholder="https://linkedin.com/in/yourname" value={linkedin} onChange={e=>setLinkedin(e.target.value)}/></div>
+              <div><label style={s.lbl}>GITHUB</label><input style={s.input} placeholder="https://github.com/yourname" value={github} onChange={e=>setGithub(e.target.value)}/></div>
+              <div><label style={s.lbl}>TWITTER / X</label><input style={s.input} placeholder="https://x.com/yourname" value={twitter} onChange={e=>setTwitter(e.target.value)}/></div>
+            </div>
+          </div>
+          {profSaved&&<div style={{background:rgba(T.green,0.1),border:"1px solid "+rgba(T.green,0.3),borderRadius:8,padding:"10px 14px",fontSize:12,color:T.green}}>✓ Profile saved.</div>}
+          <button onClick={saveProfile} style={s.btnP}>Save Profile</button>
+        </div>
+      )}
+      {profTab==="security"&&<div style={{marginBottom:"1.5rem"}}><div style={{...s.card,border:"1px solid "+rgba(T.red,0.2)}}><div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:8}}>🔒 Data & Privacy</div><div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>Your data is protected under the Kenya Data Protection Act 2019. AKADIMIA does not sell your personal data. To request deletion of your account and data, contact your institution administrator.</div></div></div>}
+      {profTab==="appearance"&&<p style={s.sub}>Language · Theme · Field of Study</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
         <div style={s.card}>
           <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Language</div>
@@ -5141,9 +5424,11 @@ export default function App(){
     peers:<PeersView setTab={persistTab} userField={userField}/>,
     innovation:<InnovationHub userName={userName} role={role} userField={userField}/>,
     programme:<ProgrammeView userField={userField} role={role} userName={userName}/>,
+    events:<EventsView userField={userField} role={role} userName={userName}/>,
+    services:<ServicesView userField={userField}/>,
     classroom:<ClassroomView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     admin:<AdminView/>,
-    settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast}/>,
+    settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} userId={userId} userName={userName}/>,
   };
   return(
     <ThemeCtx.Provider value={themeId}>
