@@ -4,6 +4,7 @@ import remarkMath from"remark-math";
 import rehypeKatex from"rehype-katex";
 import{supabase}from"./supabase.js";
 import{askClaude,signIn,signUp,signOut,getProfile,getPendingUsers,updateUserStatus}from"./api.js";
+import Landing from"./Landing.jsx";
 import{AreaChart,Area,BarChart,Bar,RadarChart,Radar,PolarGrid,PolarAngleAxis,XAxis,YAxis,ResponsiveContainer,Tooltip}from"recharts";
 
 /* AKADIMIA v4.2  ·  "Ujuzi Bila Mipaka"  ·  Knowledge Without Limits */
@@ -5462,6 +5463,7 @@ const AdminMessagesBanner=({userId})=>{
 };
 
 export default function App(){
+  const [showLanding,setShowLanding]=useState(()=>!localStorage.getItem('ak_visited'));
   const [themeId,setThemeId]=useState(()=>localStorage.getItem('ak_theme')||'navy'),[lang,setLang]=useState(()=>localStorage.getItem('ak_lang')||'en'),[fontSize,setFontSize]=useState(14),[highContrast,setHighContrast]=useState(false);
   const [userField,setUserField]=useState("actuarial"),[role,setRole]=useState("student");
   const [userName,setUserName]=useState(""),[authed,setAuthed]=useState(false);
@@ -5596,13 +5598,17 @@ export default function App(){
         <div style="margin-bottom:10px;font-size:13px;color:#333;">💡 <strong>Innovation Hub</strong> — post challenges and mentor student ideas</div>
         <div style="font-size:13px;color:#333;">💬 <strong>Community Chat</strong> — engage with students and fellow staff across fields</div>`;
 
-      const intro=isStaff
-        ? `I am glad to have you on board as a <strong>${roleLabel}</strong> on AKADIMIA. The platform is designed to make teaching, mentoring and engagement with students as seamless as possible — so you can focus on what matters most.`
-        : `I built AKADIMIA because I believe every Kenyan student deserves access to the tools, resources and community that make academic life not just manageable — but genuinely exciting.`;
+      const intro=role==="lecturer"
+        ? `Having you on board as a <strong>Lecturer</strong> means a great deal. AKADIMIA was built with educators in mind — a space where you can manage classes, post assignments, engage students and track their wellbeing without the usual administrative burden. Your contribution to your students through this platform will be significant.`
+        : role==="researcher"
+        ? `Having you join as a <strong>Researcher</strong> is exactly the kind of presence AKADIMIA needs. The platform gives you a space to share work, engage with students on innovation, and collaborate across disciplines. We are building something meaningful here and your expertise adds to that.`
+        : role==="admin"
+        ? `Welcome as an <strong>Administrator</strong> on AKADIMIA. You are now one of the people who keeps this platform running well for everyone. The admin tools give you full control over registrations, communications and platform content. We are counting on you.`
+        : `I built this platform with one conviction: every Kenyan student deserves a proper academic home. Somewhere that keeps your assignments, your grades, your wellness and your future in one place. That is AKADIMIA.`;
 
-      const closing=isStaff
-        ? `Your platform is ready to support your students. I would love to hear how we can make it work even better for your teaching and research. Use the <strong>Feedback</strong> button — every message is read personally.`
-        : `I would love to hear your first impressions once you are in. Use the <strong>Feedback</strong> button on the platform — every message is read personally.`;
+      const closing=role==="lecturer"||role==="researcher"||role==="admin"
+        ? `The platform is ready for you. If there is anything that does not work the way you expect, or anything you would like to see added, use the Feedback button inside the platform. Every message is read and acted on personally.`
+        : `Once you are approved and inside, take ten minutes to explore everything. Set up your profile, check your field tools, run your GPA through the calculator, and say hello in the Community Chat. This platform was built for you. Use it fully.`;
 
       const welcomeHtml=`<!DOCTYPE html>
 <html>
@@ -5616,7 +5622,7 @@ export default function App(){
     <div style="padding:36px;">
       <p style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Welcome, ${firstName}! 🎓</p>
       <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
-        My name is <strong>Dr. Jeffar Oburu</strong>, founder of AKADIMIA. ${intro}
+        My name is <strong>Dr. Jeffar Oburu</strong>, founder and developer of AKADIMIA. ${intro}
       </p>
       <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
         Your registration has been received and is awaiting approval from the administrator. You will gain access shortly.
@@ -5626,13 +5632,13 @@ export default function App(){
         ${isStaff?staffFeatures:studentFeatures}
       </div>
       <div style="text-align:center;margin-bottom:28px;">
-        <a href="https://akadimia.co.ke" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.5px;">Visit AKADIMIA →</a>
+        <a href="https://akadimia.co.ke/about" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.5px;">Learn About AKADIMIA</a>
       </div>
       <p style="font-size:13px;color:#666;line-height:1.8;margin:0 0 8px;">${closing}</p>
       <p style="font-size:13px;color:#666;line-height:1.8;margin:0;">Welcome to the AKADIMIA family, ${firstName}. Let us make this journey count.</p>
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee;">
         <p style="font-size:13px;color:#1a1a2e;font-weight:700;margin:0;">Dr. Jeffar Junior Oburu</p>
-        <p style="font-size:12px;color:#888;margin:4px 0 0;">Founder, AKADIMIA</p>
+        <p style="font-size:12px;color:#888;margin:4px 0 0;">Founder and Developer, AKADIMIA</p>
         <p style="font-size:12px;color:#888;margin:2px 0 0;">akadimia.co.ke</p>
       </div>
     </div>
@@ -5740,6 +5746,8 @@ export default function App(){
               <div style={{fontSize:10,color:"#444",textAlign:"center",marginTop:12}}>Kenya Data Protection Act 2019 · Computer Misuse and Cybercrimes Act 2018 · Kenya ICT Act Cap. 411A</div>
             </div>
           </div>
+        ):showLanding?(
+          <Landing onEnter={()=>{localStorage.setItem('ak_visited','1');setShowLanding(false);}}/>
         ):!authed?(
           <AuthScreen onLogin={handleLogin} onRealLogin={handleRealLogin} onRealSignUp={handleRealSignUp} lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}}/>
         ):(
