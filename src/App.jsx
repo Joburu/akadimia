@@ -5576,6 +5576,34 @@ export default function App(){
     // Send welcome email via Edge Function
     try{
       const firstName=(meta.full_name||email).split(" ")[0];
+      const role=meta.role||"student";
+      const isStaff=role==="lecturer"||role==="researcher"||role==="admin";
+      const roleLabel=role==="lecturer"?"Lecturer":role==="researcher"?"Researcher":role==="admin"?"Administrator":"Student";
+
+      const studentFeatures=`
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">📚 <strong>Courses and Assignments</strong> — all your academic content in one place</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🤖 <strong>AI Tutor</strong> — ask anything, 24 hours a day, 7 days a week</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">⚙️ <strong>Tools Hub</strong> — GPA, pension, bond pricing, currency converter and more</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🎓 <strong>Programme Structure</strong> — your full curriculum with descriptions and free references</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🏛️ <strong>Student Services</strong> — HELB, NHIF, KRA PIN, mobile loans and more</div>
+        <div style="font-size:13px;color:#333;">💬 <strong>Community Chat</strong> — connect with students across all fields</div>`;
+
+      const staffFeatures=`
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">📋 <strong>Assignments and Exams</strong> — post, manage and grade student work in one place</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🏫 <strong>My Classroom</strong> — class insights, wellness flags and student feedback</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">📣 <strong>Events</strong> — post bootcamps, seminars, workshops and trips for students</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🤖 <strong>AI Tools</strong> — AI Tutor, research assistant and career analytics</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">💡 <strong>Innovation Hub</strong> — post challenges and mentor student ideas</div>
+        <div style="font-size:13px;color:#333;">💬 <strong>Community Chat</strong> — engage with students and fellow staff across fields</div>`;
+
+      const intro=isStaff
+        ? `I am glad to have you on board as a <strong>${roleLabel}</strong> on AKADIMIA. The platform is designed to make teaching, mentoring and engagement with students as seamless as possible — so you can focus on what matters most.`
+        : `I built AKADIMIA because I believe every Kenyan student deserves access to the tools, resources and community that make academic life not just manageable — but genuinely exciting.`;
+
+      const closing=isStaff
+        ? `Your platform is ready to support your students. I would love to hear how we can make it work even better for your teaching and research. Use the <strong>Feedback</strong> button — every message is read personally.`
+        : `I would love to hear your first impressions once you are in. Use the <strong>Feedback</strong> button on the platform — every message is read personally.`;
+
       const welcomeHtml=`<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -5588,34 +5616,23 @@ export default function App(){
     <div style="padding:36px;">
       <p style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Welcome, ${firstName}! 🎓</p>
       <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
-        My name is <strong>Dr. Jeffar Oburu</strong>, founder of AKADIMIA. I built this platform because I believe every Kenyan student deserves access to the tools, resources and community that make academic life not just manageable — but genuinely exciting.
+        My name is <strong>Dr. Jeffar Oburu</strong>, founder of AKADIMIA. ${intro}
       </p>
       <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
-        Your registration has been received and is awaiting approval from your department administrator. You will be notified once your account is active.
+        Your registration has been received and is awaiting approval from the administrator. You will gain access shortly.
       </p>
-      <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 24px;">
-        While you wait, here is what to expect once you are in:
-      </p>
+      <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">Here is what awaits you on the platform:</p>
       <div style="background:#f9f9f9;border-radius:10px;padding:20px;margin-bottom:24px;">
-        <div style="margin-bottom:10px;font-size:13px;color:#333;">📚 <strong>Courses & Assignments</strong> — all your academic content in one place</div>
-        <div style="margin-bottom:10px;font-size:13px;color:#333;">🤖 <strong>AI Tutor</strong> — ask anything, 24 hours a day, 7 days a week</div>
-        <div style="margin-bottom:10px;font-size:13px;color:#333;">⚙️ <strong>Tools Hub</strong> — GPA, pension, bond pricing, currency converter and more</div>
-        <div style="margin-bottom:10px;font-size:13px;color:#333;">💡 <strong>Innovation Hub</strong> — ideas, hackathons and startup challenges</div>
-        <div style="margin-bottom:10px;font-size:13px;color:#333;">🏛️ <strong>Student Services</strong> — HELB, NHIF, KRA PIN, mobile loans and more</div>
-        <div style="font-size:13px;color:#333;">💬 <strong>Community Chat</strong> — connect with students across all fields</div>
+        ${isStaff?staffFeatures:studentFeatures}
       </div>
       <div style="text-align:center;margin-bottom:28px;">
         <a href="https://akadimia.co.ke" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.5px;">Visit AKADIMIA →</a>
       </div>
-      <p style="font-size:13px;color:#666;line-height:1.8;margin:0 0 8px;">
-        I would love to hear your first impressions once you are in. Use the <strong>Feedback</strong> button on the platform — every message is read personally.
-      </p>
-      <p style="font-size:13px;color:#666;line-height:1.8;margin:0;">
-        Welcome to the family, ${firstName}. Let us make this journey count.
-      </p>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin:0 0 8px;">${closing}</p>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin:0;">Welcome to the AKADIMIA family, ${firstName}. Let us make this journey count.</p>
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee;">
         <p style="font-size:13px;color:#1a1a2e;font-weight:700;margin:0;">Dr. Jeffar Junior Oburu</p>
-        <p style="font-size:12px;color:#888;margin:4px 0 0;">Founder, AKADIMIA · PhD Applied Statistics</p>
+        <p style="font-size:12px;color:#888;margin:4px 0 0;">Founder, AKADIMIA</p>
         <p style="font-size:12px;color:#888;margin:2px 0 0;">akadimia.co.ke</p>
       </div>
     </div>
