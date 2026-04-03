@@ -5572,6 +5572,68 @@ export default function App(){
     const {handleSignUp}=await import("./auth.js");
     const result=await handleSignUp(email,password,meta);
     if(result.error)return result.error;
+
+    // Send welcome email via Edge Function
+    try{
+      const firstName=(meta.full_name||email).split(" ")[0];
+      const welcomeHtml=`<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a2e;padding:32px 36px;text-align:center;">
+      <div style="font-size:30px;font-weight:900;color:#ffffff;letter-spacing:4px;">AKADIMIA</div>
+      <div style="font-size:13px;color:#D4A017;font-style:italic;margin-top:6px;">Ujuzi Bila Mipaka — Knowledge Without Borders</div>
+    </div>
+    <div style="padding:36px;">
+      <p style="font-size:18px;font-weight:700;color:#1a1a2e;margin:0 0 16px;">Welcome, ${firstName}! 🎓</p>
+      <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
+        My name is <strong>Dr. Jeffar Oburu</strong>, founder of AKADIMIA. I built this platform because I believe every Kenyan student deserves access to the tools, resources and community that make academic life not just manageable — but genuinely exciting.
+      </p>
+      <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 16px;">
+        Your registration has been received and is awaiting approval from your department administrator. You will be notified once your account is active.
+      </p>
+      <p style="font-size:14px;color:#444;line-height:1.8;margin:0 0 24px;">
+        While you wait, here is what to expect once you are in:
+      </p>
+      <div style="background:#f9f9f9;border-radius:10px;padding:20px;margin-bottom:24px;">
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">📚 <strong>Courses & Assignments</strong> — all your academic content in one place</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🤖 <strong>AI Tutor</strong> — ask anything, 24 hours a day, 7 days a week</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">⚙️ <strong>Tools Hub</strong> — GPA, pension, bond pricing, currency converter and more</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">💡 <strong>Innovation Hub</strong> — ideas, hackathons and startup challenges</div>
+        <div style="margin-bottom:10px;font-size:13px;color:#333;">🏛️ <strong>Student Services</strong> — HELB, NHIF, KRA PIN, mobile loans and more</div>
+        <div style="font-size:13px;color:#333;">💬 <strong>Community Chat</strong> — connect with students across all fields</div>
+      </div>
+      <div style="text-align:center;margin-bottom:28px;">
+        <a href="https://akadimia.co.ke" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.5px;">Visit AKADIMIA →</a>
+      </div>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin:0 0 8px;">
+        I would love to hear your first impressions once you are in. Use the <strong>Feedback</strong> button on the platform — every message is read personally.
+      </p>
+      <p style="font-size:13px;color:#666;line-height:1.8;margin:0;">
+        Welcome to the family, ${firstName}. Let us make this journey count.
+      </p>
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid #eee;">
+        <p style="font-size:13px;color:#1a1a2e;font-weight:700;margin:0;">Dr. Jeffar Junior Oburu</p>
+        <p style="font-size:12px;color:#888;margin:4px 0 0;">Founder, AKADIMIA · PhD Applied Statistics</p>
+        <p style="font-size:12px;color:#888;margin:2px 0 0;">akadimia.co.ke</p>
+      </div>
+    </div>
+    <div style="background:#1a1a2e;padding:16px 36px;text-align:center;">
+      <p style="font-size:11px;color:#666;margin:0;">© 2025 AKADIMIA · Kenya Data Protection Act 2019 Compliant</p>
+      <p style="font-size:11px;color:#555;margin:4px 0 0;">You received this because you registered at akadimia.co.ke</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/send-email",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":import.meta.env.VITE_SUPABASE_KEY,"Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},
+        body:JSON.stringify({to:email,subject:"Welcome to AKADIMIA, "+firstName+" — Ujuzi Bila Mipaka",html:welcomeHtml})
+      });
+    }catch(e){console.log("Welcome email error:",e);}
+
     return null;
   };
   const T=THEMES[themeId];
