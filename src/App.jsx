@@ -1329,7 +1329,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
             </div>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={createAssignment} style={s.btnP}>Create Assignment</button>
+            <button onClick={createAssignment} style={s.btnP}>{editingA?"Save Changes":"Create Assignment"}</button><button onClick={()=>{setShowCreate(false);setEditingA(null);setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});}} style={{...s.btnS,marginLeft:8}}>Cancel</button>
             <button onClick={()=>setShowCreate(false)} style={s.btnS}>Cancel</button>
           </div>
         </div>
