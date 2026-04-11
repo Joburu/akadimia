@@ -2236,12 +2236,9 @@ const OppsView=({userField})=>{
       const fieldName=(fld&&fld.name)||userField;
       const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
       const oppRes=await callGemini("Today is "+today+". List 12 realistic current opportunities for "+fieldName+" students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array.", 2000);
-      const res={ok:true,json:async()=>({content:[{type:"text",text:oppRes}]})};
-      const d=await res.json();
-      let text=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
-      const clean=text.replace(/```json|```/g,"").trim();
-      const jsonStart=clean.indexOf("[");const jsonEnd=clean.lastIndexOf("]");
-      const parsed=JSON.parse(jsonStart>=0&&jsonEnd>jsonStart?clean.slice(jsonStart,jsonEnd+1):"[]");
+      const oppClean=oppRes.replace(/```json|```/g,"").trim();
+      const oppStart=oppClean.indexOf("[");const oppEnd=oppClean.lastIndexOf("]");
+      const parsed=JSON.parse(oppStart>=0&&oppEnd>oppStart?oppClean.slice(oppStart,oppEnd+1):"[]");
       setOpps(Array.isArray(parsed)?parsed:[]);
       setLastFetched(new Date());
     }catch(e){setError("Could not fetch opportunities. Please try again.");console.error(e);}
