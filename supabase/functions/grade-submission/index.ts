@@ -1,0 +1,65 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { pdfBase64, assignmentTitle, instructions, maxMarks } = await req.json()
+    const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')
+
+    if (!ANTHROPIC_KEY) {
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not set' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 }
+            },
+            {
+              type: 'text',
+              text: `You are an academic examiner. Grade this student submission.\n\nAssignment: ${assignmentTitle}\nInstructions: ${instructions||'Complete the assignment as instructed.'}\nMax Marks: ${maxMarks}\n\nReturn ONLY this JSON: {"marks": NUMBER, "feedback": "STRING"}`
+            }
+          ]
+        }]
+      })
+    })
+
+    const data = await res.json()
+    const txt = data.content?.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('') || '{}'
+    const clean = txt.replace(/```json|```/g, '').trim()
+    const parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1))
+
+    return new Response(JSON.stringify(parsed), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    })
+  }
+})
