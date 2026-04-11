@@ -2116,7 +2116,7 @@ const ResearchView=({userField})=>{
     if(!content||content.trim().length<50){setError("Please provide at least 50 characters.");return;}
     setLoading(true);setError("");setResult(null);setStep("Analyzing...");
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:"Analyze this academic text for plagiarism and AI generation.\n\nTEXT:\n"+content.slice(0,6000)+"\n\nReturn ONLY this JSON:\n{\"similarity_index\":NUMBER,\"ai_content_percentage\":NUMBER,\"human_content_percentage\":NUMBER,\"word_count\":NUMBER,\"sentence_count\":NUMBER,\"readability_score\":NUMBER,\"readability_label\":\"STRING\",\"overall_verdict\":\"Likely Original OR Possibly AI-Assisted OR Likely AI-Generated OR Potentially Plagiarized\",\"confidence\":NUMBER,\"summary\":\"STRING\",\"ai_indicators\":[\"STRING\"],\"suspicious_sections\":[\"STRING\"],\"recommendations\":[\"STRING\"]}"}]})});
+      const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+import.meta.env.VITE_GEMINI_KEY,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:"Analyze this academic text for plagiarism and AI generation.\n\nTEXT:\n"+content.slice(0,6000)+"\n\nReturn ONLY this JSON:\n{\"similarity_index\":NUMBER,\"ai_content_percentage\":NUMBER,\"human_content_percentage\":NUMBER,\"word_count\":NUMBER,\"sentence_count\":NUMBER,\"readability_score\":NUMBER,\"readability_label\":\"STRING\",\"overall_verdict\":\"Likely Original OR Possibly AI-Assisted OR Likely AI-Generated OR Potentially Plagiarized\",\"confidence\":NUMBER,\"summary\":\"STRING\",\"ai_indicators\":[\"STRING\"],\"suspicious_sections\":[\"STRING\"],\"recommendations\":[\"STRING\"]}"}]}],generationConfig:{maxOutputTokens:1500}})});
       const d=await res.json();
       if(d.error){setError("Error: "+d.error.message);setLoading(false);return;}
       const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"";
@@ -2535,14 +2535,7 @@ const InnovationHub=({userName,role,userField})=>{
     setAiLoading(true);setAiIdeas([]);
     try{
       const fld=FIELDS[userField];
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1500,
-          messages:[{role:"user",content:"Generate 6 exciting, actionable innovation ideas for Kenyan university students, especially those studying "+(fld?.name||userField)+". Ideas should address real African problems and have startup or social impact potential. Mix fields — include tech, agriculture, health, finance, education and social innovation. For each include a catchy title, 2-sentence description, category, potential impact and difficulty (Easy/Medium/Hard). Return ONLY a JSON array: [{title,description,category,impact,difficulty}]"}]})
-      });
-      const d=await res.json();
-      const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
+      const raw=await callGemini("Generate 6 exciting, actionable innovation ideas for Kenyan university students, especially those studying "+(fld?.name||userField)+". Ideas should address real African problems and have startup or social impact potential. Mix fields — include tech, agriculture, health, finance, education and social innovation. For each include a catchy title, 2-sentence description, category, potential impact and difficulty (Easy/Medium/Hard). Return ONLY a JSON array: [{title,description,category,impact,difficulty}]", 1500);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("["),clean.lastIndexOf("]")+1));
       setAiIdeas(Array.isArray(parsed)?parsed:[]);
@@ -4052,13 +4045,7 @@ const TranscriptView=({userField})=>{
         const prompt="You are an academic advisor at a Kenyan university. A "+fieldName+" student has these grades: "+unitList+". GPA: "+gpa+" ("+standing+"). Provide:\n1. **Academic Summary** — 2-3 sentence assessment of their actual performance\n2. **Strengths** — top 3 units they excel in\n3. **Areas to Improve** — weakest 2-3 units with specific advice\n4. **Recommended Certifications** — 3-4 certs matching their profile in Kenya\n5. **Career Pathways** — top 3 careers with % fit based on their actual grades\n6. **12-Month Action Plan** — 4 quarterly milestones tailored to their GPA\n\nBe specific to their actual grades, not generic.";
         messages=[{role:"user",content:prompt}];
       }
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1500,messages})
-      });
-      const d=await res.json();
-      const text=d.content?.[0]?.text||"Could not generate analysis.";
+      const text=await callAI(messages[0].content, 1500);
       setAiResult(text);setMode("advice");
     }catch(e){
       console.error(e);
