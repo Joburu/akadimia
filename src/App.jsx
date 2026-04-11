@@ -2241,7 +2241,7 @@ const OppsView=({userField})=>{
       const parsed=JSON.parse(oppStart>=0&&oppEnd>oppStart?oppClean.slice(oppStart,oppEnd+1):"[]");
       setOpps(Array.isArray(parsed)?parsed:[]);
       setLastFetched(new Date());
-    }catch(e){setError("Could not fetch opportunities. Please try again.");console.error(e);}
+    }catch(e){setError("Could not fetch opportunities: "+e.message);console.error("OPP ERROR:",e);}
     setLoading(false);
   };
 
