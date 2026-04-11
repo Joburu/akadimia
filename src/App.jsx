@@ -4427,7 +4427,11 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-            {[[isLec?submissions.length:mySubs.filter(s=>!assignments.find(a=>a.id===s.assignment_id&&s.status==="graded")).length:0,isLec?"Submissions":"Pending",T.amber],[graded.length,"Graded",T.green],[avgScore!=null?avgScore+"%":"N/A","Avg Score",avgScore>=70?T.green:avgScore>=50?T.amber:T.red]].map(([v,l,c])=>(
+            {[
+              [isLec?submissions.length:mySubs.length,isLec?"Submissions":"Submitted",T.amber],
+              [graded.length,"Graded",T.green],
+              [avgScore!=null?avgScore+"%":"N/A","Avg Score",avgScore!=null&&avgScore>=70?T.green:avgScore!=null&&avgScore>=50?T.amber:T.red]
+            ].map(([v,l,c])=>(
               <div key={l} style={{background:T.bg3,borderRadius:10,padding:"8px 10px",textAlign:"center"}}>
                 <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
                 <div style={{fontSize:10,color:T.t3}}>{l}</div>
