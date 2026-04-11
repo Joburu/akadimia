@@ -1359,7 +1359,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
                     {a.description&&<div style={{fontSize:12,color:T.t2,marginBottom:6,lineHeight:1.7}}><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{a.description}</ReactMarkdown></div>}
                     {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,color:T.ac,textDecoration:"none",background:T.ac+"18",borderRadius:6,padding:"3px 10px",marginBottom:6}}>📎 Download</a>}
                     <div style={{fontSize:11,color:T.t3}}>
-                      {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
+                      {a.due_date&&<span style={{marginRight:12}}>📅 Due: {new Date(a.due_date).toLocaleDateString("en-KE")} {new Date(a.due_date).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit",timeZone:"Africa/Nairobi"})}</span>}
                       <span>Max: {a.max_marks} marks</span>
                       {isLec&&<span style={{marginLeft:12}}>📥 {subs.length} submission{subs.length!==1?"s":""}</span>}
                     </div>
