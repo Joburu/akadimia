@@ -4604,7 +4604,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                           {!isLec&&!mySub&&!overdue&&<span style={{background:T.amber+"22",color:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,display:"inline-block"}}>Pending</span>}
                         </div>
                         <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                          {a.due_date&&<span style={{fontSize:11,color:urgentColor}}>{overdue?"⚠️ Due date passed":days===0?"⚡ Due today!":days===1?"Due tomorrow":"📅 "+days+" days left"} · {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
+                          {a.due_date&&<span style={{fontSize:11,color:urgentColor}}>{overdue?"⚠️ Due date passed":days===0?"⚡ Due today!":days===1?"Due tomorrow":"📅 "+days+" days left"} · {new Date(a.due_date).toLocaleDateString("en-KE")} {new Date(a.due_date).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit",timeZone:"Africa/Nairobi"})}</span>}
                           <span style={{fontSize:11,color:T.t3}}>Max: {a.max_marks} marks</span>
                           {isLec&&<span style={{fontSize:11,color:T.t3}}>{allSubs.length} submission{allSubs.length!==1?"s":""}</span>}
                           {aComments.length>0&&<span style={{fontSize:11,color:T.t3}}>💬 {aComments.length}</span>}
