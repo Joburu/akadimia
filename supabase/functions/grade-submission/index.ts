@@ -48,9 +48,20 @@ serve(async (req) => {
     })
 
     const data = await res.json()
+    console.log("Anthropic response:", JSON.stringify(data))
+    
+    if(!res.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error', raw: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
     const txt = data.content?.filter((c: any) => c.type === 'text').map((c: any) => c.text).join('') || '{}'
     const clean = txt.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1))
+    const start = clean.indexOf('{')
+    const end = clean.lastIndexOf('}')
+    const parsed = start >= 0 && end > start ? JSON.parse(clean.slice(start, end + 1)) : {}
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
