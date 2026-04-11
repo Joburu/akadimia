@@ -4429,7 +4429,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
           <div>
             <h1 style={{...s.h1,marginBottom:4}}>My Classroom</h1>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-              <span style={s.tag((fld?.color)||T.ac)}>{fld?.icon} {fld?.name}</span>
+              <span style={{background:((fld?.color)||T.ac)+"22",color:(fld?.color)||T.ac,border:"1px solid "+((fld?.color)||T.ac)+"44",borderRadius:20,padding:"3px 12px",fontSize:11,fontWeight:600,display:"inline-block"}}>{fld?.icon} {fld?.name}</span>
               <span style={{fontSize:11,color:T.t3}}>{isLec?"Lecturer":"Student"} · {userName}</span>
             </div>
           </div>
@@ -4456,6 +4456,12 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
 
       {tab==="assignments"&&(
         <div>
+          {assignments.length===0&&!isLec&&(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>📋</div>
+              <div style={{fontSize:14,color:T.t2}}>No assignments posted yet. Check back soon.</div>
+            </div>
+          )}
           {isLec&&(
             <div style={{marginBottom:"1rem"}}>
               <button onClick={()=>setShowCreate(!showCreate)} style={{...s.btnP,marginBottom:showCreate?"1rem":0}}>{showCreate?"✕ Cancel":"+ New Assignment"}</button>
@@ -4508,9 +4514,9 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:4}}>
                           <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{a.title}</span>
                           {a.course_code&&<span style={{...s.tag(T.ac),fontSize:10}}>{a.course_code}</span>}
-                          {!isLec&&mySub&&<span style={{...s.tag(mySub.status==="graded"?T.purple:T.green),fontSize:10}}>{mySub.status==="graded"?"Graded":"Submitted"}</span>}
-                          {!isLec&&!mySub&&overdue&&<span style={{...s.tag(T.red),fontSize:10}}>Overdue</span>}
-                          {!isLec&&!mySub&&!overdue&&<span style={{...s.tag(T.amber),fontSize:10}}>Pending</span>}
+                          {!isLec&&mySub&&<span style={{background:(mySub.status==="graded"?T.purple:T.green)+"22",color:mySub.status==="graded"?T.purple:T.green,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,display:"inline-block"}}>{mySub.status==="graded"?"Graded":"Submitted"}</span>}
+                          {!isLec&&!mySub&&overdue&&<span style={{background:T.red+"22",color:T.red,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,display:"inline-block"}}>Overdue</span>}
+                          {!isLec&&!mySub&&!overdue&&<span style={{background:T.amber+"22",color:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:600,display:"inline-block"}}>Pending</span>}
                         </div>
                         <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
                           {a.due_date&&<span style={{fontSize:11,color:urgentColor}}>{overdue?"⚠️ Due date passed":days===0?"⚡ Due today!":days===1?"Due tomorrow":"📅 "+days+" days left"} · {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
@@ -4753,8 +4759,8 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
 
       {tab==="ratings"&&!isLec&&(
         <div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>Rate your recent classes anonymously. Your honest feedback helps improve teaching quality.</div>
-          {meetings.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No classes to rate yet.</div>:(
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>Rate your recent classes anonymously.</div>
+          {(!meetings||meetings.length===0)?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No classes to rate yet. Classes will appear here once scheduled.</div>:(
             <div style={{display:"grid",gap:12}}>
               {meetings.slice(0,10).map(m=>(
                 <div key={m.id} style={s.card}>
