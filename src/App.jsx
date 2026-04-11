@@ -1224,7 +1224,13 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       const {data:upData}=await supabase.storage.from("course-materials").upload(path,assignmentFile);
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
-    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    const {questions:qs,...assignData}=newA;
+    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...assignData,field:userField,created_by:user.id,file_url:fileUrl||null}).select().single();
+    if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
+    // Save questions separately if any
+    if(qs&&qs.length>0&&insertedA){
+      await supabase.from("assignment_questions").insert(qs.map(q=>({...q,assignment_id:insertedA.id,field:userField})));
+    }
     // Email notification to students
     try{
       const {data:students}=await supabase.from("profiles").select("*").eq("field",userField).eq("status","approved").eq("role","student");
@@ -4365,7 +4371,13 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     const {data:{user}}=await supabase.auth.getUser();
     let fileUrl=null;
     if(assignFile){fileUrl=await uploadFile(assignFile,"assignments/"+Date.now()+"_"+assignFile.name);}
-    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    const {questions:qs,...assignData}=newA;
+    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...assignData,field:userField,created_by:user.id,file_url:fileUrl||null}).select().single();
+    if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
+    // Save questions separately if any
+    if(qs&&qs.length>0&&insertedA){
+      await supabase.from("assignment_questions").insert(qs.map(q=>({...q,assignment_id:insertedA.id,field:userField})));
+    }
     // Email notification to students
     try{
       const {data:students}=await supabase.from("profiles").select("*").eq("field",userField).eq("status","approved").eq("role","student");
