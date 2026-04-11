@@ -2218,7 +2218,7 @@ const AIView=({lang,userField})=>{
       if(u&&role==="student"){const ok=await checkAndLogUsage(sb,u.id,"ai_tutor",20);if(!ok){setMsgs(m=>[...m,{role:"bot",text:"You have reached your daily limit of 20 AI Tutor messages. Come back tomorrow!"}]);setL(false);return;}}
       const reply=await askClaude(q,(fld&&fld.name)||"Actuarial Science",lang);
       setMsgs(m=>[...m,{role:"bot",text:reply}]);
-    }catch(e){setMsgs(m=>[...m,{role:"bot",text:"Sorry, I could not process that. Please try again."}]);}
+    }catch(e){console.error("AI TUTOR ERROR:",e);setMsgs(m=>[...m,{role:"bot",text:"Sorry, I could not process that. Please try again."}]);}
     setL(false);
   };
   return(<div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 120px)"}}>
