@@ -1225,6 +1225,15 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
     await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    // Email notification to students
+    try{
+      const {data:students}=await supabase.from("profiles").select("*").eq("field",userField).eq("status","approved").eq("role","student");
+      if(students&&students.length>0){
+        const dueStr=newA.due_date?new Date(newA.due_date).toLocaleDateString("en-KE"):"No deadline";
+        const emailHtml=`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0"><div style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden"><div style="background:#1a1a2e;padding:20px 24px;text-align:center"><div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:3px">AKADIMIA</div></div><div style="padding:24px"><p style="font-size:16px;font-weight:700;color:#1a1a2e">New Assignment Posted</p><p style="font-size:14px;color:#444"><strong>${newA.title}</strong> has been posted for ${userField} students.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888;width:40%">Course Code</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.course_code||"Not specified"}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Due Date</td><td style="padding:8px 12px;font-size:13px;color:#e00">${dueStr}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Max Marks</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.max_marks}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Type</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.assignment_type==="group"?"Group ("+newA.group_size+" members)":"Individual"}</td></tr></table><div style="text-align:center;margin:20px 0"><a href="https://akadimia.co.ke" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:13px">Open AKADIMIA</a></div><p style="font-size:11px;color:#999;text-align:center">Log in and go to My Classroom to view and submit.</p></div></div></body></html>`;
+        await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/send-email",{method:"POST",headers:{"Content-Type":"application/json","apikey":import.meta.env.VITE_SUPABASE_KEY,"Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},body:JSON.stringify({to:students.map(s=>s.email||s.id).filter(e=>e&&e.includes("@")),subject:"New Assignment: "+newA.title+" — Due "+dueStr,html:emailHtml})});
+      }
+    }catch(emailErr){console.log("Email notification error:",emailErr);}
     try{
       const query=supabase.from("profiles").select("*").eq("status","approved").eq("field",userField);
       const {data:allProfiles}=await query;
@@ -4278,7 +4287,8 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
   const [comments,setComments]=useState({});
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
-  const [newA,setNewA]=useState({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All"});
+  const [newA,setNewA]=useState({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});
+  const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5,correct_answer:0});
   const [assignFile,setAssignFile]=useState(null);
   const [creating,setCreating]=useState(false);
   const [expanded,setExpanded]=useState(null);
@@ -4356,7 +4366,16 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     let fileUrl=null;
     if(assignFile){fileUrl=await uploadFile(assignFile,"assignments/"+Date.now()+"_"+assignFile.name);}
     await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
-    setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All"});
+    // Email notification to students
+    try{
+      const {data:students}=await supabase.from("profiles").select("*").eq("field",userField).eq("status","approved").eq("role","student");
+      if(students&&students.length>0){
+        const dueStr=newA.due_date?new Date(newA.due_date).toLocaleDateString("en-KE"):"No deadline";
+        const emailHtml=`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0"><div style="max-width:560px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden"><div style="background:#1a1a2e;padding:20px 24px;text-align:center"><div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:3px">AKADIMIA</div></div><div style="padding:24px"><p style="font-size:16px;font-weight:700;color:#1a1a2e">New Assignment Posted</p><p style="font-size:14px;color:#444"><strong>${newA.title}</strong> has been posted for ${userField} students.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888;width:40%">Course Code</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.course_code||"Not specified"}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Due Date</td><td style="padding:8px 12px;font-size:13px;color:#e00">${dueStr}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Max Marks</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.max_marks}</td></tr><tr><td style="padding:8px 12px;background:#f9f9f9;font-size:12px;color:#888">Type</td><td style="padding:8px 12px;font-size:13px;color:#333">${newA.assignment_type==="group"?"Group ("+newA.group_size+" members)":"Individual"}</td></tr></table><div style="text-align:center;margin:20px 0"><a href="https://akadimia.co.ke" style="display:inline-block;background:#D4A017;color:#000;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:13px">Open AKADIMIA</a></div><p style="font-size:11px;color:#999;text-align:center">Log in and go to My Classroom to view and submit.</p></div></div></body></html>`;
+        await fetch(import.meta.env.VITE_SUPABASE_URL+"/functions/v1/send-email",{method:"POST",headers:{"Content-Type":"application/json","apikey":import.meta.env.VITE_SUPABASE_KEY,"Authorization":"Bearer "+import.meta.env.VITE_SUPABASE_KEY},body:JSON.stringify({to:students.map(s=>s.email||s.id).filter(e=>e&&e.includes("@")),subject:"New Assignment: "+newA.title+" — Due "+dueStr,html:emailHtml})});
+      }
+    }catch(emailErr){console.log("Email notification error:",emailErr);}
+    setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});
     setAssignFile(null);setShowCreate(false);setCreating(false);
     if(addNotif)addNotif("📋","Assignment Posted","Students can now see and submit this assignment.");
     load();
@@ -4469,7 +4488,59 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                     <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA(a=>({...a,max_marks:e.target.value}))}/></div>
                     <div><label style={s.lbl}>TARGET YEAR</label><select style={s.input} value={newA.target_year} onChange={e=>setNewA(a=>({...a,target_year:e.target.value}))}>{["All","Year 1","Year 2","Year 3","Year 4","Masters"].map(y=><option key={y}>{y}</option>)}</select></div>
                   </div>
-                  <div style={{marginBottom:10}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} value={newA.description} onChange={e=>setNewA(a=>({...a,description:e.target.value}))} placeholder="Describe the assignment..."/></div>
+                  <div style={{marginBottom:10}}><label style={s.lbl}>INSTRUCTIONS (supports $LaTeX$)</label><textarea style={{...s.input,height:80,resize:"vertical"}} value={newA.description} onChange={e=>setNewA(a=>({...a,description:e.target.value}))} placeholder="e.g. Find the derivative of $f(x) = x^2 + 3x$. Show all working."/></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={s.lbl}>ASSIGNMENT TYPE</label>
+                      <select style={s.input} value={newA.assignment_type} onChange={e=>setNewA(a=>({...a,assignment_type:e.target.value}))}>
+                        <option value="individual">Individual</option>
+                        <option value="group">Group</option>
+                      </select>
+                    </div>
+                    {newA.assignment_type==="group"&&<div><label style={s.lbl}>GROUP SIZE</label><input style={s.input} type="number" min={2} max={10} value={newA.group_size} onChange={e=>setNewA(a=>({...a,group_size:parseInt(e.target.value)||3}))}/></div>}
+                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:20}}>
+                      <input type="checkbox" id="allowLate" checked={newA.allow_late} onChange={e=>setNewA(a=>({...a,allow_late:e.target.checked}))}/>
+                      <label htmlFor="allowLate" style={{fontSize:12,color:T.t2,cursor:"pointer"}}>Allow late submissions</label>
+                    </div>
+                  </div>
+                  <div style={{...s.card,background:T.bg3,marginBottom:"1rem"}}>
+                    <div style={{fontSize:12,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Questions — MCQ with LaTeX support ({newA.questions.length} added)</div>
+                    <div style={{fontSize:11,color:T.t3,marginBottom:"0.75rem"}}>Optional: add MCQ questions that students answer directly on the platform. Questions are randomised per student.</div>
+                    <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>QUESTION TEXT (use $...$ for LaTeX)</label><input style={s.input} value={newQ.text} onChange={e=>setNewQ({...newQ,text:e.target.value})} placeholder="e.g. What is $\int x^2 dx$?"/></div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"0.75rem"}}>
+                      <div><label style={s.lbl}>TYPE</label>
+                        <select style={s.input} value={newQ.type} onChange={e=>setNewQ({...newQ,type:e.target.value})}>
+                          <option value="mcq">Multiple Choice</option>
+                          <option value="essay">Open / Essay</option>
+                        </select>
+                      </div>
+                      <div><label style={s.lbl}>MARKS</label><input style={s.input} type="number" value={newQ.marks} onChange={e=>setNewQ({...newQ,marks:parseInt(e.target.value)||5})}/></div>
+                    </div>
+                    {newQ.type==="mcq"&&(
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"0.75rem"}}>
+                        {newQ.options.map((opt,i)=>(
+                          <div key={i}><label style={s.lbl}>OPTION {String.fromCharCode(65+i)}</label><input style={s.input} value={opt} onChange={e=>{const ops=[...newQ.options];ops[i]=e.target.value;setNewQ({...newQ,options:ops});}} placeholder={"Option "+String.fromCharCode(65+i)}/></div>
+                        ))}
+                      </div>
+                    )}
+                    {newQ.type==="mcq"&&newQ.options.filter(o=>o).length>0&&(
+                      <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>CORRECT ANSWER</label>
+                        <select style={s.input} value={newQ.correct_answer} onChange={e=>setNewQ({...newQ,correct_answer:parseInt(e.target.value)})}>
+                          {newQ.options.map((opt,i)=>opt&&<option key={i} value={i}>Option {String.fromCharCode(65+i)}: {opt.slice(0,40)}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <button onClick={()=>{if(!newQ.text.trim())return;const q={...newQ,id:Date.now(),text:newQ.text.trim()};setNewA(a=>({...a,questions:[...a.questions,q]}));setNewQ({text:"",type:"mcq",options:["","","",""],marks:5,correct_answer:0});}} style={{...s.btnS,fontSize:11,padding:"6px 14px",marginBottom:"0.5rem"}}>+ Add Question</button>
+                    {newA.questions.length>0&&(
+                      <div style={{marginTop:8,display:"grid",gap:6}}>
+                        {newA.questions.map((q,i)=>(
+                          <div key={q.id} style={{background:T.bg2,borderRadius:8,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <div style={{fontSize:12,color:T.t1,flex:1}}>Q{i+1}: {q.text.slice(0,60)}... [{q.type.toUpperCase()} · {q.marks}mk]</div>
+                            <button onClick={()=>setNewA(a=>({...a,questions:a.questions.filter(x=>x.id!==q.id)}))} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14}}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div style={{marginBottom:"1rem"}}>
                     <label style={s.lbl}>ATTACH FILE (optional)</label>
                     <label style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",border:"2px dashed "+(assignFile?T.green:T.bd),borderRadius:8,cursor:"pointer",background:assignFile?rgba(T.green,0.06):T.bg3}}>
