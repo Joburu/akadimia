@@ -4307,7 +4307,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
       const [aRes,sRes,eRes,esRes,mRes,wrRes]=await Promise.all([
         supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
         supabase.from("submissions").select("*"),
-        supabase.from("exams").select("*").eq("field",userField).order("date",{ascending:true}),
+        supabase.from("exams").select("*").eq("field",userField).order("created_at",{ascending:false}),
         supabase.from("exam_submissions").select("*"),
         supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false}),
         supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(10),
