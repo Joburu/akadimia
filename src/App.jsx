@@ -2213,6 +2213,9 @@ const AIView=({lang,userField})=>{
     const q=inp.trim();setInp("");setL(true);setMsgs(m=>[...m,{role:"user",text:q}]);
     try{
       const {askClaude}=await import("./api.js");
+      const {supabase:sb}=await import("./supabase.js");
+      const {data:{user:u}}=await sb.auth.getUser();
+      if(u){const ok=await checkAndLogUsage(sb,u.id,"ai_tutor",20);if(!ok){setMsgs(m=>[...m,{role:"bot",text:"You have reached your daily limit of 20 AI Tutor messages. Come back tomorrow!"}]);setL(false);return;}}
       const reply=await askClaude(q,(fld&&fld.name)||"Actuarial Science",lang);
       setMsgs(m=>[...m,{role:"bot",text:reply}]);
     }catch(e){setMsgs(m=>[...m,{role:"bot",text:"Sorry, I could not process that. Please try again."}]);}
@@ -2250,12 +2253,15 @@ const OppsView=({userField})=>{
     try{
       const fieldName=(fld&&fld.name)||userField;
       const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
+      const cacheKey="opps_"+userField;const cached=localStorage.getItem(cacheKey);
+      if(cached){const {data,ts}=JSON.parse(cached);if(Date.now()-ts<86400000){setOpps(data);setLastFetched(new Date(ts));setLoading(false);return;}}
       const oppRes=await callGemini("Today is "+today+". List 12 realistic current opportunities for "+fieldName+" students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array.", 2000);
       const oppClean=oppRes.replace(/```json|```/g,"").trim();
       const oppStart=oppClean.indexOf("[");const oppEnd=oppClean.lastIndexOf("]");
       const parsed=JSON.parse(oppStart>=0&&oppEnd>oppStart?oppClean.slice(oppStart,oppEnd+1):"[]");
-      setOpps(Array.isArray(parsed)?parsed:[]);
-      setLastFetched(new Date());
+      const oppData=Array.isArray(parsed)?parsed:[];
+      setOpps(oppData);setLastFetched(new Date());
+      localStorage.setItem("opps_"+userField,JSON.stringify({data:oppData,ts:Date.now()}));
     }catch(e){setError("Could not fetch opportunities: "+e.message);console.error("OPP ERROR:",e);}
     setLoading(false);
   };
@@ -2341,6 +2347,9 @@ const AnalyticsView=({userField,userName,role})=>{
       const avgAssignment=gradedAssignments.length>0?gradedAssignments.reduce((a,s)=>a+(s.marks||0),0)/gradedAssignments.length:0;
       const avgExam=gradedExams.length>0?gradedExams.reduce((a,s)=>a+(s.marks||0),0)/gradedExams.length:0;
       const fieldName=(fld&&fld.name)||userField;
+      const {supabase:sbA}=await import("./supabase.js");
+      const {data:{user:uA}}=await sbA.auth.getUser();
+      if(uA){const ok=await checkAndLogUsage(sbA,uA.id,"career_analytics",3);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 3 daily career analysis runs. Try again tomorrow.");return;}}
       const raw=await callAI("You are a career readiness analyst for Kenyan university graduates. Assess this student's employability.\n\nStudent: "+userName+"\nField: "+fieldName+"\nYear Level: "+(profile?.year_level||"Unknown")+"\nAssignments submitted: "+(subs||[]).length+"\nAssignments graded: "+gradedAssignments.length+"\nAvg assignment score: "+avgAssignment.toFixed(1)+"%\nExams taken: "+(exSubs||[]).length+"\nExams graded: "+gradedExams.length+"\nAvg exam score: "+avgExam.toFixed(1)+"%\n\nReturn ONLY this JSON: {\"overall_score\":NUMBER_0_100,\"grade\":\"A/B/C/D\",\"label\":\"Career Ready/Developing/Needs Work\",\"academic_score\":NUMBER,\"engagement_score\":NUMBER,\"skills_score\":NUMBER,\"strengths\":[\"STRING\",\"STRING\",\"STRING\"],\"gaps\":[\"STRING\",\"STRING\",\"STRING\"],\"top_roles\":[\"STRING\",\"STRING\",\"STRING\"],\"next_steps\":[\"STRING\",\"STRING\",\"STRING\"]}", 1200);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
@@ -2533,6 +2542,9 @@ const InnovationHub=({userName,role,userField})=>{
     setAiLoading(true);setAiIdeas([]);
     try{
       const fld=FIELDS[userField];
+      const {supabase:sbI}=await import("./supabase.js");
+      const {data:{user:uI}}=await sbI.auth.getUser();
+      if(uI){const ok=await checkAndLogUsage(sbI,uI.id,"innovation_ideas",5);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 5 daily idea refreshes. Try again tomorrow.");return;}}
       const raw=await callGemini("Generate 6 exciting, actionable innovation ideas for Kenyan university students, especially those studying "+(fld?.name||userField)+". Ideas should address real African problems and have startup or social impact potential. Mix fields — include tech, agriculture, health, finance, education and social innovation. For each include a catchy title, 2-sentence description, category, potential impact and difficulty (Easy/Medium/Hard). Return ONLY a JSON array: [{title,description,category,impact,difficulty}]", 1500);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("["),clean.lastIndexOf("]")+1));
