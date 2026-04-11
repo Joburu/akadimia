@@ -1228,7 +1228,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
     const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
     const payload={title:baseData.title,course_code:baseData.course_code,description:baseData.description,due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,max_marks:baseData.max_marks,target_year:baseData.target_year,field:userField,file_url:fileUrl||null,assignment_type:assignment_type||"individual",group_size:group_size||3,allow_late:allow_late||false};
     let insertedA,insertErr;
-    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select().single());}
+    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select());if(insertedA)insertedA=insertedA[0];}
     else{({data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...payload,created_by:user.id}).select().single());}
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
@@ -4379,7 +4379,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
     const payload={title:baseData.title,course_code:baseData.course_code,description:baseData.description,due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,max_marks:baseData.max_marks,target_year:baseData.target_year,field:userField,file_url:fileUrl||null,assignment_type:assignment_type||"individual",group_size:group_size||3,allow_late:allow_late||false};
     let insertedA,insertErr;
-    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select().single());}
+    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select());if(insertedA)insertedA=insertedA[0];}
     else{({data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...payload,created_by:user.id}).select().single());}
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
