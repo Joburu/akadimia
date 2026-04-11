@@ -21,6 +21,9 @@ serve(async (req) => {
       })
     }
 
+    // Use only first 2MB of base64 to stay within limits
+    const safeB64 = pdfBase64.length > 2000000 ? pdfBase64.slice(0, 2000000) : pdfBase64
+
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -36,11 +39,11 @@ serve(async (req) => {
           content: [
             {
               type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 }
+              source: { type: 'base64', media_type: 'application/pdf', data: safeB64 }
             },
             {
               type: 'text',
-              text: `You are an academic examiner. Grade this student submission.\n\nAssignment: ${assignmentTitle}\nInstructions: ${instructions||'Complete the assignment as instructed.'}\nMax Marks: ${maxMarks}\n\nReturn ONLY this JSON: {"marks": NUMBER, "feedback": "STRING"}`
+              text: `You are an academic examiner. Grade this student submission.\n\nAssignment: ${assignmentTitle}\nInstructions: ${instructions||'Complete the assignment as instructed.'}\nMax Marks: ${maxMarks}\n\nReturn ONLY this JSON with no extra text: {"marks": NUMBER, "feedback": "STRING"}`
             }
           ]
         }]
@@ -48,10 +51,9 @@ serve(async (req) => {
     })
 
     const data = await res.json()
-    console.log("Anthropic response:", JSON.stringify(data))
-    
+
     if(!res.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error', raw: data }), {
+      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       })
