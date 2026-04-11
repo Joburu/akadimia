@@ -1225,20 +1225,10 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
     const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
-    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({
-      title:baseData.title,
-      course_code:baseData.course_code,
-      description:baseData.description,
-      due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,
-      max_marks:baseData.max_marks,
-      target_year:baseData.target_year,
-      field:userField,
-      created_by:user.id,
-      file_url:fileUrl||null,
-      assignment_type:assignment_type||"individual",
-      group_size:group_size||3,
-      allow_late:allow_late||false
-    }).select().single();
+    const payload={title:baseData.title,course_code:baseData.course_code,description:baseData.description,due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,max_marks:baseData.max_marks,target_year:baseData.target_year,field:userField,file_url:fileUrl||null,assignment_type:assignment_type||"individual",group_size:group_size||3,allow_late:allow_late||false};
+    let insertedA,insertErr;
+    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select().single());}
+    else{({data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...payload,created_by:user.id}).select().single());}
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
     if(qs&&qs.length>0&&insertedA){
@@ -1378,7 +1368,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
                     {!isLec&&!mySub&&!overdue&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnP}>Submit</button>}
                     {!isLec&&mySub&&mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11}}>View</a>}
                     {isLec&&subs.length>0&&<button onClick={()=>setSelected(selected===a.id?null:a.id)} style={s.btnS}>View ({subs.length})</button>}
-                    {isLec&&<button onClick={async()=>{if(!confirm("Delete this assignment?"))return;const {supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px"}}>🗑 Delete</button>}
+                    {isLec&&<button onClick={()=>{setEditingA(a.id);setNewA({title:a.title,course_code:a.course_code||"",description:a.description||"",due_date:a.due_date?new Date(a.due_date).toISOString().slice(0,16):"",max_marks:a.max_marks||100,target_year:a.target_year||"All",assignment_type:a.assignment_type||"individual",group_size:a.group_size||3,allow_late:a.allow_late||false,questions:[]});setShowCreate(true);}} style={{background:"none",border:"none",color:T.accent,cursor:"pointer",fontSize:12,padding:"4px"}}>✏ Edit</button>}{isLec&&<button onClick={async()=>{if(!confirm("Delete this assignment?"))return;const {supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px"}}>🗑 Delete</button>}
                   </div>
                 </div>
                 {selected===a.id&&!isLec&&!mySub&&(
@@ -4306,7 +4296,8 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
   const [comments,setComments]=useState({});
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
-  const [newA,setNewA]=useState({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});
+  const [editingA,setEditingA]=useState(null);
+    const [newA,setNewA]=useState({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});
   const [newQ,setNewQ]=useState({text:"",type:"mcq",options:["","","",""],marks:5,correct_answer:0});
   const [assignFile,setAssignFile]=useState(null);
   const [creating,setCreating]=useState(false);
@@ -4385,20 +4376,10 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     let fileUrl=null;
     if(assignFile){fileUrl=await uploadFile(assignFile,"assignments/"+Date.now()+"_"+assignFile.name);}
     const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
-    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({
-      title:baseData.title,
-      course_code:baseData.course_code,
-      description:baseData.description,
-      due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,
-      max_marks:baseData.max_marks,
-      target_year:baseData.target_year,
-      field:userField,
-      created_by:user.id,
-      file_url:fileUrl||null,
-      assignment_type:assignment_type||"individual",
-      group_size:group_size||3,
-      allow_late:allow_late||false
-    }).select().single();
+    const payload={title:baseData.title,course_code:baseData.course_code,description:baseData.description,due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,max_marks:baseData.max_marks,target_year:baseData.target_year,field:userField,file_url:fileUrl||null,assignment_type:assignment_type||"individual",group_size:group_size||3,allow_late:allow_late||false};
+    let insertedA,insertErr;
+    if(editingA){({data:insertedA,error:insertErr}=await supabase.from("assignments").update(payload).eq("id",editingA).select().single());}
+    else{({data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...payload,created_by:user.id}).select().single());}
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
     if(qs&&qs.length>0&&insertedA){
@@ -4414,7 +4395,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
       }
     }catch(emailErr){console.log("Email notification error:",emailErr);}
     setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});
-    setAssignFile(null);setShowCreate(false);setCreating(false);
+    setAssignFile(null);setShowCreate(false);setCreating(false);setEditingA(null);
     if(addNotif)addNotif("📋","Assignment Posted","Students can now see and submit this assignment.");
     load();
   };
