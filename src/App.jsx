@@ -4711,7 +4711,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
 
                         {isLec&&(
                           <div style={{marginTop:"0.75rem",display:"flex",justifyContent:"flex-end"}}>
-                            <button onClick={async()=>{if(!confirm("Delete this assignment and all its submissions?"))return;const{supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px 8px"}}>🗑 Delete Assignment</button>
+                            <button onClick={()=>{setEditingA(a.id);setNewA({title:a.title,course_code:a.course_code||"",description:a.description||"",due_date:a.due_date?new Date(a.due_date).toISOString().slice(0,16):"",max_marks:a.max_marks||100,target_year:a.target_year||"All",assignment_type:a.assignment_type||"individual",group_size:a.group_size||3,allow_late:a.allow_late||false,questions:[]});setShowCreate(true);}} style={{background:"none",border:"none",color:T.ac,cursor:"pointer",fontSize:12,padding:"4px 8px"}}>✏ Edit Assignment</button><button onClick={async()=>{if(!confirm("Delete this assignment and all its submissions?"))return;const{supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px 8px"}}>🗑 Delete Assignment</button>
                           </div>
                         )}
                       </div>
