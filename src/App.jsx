@@ -44,6 +44,17 @@ const LS={
 const LS_STUB={welcome:"Karibu",dashboard:"Dashboard",courses:"Courses",exams:"Exams",assignments:"Assignments",research:"Research",ai:"AI",calendar:"Calendar",meetings:"Meetings",opps:"Opportunities",analytics:"Analytics",tools:"Tools",transcript:"Transcript",peers:"Peers",classroom:"Classroom",admin:"Admin",settings:"Settings",signIn:"Sign In",register:"Register",pending:"Pending",fieldSelect:"Choose Field",approve:"Approve",reject:"Reject",pendingApprovals:"Pending",online:"Online",offline:"Offline",send:"Send",ask:"Ask..."};
 
 
+
+async function checkAndLogUsage(supabase, userId, feature, limit) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const {data} = await supabase.from("ai_usage").select("id").eq("user_id",userId).eq("feature",feature).gte("used_at",today.toISOString());
+  const count = data?.length || 0;
+  if(count >= limit) return false;
+  await supabase.from("ai_usage").insert({user_id:userId, feature});
+  return true;
+}
+
 async function callAI(prompt, maxTokens=1000) {
   const anthropicKey = import.meta.env.VITE_ANTHROPIC_KEY;
   const groqKey = import.meta.env.VITE_GROQ_KEY;
