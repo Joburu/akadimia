@@ -1794,14 +1794,7 @@ const ExamsView=({userField,role,userName,addNotif})=>{
                                     const correct=q.type==="mcq"?"Correct: Option "+String.fromCharCode(65+(q.correct_answer||0))+" ("+((q.options||[])[q.correct_answer||0]||"")+")":(q.marking_scheme||"No scheme provided");
                                     return (qi+1)+". Q: "+q.text+"\nStudent: "+studentAns+"\nExpected: "+correct+"\nMax marks: "+q.marks;
                                   }).join("\n\n");
-                                  const res=await fetch("https://api.anthropic.com/v1/messages",{
-                                    method:"POST",
-                                    headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-                                    body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,
-                                      messages:[{role:"user",content:"You are an academic examiner. Grade this student exam submission fairly and professionally.\n\nExam: "+ex.title+"\nTotal Marks: "+ex.total_marks+"\n\nAnswers:\n"+answerSummary+"\n\nReturn ONLY a JSON object: {\"total_marks\": NUMBER, \"feedback\": \"detailed constructive feedback string\", \"per_question\": [{\"q\": NUMBER, \"awarded\": NUMBER, \"comment\": \"STRING\"}]}"}]})
-                                  });
-                                  const d=await res.json();
-                                  const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
+                                  const raw=await callAI("You are an academic examiner. Grade this student exam submission fairly and professionally.\n\nExam: "+ex.title+"\nTotal Marks: "+ex.total_marks+"\n\nAnswers:\n"+answerSummary+"\n\nReturn ONLY a JSON object: {\"total_marks\": NUMBER, \"feedback\": \"detailed constructive feedback string\", \"per_question\": [{\"q\": NUMBER, \"awarded\": NUMBER, \"comment\": \"STRING\"}]}", 800);
                                   const clean=raw.replace(/```json|```/g,"").trim();
                                   const result=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
                                   setGradeMarks(String(Math.min(result.total_marks||0,ex.total_marks)));
@@ -2242,15 +2235,8 @@ const OppsView=({userField})=>{
     try{
       const fieldName=(fld&&fld.name)||userField;
       const today=new Date().toLocaleDateString("en-KE",{day:"numeric",month:"long",year:"numeric"});
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({
-          model:"claude-haiku-4-5-20251001",
-          max_tokens:2000,
-          messages:[{role:"user",content:"Today is "+today+". List 12 realistic current opportunities for "+fieldName+" students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array."}]
-        })
-      });
+      const oppRes=await callGemini("Today is "+today+". List 12 realistic current opportunities for "+fieldName+" students and professionals in Kenya and East Africa. Include a mix of: scholarships, grants, jobs, training programs, fellowships and networking events. Focus on well-known organizations like NRF, DAAD, AfDB, Mastercard Foundation, World Bank, UN agencies, Kenyan government, regional universities and professional bodies. For each include realistic deadlines in 2025-2026. Return ONLY a valid JSON array with these exact fields: title, org, type (one of: scholarship/grant/job/training/networking/fellowship), description (2 sentences max), deadline, url. No markdown, no explanation, just the JSON array.", 2000);
+      const res={ok:true,json:async()=>({content:[{type:"text",text:oppRes}]})};
       const d=await res.json();
       let text=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"[]";
       const clean=text.replace(/```json|```/g,"").trim();
