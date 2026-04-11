@@ -561,12 +561,12 @@ const AuthScreen=({onLogin,onRealLogin,onRealSignUp,lang,setLang,themeId,setThem
   );
 };
 
-const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"courses",icon:"📚"},{id:"exams",icon:"✏"},{id:"assignments",icon:"📋"},{id:"research",icon:"🔬"},{id:"ai",icon:"🤖"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"tools",icon:"⚙"},{id:"transcript",icon:"🗂"},{id:"peers",icon:"👥"},{id:"innovation",icon:"💡"},{id:"programme",icon:"🎓"},{id:"events",icon:"📣"},{id:"services",icon:"🏛"}];
+const NAV_BASE=[{id:"dashboard",icon:"⊞"},{id:"classroom",icon:"🏫"},{id:"ai",icon:"🤖"},{id:"courses",icon:"📚"},{id:"programme",icon:"🎓"},{id:"tools",icon:"⚙"},{id:"peers",icon:"👥"},{id:"innovation",icon:"💡"},{id:"events",icon:"📣"},{id:"services",icon:"🏛"},{id:"exams",icon:"✏"},{id:"research",icon:"🔬"},{id:"calendar",icon:"📅"},{id:"meetings",icon:"📹"},{id:"opps",icon:"🌐"},{id:"analytics",icon:"📊"},{id:"transcript",icon:"🗂"}];
 
 const Sidebar=({tab,setTab,open,role,userName,userField,offline,setOffline,onLogout})=>{
   const T=useT();const t=useLang();const fld=FIELDS[userField];const s=sx(T);
   const L={dashboard:t("dashboard"),courses:t("courses"),exams:t("exams"),assignments:t("assignments"),research:t("research"),ai:t("ai"),calendar:t("calendar"),meetings:t("meetings"),opps:t("opps"),analytics:t("analytics"),tools:t("tools"),transcript:t("transcript"),peers:t("peers"),classroom:t("classroom"),admin:t("admin"),settings:t("settings"),innovation:"Innovation Hub",programme:"Programme",classroom:"My Classroom",events:"Events",services:"Services"};
-  const nav=[...NAV_BASE,{id:"classroom",icon:"🏫"},...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
+  const nav=[...NAV_BASE,...(role==="admin"?[{id:"admin",icon:"🛡"}]:[]),{id:"settings",icon:"⚙"}];
   return(
     <div style={{width:open?256:0,minWidth:open?256:0,background:T.bg1,borderRight:`1px solid ${T.bd}`,display:"flex",flexDirection:"column",transition:"width 0.3s",overflow:"hidden",flexShrink:0}}>
       <div style={{padding:"1.1rem 1rem",borderBottom:`1px solid ${T.bd}`,display:"flex",alignItems:"center",gap:10}}>
@@ -5820,7 +5820,7 @@ export default function App(){
     dashboard:<DashboardView setTab={persistTab} userName={userName} userField={userField}/>,
     courses:<CoursesView userField={userField} role={role} userName={userName}/>,
     exams:<ExamsView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
-    assignments:<AssignmentsView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
+    assignments:<ClassroomView userField={userField} role={role} userName={userName} userId={userId} addNotif={addNotif}/>,
     research:<ResearchView userField={userField}/>,
     ai:<AIView lang={lang} userField={userField}/>,
     calendar:<CalendarView setTab={persistTab}/>,
