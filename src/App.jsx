@@ -1229,7 +1229,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       title:baseData.title,
       course_code:baseData.course_code,
       description:baseData.description,
-      due_date:baseData.due_date||null,
+      due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,
       max_marks:baseData.max_marks,
       target_year:baseData.target_year,
       field:userField,
@@ -1317,7 +1317,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
             <div><label style={s.lbl}>TITLE</label><input style={s.input} placeholder="e.g. Risk Theory Problem Set 1" value={newA.title} onChange={e=>setNewA({...newA,title:e.target.value})}/></div>
             <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} placeholder="e.g. SAC 406" value={newA.course_code} onChange={e=>setNewA({...newA,course_code:e.target.value})}/></div>
-            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
+            <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="datetime-local" value={newA.due_date} onChange={e=>setNewA({...newA,due_date:e.target.value})}/></div>
             <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA({...newA,max_marks:parseInt(e.target.value)||100})}/></div>
           </div>
           <div style={{marginBottom:"0.75rem"}}>
@@ -2447,7 +2447,7 @@ const AnalyticsView=({userField,userName,role})=>{
             <div><label style={s.lbl}>STUDENT NAME</label><input style={s.input} value={certData.name||userName} onChange={e=>setCertData({...certData,name:e.target.value})}/></div>
             <div><label style={s.lbl}>COURSE / UNIT NAME</label><input style={s.input} placeholder="e.g. Risk Theory SAC 406" value={certData.course} onChange={e=>setCertData({...certData,course:e.target.value})}/></div>
             <div><label style={s.lbl}>GRADE / RESULT</label><input style={s.input} placeholder="e.g. A, Distinction, 78%" value={certData.grade} onChange={e=>setCertData({...certData,grade:e.target.value})}/></div>
-            <div><label style={s.lbl}>DATE ISSUED</label><input style={s.input} type="date" value={certData.date} onChange={e=>setCertData({...certData,date:e.target.value})}/></div>
+            <div><label style={s.lbl}>DATE ISSUED</label><input style={s.input} type="datetime-local" value={certData.date} onChange={e=>setCertData({...certData,date:e.target.value})}/></div>
           </div>
           <div style={{padding:"12px",background:T.bg3,borderRadius:8,fontSize:12,color:T.t2,marginBottom:"1rem"}}>The certificate will open in a new tab. Click Print / Save PDF to save it. The certificate includes a unique verification ID linked to akadimia.co.ke.</div>
           <button onClick={generateCertificate} style={{...s.btnP,fontSize:13,padding:"10px 24px"}} disabled={!certData.course}>Generate Certificate</button>
@@ -4389,7 +4389,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
       title:baseData.title,
       course_code:baseData.course_code,
       description:baseData.description,
-      due_date:baseData.due_date||null,
+      due_date:baseData.due_date?new Date(baseData.due_date).toISOString():null,
       max_marks:baseData.max_marks,
       target_year:baseData.target_year,
       field:userField,
@@ -4522,7 +4522,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                     <div><label style={s.lbl}>TITLE *</label><input style={s.input} value={newA.title} onChange={e=>setNewA(a=>({...a,title:e.target.value}))} placeholder="e.g. Research Paper"/></div>
                     <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} value={newA.course_code} onChange={e=>setNewA(a=>({...a,course_code:e.target.value}))} placeholder="e.g. SAC 301"/></div>
-                    <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA(a=>({...a,due_date:e.target.value}))}/></div>
+                    <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="datetime-local" value={newA.due_date} onChange={e=>setNewA(a=>({...a,due_date:e.target.value}))}/></div>
                     <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA(a=>({...a,max_marks:e.target.value}))}/></div>
                     <div><label style={s.lbl}>TARGET YEAR</label><select style={s.input} value={newA.target_year} onChange={e=>setNewA(a=>({...a,target_year:e.target.value}))}>{["All","Year 1","Year 2","Year 3","Year 4","Masters"].map(y=><option key={y}>{y}</option>)}</select></div>
                   </div>
@@ -4952,7 +4952,7 @@ const EventsView=({userField,role,userName})=>{
                 {Object.keys(EVENT_TYPES).map(t=><option key={t} value={t}>{EVENT_TYPES[t].icon} {t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
               </select>
             </div>
-            <div><label style={s.lbl}>DATE</label><input style={s.input} type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
+            <div><label style={s.lbl}>DATE</label><input style={s.input} type="datetime-local" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
             <div><label style={s.lbl}>LOCATION / VENUE</label><input style={s.input} placeholder="e.g. JOOUST Main Campus Hall" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></div>
             <div><label style={s.lbl}>REGISTER / INFO LINK</label><input style={s.input} placeholder="https://..." value={form.link} onChange={e=>setForm({...form,link:e.target.value})}/></div>
             <div style={{gridColumn:"1/-1"}}><label style={s.lbl}>DESCRIPTION</label><textarea style={{...s.input,height:70,resize:"vertical",fontSize:12}} placeholder="Describe the event..." value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></div>
