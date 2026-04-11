@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfBase64, assignmentTitle, instructions, maxMarks } = await req.json()
+    const { fileUrl, assignmentTitle, instructions, maxMarks } = await req.json()
     const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY')
 
     if (!ANTHROPIC_KEY) {
@@ -21,8 +21,16 @@ serve(async (req) => {
       })
     }
 
-    // Use only first 2MB of base64 to stay within limits
-    const safeB64 = pdfBase64.length > 2000000 ? pdfBase64.slice(0, 2000000) : pdfBase64
+    // Fetch PDF from storage
+    const pdfRes = await fetch(fileUrl)
+    if (!pdfRes.ok) {
+      return new Response(JSON.stringify({ error: 'Could not fetch PDF' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+    const pdfBuffer = await pdfRes.arrayBuffer()
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -39,11 +47,11 @@ serve(async (req) => {
           content: [
             {
               type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: safeB64 }
+              source: { type: 'base64', media_type: 'application/pdf', data: b64 }
             },
             {
               type: 'text',
-              text: `You are an academic examiner. Grade this student submission.\n\nAssignment: ${assignmentTitle}\nInstructions: ${instructions||'Complete the assignment as instructed.'}\nMax Marks: ${maxMarks}\n\nReturn ONLY this JSON with no extra text: {"marks": NUMBER, "feedback": "STRING"}`
+              text: `You are an academic examiner. Grade this student submission.\n\nAssignment: ${assignmentTitle}\nInstructions: ${instructions||'Complete the assignment as instructed.'}\nMax Marks: ${maxMarks}\n\nReturn ONLY this JSON: {"marks": NUMBER, "feedback": "STRING"}`
             }
           ]
         }]
@@ -51,8 +59,7 @@ serve(async (req) => {
     })
 
     const data = await res.json()
-
-    if(!res.ok) {
+    if (!res.ok) {
       return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
