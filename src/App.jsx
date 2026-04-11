@@ -4266,227 +4266,499 @@ const WellnessResponses=({userField,T,s})=>{
   );
 };
 
-const ClassroomView=({userField,role,userName,addNotif})=>{
+const ClassroomView=({userField,role,userName,userId,addNotif})=>{
   const T=useT();const s=sx(T);const fld=FIELDS[userField];
+  const isLec=role==="lecturer"||role==="admin";
+  const [tab,setTab]=useState("assignments");
   const [assignments,setAssignments]=useState([]);
   const [submissions,setSubmissions]=useState([]);
   const [exams,setExams]=useState([]);
   const [examSubs,setExamSubs]=useState([]);
   const [meetings,setMeetings]=useState([]);
+  const [comments,setComments]=useState({});
   const [loading,setLoading]=useState(true);
-  const [tab,setTab]=useState("overview");
-  const [wellnessMode,setWellnessMode]=useState(false);
+  const [showCreate,setShowCreate]=useState(false);
+  const [newA,setNewA]=useState({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All"});
+  const [assignFile,setAssignFile]=useState(null);
+  const [creating,setCreating]=useState(false);
+  const [expanded,setExpanded]=useState(null);
+  const [subFile,setSubFile]=useState(null);
+  const [subComment,setSubComment]=useState("");
+  const [submitting,setSubmitting]=useState(false);
+  const [grading,setGrading]=useState(null);
+  const [gradeMarks,setGradeMarks]=useState("");
+  const [gradeFeedback,setGradeFeedback]=useState("");
+  const [newComment,setNewComment]=useState({});
+  const [sendingComment,setSendingComment]=useState({});
   const [wellnessMsg,setWellnessMsg]=useState("");
   const [wellnessSending,setWellnessSending]=useState(false);
   const [wellnessDone,setWellnessDone]=useState(false);
+  const [wellnessResponses,setWellnessResponses]=useState([]);
+  const [wellnessCheckins,setWellnessCheckins]=useState([]);
   const [ratings,setRatings]=useState({});
   const [ratingDone,setRatingDone]=useState({});
   const [ratingComment,setRatingComment]=useState({});
-  const isLec=role==="lecturer"||role==="admin";
 
   const load=async()=>{
     setLoading(true);
     const {supabase}=await import("./supabase.js");
-    const [aRes,sRes,eRes,esRes,mRes]=await Promise.all([
+    const [{data:aD},{data:sD},{data:eD},{data:esD},{data:mD},{data:wrD},{data:wcD}]=await Promise.all([
       supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
       supabase.from("submissions").select("*"),
-      supabase.from("exams").select("*").eq("field",userField),
+      supabase.from("exams").select("*").eq("field",userField).order("date",{ascending:true}),
       supabase.from("exam_submissions").select("*"),
-      supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false})
+      supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false}),
+      supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(10),
+      isLec?supabase.from("wellness_checkins").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(30):Promise.resolve({data:[]}),
     ]);
-    setAssignments(aRes.data||[]);setSubmissions(sRes.data||[]);
-    setExams(eRes.data||[]);setExamSubs(esRes.data||[]);
-    setMeetings(mRes.data||[]);setLoading(false);
+    setAssignments(aD||[]);setSubmissions(sD||[]);
+    setExams(eD||[]);setExamSubs(esD||[]);
+    setMeetings(mD||[]);
+    setWellnessResponses(wrD||[]);
+    setWellnessCheckins(wcD||[]);
+    const aIds=(aD||[]).map(a=>"asgn_"+a.id);
+    if(aIds.length>0){
+      const {data:cD}=await supabase.from("innovation_comments").select("*").in("innovation_id",aIds);
+      const cMap={};
+      (cD||[]).forEach(c=>{if(!cMap[c.innovation_id])cMap[c.innovation_id]=[];cMap[c.innovation_id].push(c);});
+      setComments(cMap);
+    }
+    setLoading(false);
   };
   useEffect(()=>{load();},[userField]);
 
-  const mySubmissions=submissions.filter(s=>s.student_name===userName);
+  const mySubs=submissions.filter(s=>s.student_name===userName);
   const myExamSubs=examSubs.filter(s=>s.student_name===userName);
-  const graded=mySubmissions.filter(s=>s.status==="graded");
+  const graded=mySubs.filter(s=>s.status==="graded");
   const gradedExams=myExamSubs.filter(s=>s.marks!=null);
-  const avgScore=graded.length>0?Math.round(graded.reduce((a,s)=>a+(s.marks||0),0)/graded.length):null;
+  const avgScore=graded.length>0?Math.round(graded.reduce((acc,sub)=>{const a=assignments.find(x=>x.id===sub.assignment_id);return acc+(a?Math.round((sub.marks/a.max_marks)*100):0);},0)/graded.length):null;
+
+  const uploadFile=async(file,path)=>{
+    const {supabase}=await import("./supabase.js");
+    const {data}=await supabase.storage.from("course-materials").upload(path,file,{upsert:true});
+    if(!data)return null;
+    const {data:url}=supabase.storage.from("course-materials").getPublicUrl(path);
+    return url.publicUrl;
+  };
+
+  const createAssignment=async()=>{
+    if(!newA.title.trim())return;
+    setCreating(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl=null;
+    if(assignFile){fileUrl=await uploadFile(assignFile,"assignments/"+Date.now()+"_"+assignFile.name);}
+    await supabase.from("assignments").insert({...newA,field:userField,created_by:user.id,file_url:fileUrl||null});
+    setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All"});
+    setAssignFile(null);setShowCreate(false);setCreating(false);
+    if(addNotif)addNotif("📋","Assignment Posted","Students can now see and submit this assignment.");
+    load();
+  };
+
+  const submitAssignment=async(aId)=>{
+    if(!subFile){if(addNotif)addNotif("⚠️","File Required","Please attach your file before submitting.");return;}
+    setSubmitting(true);
+    const {supabase}=await import("./supabase.js");
+    const {data:{user}}=await supabase.auth.getUser();
+    let fileUrl=null;
+    fileUrl=await uploadFile(subFile,"submissions/"+aId+"_"+user.id+"_"+Date.now()+"_"+subFile.name);
+    await supabase.from("submissions").insert({assignment_id:aId,student_id:user.id,student_name:userName,file_url:fileUrl,comment:subComment,status:"submitted"});
+    setSubFile(null);setSubComment("");setExpanded(null);setSubmitting(false);
+    if(addNotif)addNotif("✅","Submitted","Your assignment has been submitted successfully.");
+    load();
+  };
+
+  const gradeSubmission=async(subId)=>{
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("submissions").update({marks:parseFloat(gradeMarks),feedback:gradeFeedback,status:"graded"}).eq("id",subId);
+    setGrading(null);setGradeMarks("");setGradeFeedback("");
+    if(addNotif)addNotif("✅","Graded","Submission graded successfully.");
+    load();
+  };
+
+  const postComment=async(aId)=>{
+    const key="asgn_"+aId;
+    const txt=(newComment[key]||"").trim();
+    if(!txt)return;
+    setSendingComment(c=>({...c,[key]:true}));
+    const {supabase}=await import("./supabase.js");
+    await supabase.from("innovation_comments").insert({innovation_id:key,author_name:userName,content:txt,created_at:new Date().toISOString()});
+    setNewComment(c=>({...c,[key]:""}));
+    setSendingComment(c=>({...c,[key]:false}));
+    load();
+  };
 
   const submitWellness=async()=>{
     if(!wellnessMsg.trim())return;
     setWellnessSending(true);
     const {supabase}=await import("./supabase.js");
-    const {data:{user}}=await supabase.auth.getUser();
-    await supabase.from("wellness_checkins").insert({
-      student_id:user.id,field:userField,message:wellnessMsg,
-      anonymous:true,created_at:new Date().toISOString()
-    }).select();
+    await supabase.from("wellness_checkins").insert({field:userField,message:wellnessMsg,created_at:new Date().toISOString()});
     setWellnessDone(true);setWellnessSending(false);
-    if(addNotif)addNotif("💚","Wellness Check-in Sent","Your message has been sent anonymously.");
+    if(addNotif)addNotif("💚","Sent","Your anonymous message has been received.");
   };
 
-  const submitRating=async(meetingId)=>{
-    if(!ratings[meetingId])return;
+  const submitRating=async(mId)=>{
+    if(!ratings[mId])return;
     const {supabase}=await import("./supabase.js");
     const {data:{user}}=await supabase.auth.getUser();
-    await supabase.from("class_ratings").insert({
-      meeting_id:meetingId,field:userField,rating:ratings[meetingId],
-      comment:ratingComment[meetingId]||"",student_id:user.id,
-      created_at:new Date().toISOString()
-    }).select();
-    setRatingDone(r=>({...r,[meetingId]:true}));
-    if(addNotif)addNotif("⭐","Rating Submitted","Thank you for your feedback.");
+    await supabase.from("class_ratings").insert({meeting_id:mId,field:userField,rating:ratings[mId],comment:ratingComment[mId]||"",student_id:user.id});
+    setRatingDone(r=>({...r,[mId]:true}));
+    if(addNotif)addNotif("⭐","Thank you","Your class rating has been submitted.");
   };
 
-  const tabs=[["overview","Overview"],["grades","My Grades"],["wellness","Wellness"],["ratings","Rate Classes"]];
-  if(isLec) tabs.push(["insights","Class Insights"]);
+  const daysLeft=d=>{if(!d)return null;return Math.ceil((new Date(d)-new Date())/(1000*60*60*24));};
+  const isOverdue=d=>d&&new Date(d)<new Date();
 
-  if(loading)return <div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>Loading...</div>;
+  const TABS=isLec
+    ?[["assignments","📋 Assignments"],["wellness","💚 Wellness"],["insights","📊 Insights"]]
+    :[["assignments","📋 Assignments"],["grades","🎯 My Grades"],["wellness","💚 Wellness"],["ratings","⭐ Rate Classes"]];
+
+  if(loading)return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading your classroom...</div>;
 
   return(
     <div>
-      <h1 style={s.h1}>My Classroom</h1>
-      <p style={s.sub}><span style={{...s.tag((fld&&fld.color)||T.ac),marginRight:8}}>{fld&&fld.icon} {fld&&fld.name}</span>{isLec?"Lecturer view — class management":"Student view — your academic hub"}</p>
-
-      <div style={{display:"flex",gap:8,marginBottom:"1.5rem",flexWrap:"wrap"}}>
-        {tabs.map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{...(tab===id?s.btnP:s.btnS),fontSize:12}}>{label}</button>
-        ))}
-      </div>
-
-      {tab==="overview"&&(
-        <div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:"1.5rem"}}>
-            {[
-              ["Assignments",assignments.length,"📋",T.blue],
-              ["My Submissions",mySubmissions.length,"📤",T.green],
-              ["Exams Taken",myExamSubs.length,"✏️",T.purple],
-              ["Avg Score",avgScore!=null?avgScore+"%":"N/A","🎯",avgScore>=70?T.green:avgScore>=50?T.amber:T.red],
-              ["Classes",meetings.length,"📹",T.ac],
-            ].map(([label,value,icon,color])=>(
-              <div key={label} style={{...s.card,textAlign:"center"}}>
-                <div style={{fontSize:24,marginBottom:4}}>{icon}</div>
-                <div style={{fontSize:22,fontWeight:700,color}}>{value}</div>
-                <div style={{fontSize:11,color:T.t3}}>{label}</div>
+      <div style={{background:"linear-gradient(135deg,"+rgba(fld?.color||T.ac,0.15)+","+rgba(fld?.color||T.ac,0.04)+")",border:"1px solid "+rgba(fld?.color||T.ac,0.25),borderRadius:14,padding:"1.25rem",marginBottom:"1.5rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+          <div>
+            <h1 style={{...s.h1,marginBottom:4}}>My Classroom</h1>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <span style={s.tag((fld?.color)||T.ac)}>{fld?.icon} {fld?.name}</span>
+              <span style={{fontSize:11,color:T.t3}}>{isLec?"Lecturer":"Student"} · {userName}</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {[[isLec?submissions.length:mySubs.filter(s=>!assignments.find(a=>a.id===s.assignment_id&&s.status==="graded")).length:0,isLec?"Submissions":"Pending",T.amber],[graded.length,"Graded",T.green],[avgScore!=null?avgScore+"%":"N/A","Avg Score",avgScore>=70?T.green:avgScore>=50?T.amber:T.red]].map(([v,l,c])=>(
+              <div key={l} style={{background:T.bg3,borderRadius:10,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div>
+                <div style={{fontSize:10,color:T.t3}}>{l}</div>
               </div>
             ))}
           </div>
-          <div style={{...s.card,marginBottom:"1rem"}}>
-            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:10}}>Recent Assignments</div>
-            {assignments.slice(0,5).map(a=>{
-              const mySub=mySubmissions.find(s=>s.assignment_id===a.id);
-              return(
-                <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+T.bd}}>
-                  <div>
-                    <div style={{fontSize:13,color:T.t1}}>{a.title}</div>
-                    <div style={{fontSize:11,color:T.t3}}>{a.course_code} · Due: {a.due_date||"No deadline"}</div>
-                  </div>
-                  <div style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:mySub?(mySub.status==="graded"?T.purple+"22":T.green+"22"):T.red+"22",color:mySub?(mySub.status==="graded"?T.purple:T.green):T.red}}>
-                    {mySub?mySub.status==="graded"?"Graded: "+mySub.marks:"Submitted":"Not submitted"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
-      )}
+      </div>
 
-      {tab==="grades"&&(
+      <div style={{display:"flex",gap:6,marginBottom:"1.5rem",flexWrap:"wrap"}}>
+        {TABS.map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{...(tab===id?s.btnP:s.btnS),fontSize:12,padding:"7px 14px"}}>{label}</button>
+        ))}
+      </div>
+
+      {tab==="assignments"&&(
         <div>
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Assignment Grades</div>
-          {graded.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No graded assignments yet.</div>:(
-            <div style={{display:"grid",gap:8,marginBottom:"1.5rem"}}>
-              {graded.map(sub=>{
-                const a=assignments.find(x=>x.id===sub.assignment_id);
-                const pct=a?Math.round((sub.marks/a.max_marks)*100):0;
+          {isLec&&(
+            <div style={{marginBottom:"1rem"}}>
+              <button onClick={()=>setShowCreate(!showCreate)} style={{...s.btnP,marginBottom:showCreate?"1rem":0}}>{showCreate?"✕ Cancel":"+ New Assignment"}</button>
+              {showCreate&&(
+                <div style={{...s.card,border:"1px solid "+rgba(T.ac,0.3)}}>
+                  <div style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Create Assignment</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                    <div><label style={s.lbl}>TITLE *</label><input style={s.input} value={newA.title} onChange={e=>setNewA(a=>({...a,title:e.target.value}))} placeholder="e.g. Research Paper"/></div>
+                    <div><label style={s.lbl}>COURSE CODE</label><input style={s.input} value={newA.course_code} onChange={e=>setNewA(a=>({...a,course_code:e.target.value}))} placeholder="e.g. SAC 301"/></div>
+                    <div><label style={s.lbl}>DUE DATE</label><input style={s.input} type="date" value={newA.due_date} onChange={e=>setNewA(a=>({...a,due_date:e.target.value}))}/></div>
+                    <div><label style={s.lbl}>MAX MARKS</label><input style={s.input} type="number" value={newA.max_marks} onChange={e=>setNewA(a=>({...a,max_marks:e.target.value}))}/></div>
+                    <div><label style={s.lbl}>TARGET YEAR</label><select style={s.input} value={newA.target_year} onChange={e=>setNewA(a=>({...a,target_year:e.target.value}))}>{["All","Year 1","Year 2","Year 3","Year 4","Masters"].map(y=><option key={y}>{y}</option>)}</select></div>
+                  </div>
+                  <div style={{marginBottom:10}}><label style={s.lbl}>INSTRUCTIONS</label><textarea style={{...s.input,height:80,resize:"vertical"}} value={newA.description} onChange={e=>setNewA(a=>({...a,description:e.target.value}))} placeholder="Describe the assignment..."/></div>
+                  <div style={{marginBottom:"1rem"}}>
+                    <label style={s.lbl}>ATTACH FILE (optional)</label>
+                    <label style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",border:"2px dashed "+(assignFile?T.green:T.bd),borderRadius:8,cursor:"pointer",background:assignFile?rgba(T.green,0.06):T.bg3}}>
+                      <span style={{fontSize:22}}>{assignFile?"✅":"📎"}</span>
+                      <div><div style={{fontSize:12,color:assignFile?T.green:T.t1}}>{assignFile?assignFile.name:"Tap to attach PDF or document"}</div><div style={{fontSize:10,color:T.t3}}>PDF, Word, image accepted</div></div>
+                      <input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.txt" onChange={e=>setAssignFile(e.target.files[0]||null)}/>
+                    </label>
+                  </div>
+                  <button onClick={createAssignment} style={s.btnP} disabled={creating||!newA.title.trim()}>{creating?"Posting...":"Post Assignment"}</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {assignments.length===0?(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>📋</div>
+              <div style={{fontSize:14,color:T.t2,marginBottom:8}}>{isLec?"No assignments posted yet.":"No assignments yet."}</div>
+              <div style={{fontSize:12,color:T.t3}}>{isLec?"Click New Assignment above to get started.":"Your lecturer has not posted any assignments yet."}</div>
+            </div>
+          ):(
+            <div style={{display:"grid",gap:12}}>
+              {assignments.map(a=>{
+                const mySub=mySubs.find(sub=>sub.assignment_id===a.id);
+                const allSubs=submissions.filter(sub=>sub.assignment_id===a.id);
+                const days=daysLeft(a.due_date);
+                const overdue=isOverdue(a.due_date);
+                const urgentColor=overdue?T.red:days!=null&&days<=3?T.amber:T.green;
+                const aKey="asgn_"+a.id;
+                const aComments=comments[aKey]||[];
+                const isOpen=expanded===a.id;
                 return(
-                  <div key={sub.id} style={{...s.card,borderLeft:"3px solid "+(pct>=70?T.green:pct>=50?T.amber:T.red)}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{a?.title||"Assignment"}</div>
-                        <div style={{fontSize:11,color:T.t3}}>{a?.course_code} · {new Date(sub.submitted_at).toLocaleDateString()}</div>
-                        {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
+                  <div key={a.id} style={{...s.card,borderLeft:"4px solid "+urgentColor}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,cursor:"pointer"}} onClick={()=>setExpanded(isOpen?null:a.id)}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:4}}>
+                          <span style={{fontSize:14,fontWeight:600,color:T.t1}}>{a.title}</span>
+                          {a.course_code&&<span style={{...s.tag(T.ac),fontSize:10}}>{a.course_code}</span>}
+                          {!isLec&&mySub&&<span style={{...s.tag(mySub.status==="graded"?T.purple:T.green),fontSize:10}}>{mySub.status==="graded"?"Graded":"Submitted"}</span>}
+                          {!isLec&&!mySub&&overdue&&<span style={{...s.tag(T.red),fontSize:10}}>Overdue</span>}
+                          {!isLec&&!mySub&&!overdue&&<span style={{...s.tag(T.amber),fontSize:10}}>Pending</span>}
+                        </div>
+                        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                          {a.due_date&&<span style={{fontSize:11,color:urgentColor}}>{overdue?"⚠️ Due date passed":days===0?"⚡ Due today!":days===1?"Due tomorrow":"📅 "+days+" days left"} · {new Date(a.due_date).toLocaleDateString("en-KE")}</span>}
+                          <span style={{fontSize:11,color:T.t3}}>Max: {a.max_marks} marks</span>
+                          {isLec&&<span style={{fontSize:11,color:T.t3}}>{allSubs.length} submission{allSubs.length!==1?"s":""}</span>}
+                          {aComments.length>0&&<span style={{fontSize:11,color:T.t3}}>💬 {aComments.length}</span>}
+                        </div>
                       </div>
-                      <div style={{textAlign:"center",flexShrink:0}}>
-                        <div style={{fontSize:22,fontWeight:700,color:pct>=70?T.green:pct>=50?T.amber:T.red}}>{sub.marks}/{a?.max_marks}</div>
-                        <div style={{fontSize:11,color:T.t3}}>{pct}%</div>
-                      </div>
+                      <span style={{color:T.t3,fontSize:14,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
                     </div>
+
+                    {isOpen&&(
+                      <div style={{marginTop:"1rem",borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                        {a.description&&<div style={{fontSize:13,color:T.t2,lineHeight:1.7,marginBottom:"1rem",background:T.bg3,borderRadius:8,padding:"10px 14px"}}>{a.description}</div>}
+                        {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:T.ac,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:8,padding:"6px 14px",marginBottom:"1rem"}}>📎 Download Instructions</a>}
+
+                        {!isLec&&!mySub&&(
+                          <div style={{background:rgba(T.ac,0.06),borderRadius:10,padding:"1rem",marginBottom:"1rem",border:"1px solid "+rgba(T.ac,0.2)}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Submit Your Work</div>
+                            <div style={{marginBottom:"0.75rem"}}>
+                              <label style={s.lbl}>ATTACH YOUR FILE *</label>
+                              <label style={{display:"flex",alignItems:"center",gap:10,padding:"14px",border:"2px dashed "+(subFile?T.green:T.bd),borderRadius:8,cursor:"pointer",background:subFile?rgba(T.green,0.06):T.bg3,minHeight:56}}>
+                                <span style={{fontSize:26}}>{subFile?"✅":"📎"}</span>
+                                <div style={{flex:1}}>
+                                  <div style={{fontSize:12,color:subFile?T.green:T.t1,fontWeight:subFile?600:400}}>{subFile?subFile.name:"Tap here to attach your file"}</div>
+                                  <div style={{fontSize:10,color:T.t3}}>PDF, Word, image or zip accepted</div>
+                                </div>
+                                <input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.tex,.txt,.zip" onChange={e=>setSubFile(e.target.files[0]||null)}/>
+                              </label>
+                            </div>
+                            <div style={{marginBottom:"0.75rem"}}><label style={s.lbl}>MESSAGE TO LECTURER (optional)</label><textarea style={{...s.input,height:70,resize:"vertical",fontSize:12}} placeholder="Any notes about your submission..." value={subComment} onChange={e=>setSubComment(e.target.value)}/></div>
+                            <button onClick={()=>submitAssignment(a.id)} style={{...s.btnP,width:"100%"}} disabled={submitting||!subFile}>{submitting?"Submitting...":"Submit Assignment"}</button>
+                            {!subFile&&<div style={{fontSize:10,color:T.amber,marginTop:6,textAlign:"center"}}>Please attach a file to submit.</div>}
+                          </div>
+                        )}
+
+                        {!isLec&&mySub&&(
+                          <div style={{background:rgba(T.green,0.08),border:"1px solid "+rgba(T.green,0.3),borderRadius:10,padding:"1rem",marginBottom:"1rem"}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:4}}>✅ Submitted · {new Date(mySub.submitted_at).toLocaleDateString("en-KE")}</div>
+                            {mySub.comment&&<div style={{fontSize:12,color:T.t2,marginBottom:6}}>Your note: "{mySub.comment}"</div>}
+                            {mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12,color:T.ac,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:6,padding:"4px 12px",marginBottom:8}}>📎 View your submission</a>}
+                            {mySub.status==="graded"&&(
+                              <div style={{marginTop:8,background:rgba(T.purple,0.1),borderRadius:8,padding:"12px 14px"}}>
+                                <div style={{fontSize:16,fontWeight:700,color:T.purple}}>{mySub.marks}/{a.max_marks} marks · {Math.round((mySub.marks/a.max_marks)*100)}%</div>
+                                {mySub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>Feedback: "{mySub.feedback}"</div>}
+                              </div>
+                            )}
+                            {mySub.status!=="graded"&&<div style={{fontSize:11,color:T.t3,marginTop:4}}>Awaiting grading...</div>}
+                          </div>
+                        )}
+
+                        {isLec&&allSubs.length>0&&(
+                          <div style={{marginBottom:"1rem"}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:8}}>Submissions ({allSubs.length})</div>
+                            <div style={{display:"grid",gap:8}}>
+                              {allSubs.map(sub=>(
+                                <div key={sub.id} style={{background:T.bg3,borderRadius:10,padding:"12px 14px",border:"1px solid "+T.bd}}>
+                                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:"wrap"}}>
+                                    <div style={{flex:1}}>
+                                      <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{sub.student_name}</div>
+                                      <div style={{fontSize:11,color:T.t3}}>{new Date(sub.submitted_at).toLocaleDateString("en-KE")} · {sub.status}</div>
+                                      {sub.comment&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.comment}"</div>}
+                                      {sub.status==="graded"&&<div style={{fontSize:12,color:T.purple,marginTop:4,fontWeight:600}}>{sub.marks}/{a.max_marks} · {Math.round((sub.marks/a.max_marks)*100)}%</div>}
+                                    </div>
+                                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                      {sub.file_url&&<a href={sub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"5px 12px"}}>📎 View</a>}
+                                      <button onClick={()=>setGrading(grading===sub.id?null:sub.id)} style={{...s.btnP,fontSize:11,padding:"5px 12px"}}>{sub.status==="graded"?"Re-grade":"Grade"}</button>
+                                    </div>
+                                  </div>
+                                  {grading===sub.id&&(
+                                    <div style={{marginTop:10,display:"grid",gridTemplateColumns:"120px 1fr auto",gap:8,alignItems:"end"}}>
+                                      <div><label style={s.lbl}>MARKS/{a.max_marks}</label><input style={s.input} type="number" value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)} placeholder="0"/></div>
+                                      <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} value={gradeFeedback} onChange={e=>setGradeFeedback(e.target.value)} placeholder="Write your feedback..."/></div>
+                                      <button onClick={()=>gradeSubmission(sub.id)} style={{...s.btnP,padding:"8px 16px"}}>Save</button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{borderTop:"1px solid "+T.bd,paddingTop:"1rem"}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.t2,marginBottom:8}}>💬 Discussion ({aComments.length})</div>
+                          {aComments.length>0&&(
+                            <div style={{display:"grid",gap:6,marginBottom:10}}>
+                              {aComments.map((c,i)=>(
+                                <div key={i} style={{background:T.bg3,borderRadius:8,padding:"8px 12px"}}>
+                                  <div style={{fontSize:11,fontWeight:600,color:T.ac}}>{c.author_name}</div>
+                                  <div style={{fontSize:12,color:T.t2,marginTop:2,lineHeight:1.6}}>{c.content}</div>
+                                  <div style={{fontSize:10,color:T.t3,marginTop:2}}>{new Date(c.created_at).toLocaleDateString("en-KE")}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{display:"flex",gap:8}}>
+                            <input style={{...s.input,flex:1,fontSize:12}} placeholder="Ask a question or comment..." value={newComment[aKey]||""} onChange={e=>setNewComment(c=>({...c,[aKey]:e.target.value}))} onKeyDown={e=>{if(e.key==="Enter"&&!(e.target.value||"").trim()===false)postComment(a.id);}}/>
+                            <button onClick={()=>postComment(a.id)} style={{...s.btnP,padding:"8px 14px",fontSize:12}} disabled={sendingComment[aKey]||!(newComment[aKey]||"").trim()}>Send</button>
+                          </div>
+                        </div>
+
+                        {isLec&&(
+                          <div style={{marginTop:"0.75rem",display:"flex",justifyContent:"flex-end"}}>
+                            <button onClick={async()=>{if(!confirm("Delete this assignment and all its submissions?"))return;const{supabase}=await import("./supabase.js");await supabase.from("assignments").delete().eq("id",a.id);load();}} style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"4px 8px"}}>🗑 Delete Assignment</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"1rem"}}>Exam Grades</div>
-          {gradedExams.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No graded exams yet.</div>:(
-            <div style={{display:"grid",gap:8}}>
-              {gradedExams.map(sub=>{
-                const ex=exams.find(x=>x.id===sub.exam_id);
-                const pct=ex?Math.round((sub.marks/ex.total_marks)*100):0;
-                return(
-                  <div key={sub.id} style={{...s.card,borderLeft:"3px solid "+(pct>=70?T.green:pct>=50?T.amber:T.red)}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:500,color:T.t1}}>{ex?.title||"Exam"}</div>
-                        <div style={{fontSize:11,color:T.t3}}>{ex?.course_code} · {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString():""}</div>
-                        {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
-                      </div>
-                      <div style={{textAlign:"center",flexShrink:0}}>
-                        <div style={{fontSize:22,fontWeight:700,color:pct>=70?T.green:pct>=50?T.amber:T.red}}>{sub.marks}/{ex?.total_marks}</div>
-                        <div style={{fontSize:11,color:T.t3}}>{pct}%</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        </div>
+      )}
+
+      {tab==="grades"&&!isLec&&(
+        <div>
+          {graded.length===0&&gradedExams.length===0?(
+            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
+              <div style={{fontSize:48,marginBottom:12}}>🎯</div>
+              <div style={{fontSize:14,color:T.t2}}>No graded work yet. Submit assignments to see your grades here.</div>
             </div>
+          ):(
+            <>
+              {graded.length>0&&(
+                <>
+                  <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Assignment Grades</div>
+                  <div style={{display:"grid",gap:8,marginBottom:"1.5rem"}}>
+                    {graded.map(sub=>{
+                      const a=assignments.find(x=>x.id===sub.assignment_id);
+                      const pct=a?Math.round((sub.marks/a.max_marks)*100):0;
+                      const col=pct>=70?T.green:pct>=50?T.amber:T.red;
+                      return(
+                        <div key={sub.id} style={{...s.card,borderLeft:"4px solid "+col}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{a?.title||"Assignment"}</div>
+                              <div style={{fontSize:11,color:T.t3}}>{a?.course_code} · {new Date(sub.submitted_at).toLocaleDateString("en-KE")}</div>
+                              {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
+                            </div>
+                            <div style={{textAlign:"center",background:rgba(col,0.12),borderRadius:10,padding:"8px 14px",flexShrink:0}}>
+                              <div style={{fontSize:20,fontWeight:700,color:col}}>{pct}%</div>
+                              <div style={{fontSize:10,color:T.t3}}>{sub.marks}/{a?.max_marks}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {gradedExams.length>0&&(
+                <>
+                  <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Exam Results</div>
+                  <div style={{display:"grid",gap:8}}>
+                    {gradedExams.map(sub=>{
+                      const ex=exams.find(x=>x.id===sub.exam_id);
+                      const pct=ex?Math.round((sub.marks/ex.total_marks)*100):0;
+                      const col=pct>=70?T.green:pct>=50?T.amber:T.red;
+                      return(
+                        <div key={sub.id} style={{...s.card,borderLeft:"4px solid "+col}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{ex?.title||"Exam"}</div>
+                              <div style={{fontSize:11,color:T.t3}}>{ex?.course_code}</div>
+                              {sub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.feedback}"</div>}
+                            </div>
+                            <div style={{textAlign:"center",background:rgba(col,0.12),borderRadius:10,padding:"8px 14px",flexShrink:0}}>
+                              <div style={{fontSize:20,fontWeight:700,color:col}}>{pct}%</div>
+                              <div style={{fontSize:10,color:T.t3}}>{sub.marks}/{ex?.total_marks}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
       )}
 
       {tab==="wellness"&&(
         <div>
-          {/* Show responses from wellness team */}
-          <WellnessResponses userField={userField} T={T} s={s}/>
-
-          {!wellnessDone?(
-            <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
-              <div style={{fontSize:14,fontWeight:600,color:T.green,marginBottom:8}}>💚 Wellness Check-in</div>
-              <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>This is a safe, anonymous space. Share how you are feeling academically, emotionally or personally. Your message goes directly to the institution wellness team — your name is never attached.</div>
-              <div style={{display:"grid",gap:8,marginBottom:"1rem"}}>
-                {["I am struggling with coursework","I am feeling overwhelmed","I have personal challenges affecting my studies","I need financial support","I feel isolated or lonely","I am doing well — just checking in"].map(opt=>(
-                  <div key={opt} onClick={()=>setWellnessMsg(opt)} style={{padding:"10px 14px",borderRadius:8,border:"1px solid "+(wellnessMsg===opt?T.green:T.bd),background:wellnessMsg===opt?rgba(T.green,0.1):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>{opt}</div>
+          {wellnessResponses.length>0&&(
+            <div style={{marginBottom:"1.5rem"}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:8}}>Messages from Wellness Team</div>
+              <div style={{display:"grid",gap:8}}>
+                {wellnessResponses.map(r=>(
+                  <div key={r.id} style={{background:rgba(T.blue,0.08),border:"1px solid "+rgba(T.blue,0.25),borderRadius:10,padding:"12px 14px"}}>
+                    <div style={{fontSize:11,fontWeight:600,color:T.blue,marginBottom:4}}>💙 Wellness Team</div>
+                    <div style={{fontSize:13,color:T.t1,lineHeight:1.7}}>{r.message}</div>
+                    <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(r.created_at).toLocaleDateString("en-KE")}</div>
+                  </div>
                 ))}
               </div>
-              <div style={{marginBottom:"1rem"}}><label style={s.lbl}>OR WRITE YOUR OWN (ANONYMOUS)</label><textarea style={{...s.input,height:80,resize:"vertical",fontSize:12}} placeholder="Share anything on your mind..." value={wellnessMsg} onChange={e=>setWellnessMsg(e.target.value)}/></div>
-              <button onClick={submitWellness} style={{...s.btnP,background:T.green}} disabled={!wellnessMsg.trim()||wellnessSending}>{wellnessSending?"Sending...":"Send Anonymously"}</button>
+            </div>
+          )}
+          {isLec&&(
+            <div style={{marginBottom:"1.5rem"}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:8}}>Anonymous Student Check-ins ({wellnessCheckins.length})</div>
+              {wellnessCheckins.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No wellness messages yet from students.</div>:(
+                <div style={{display:"grid",gap:8}}>
+                  {wellnessCheckins.map((w,i)=>(
+                    <div key={i} style={{...s.card,borderLeft:"3px solid "+T.green}}>
+                      <div style={{fontSize:12,color:T.t2,lineHeight:1.7}}>{w.message}</div>
+                      <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(w.created_at).toLocaleDateString("en-KE")} · Anonymous</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {!isLec&&(!wellnessDone?(
+            <div style={{...s.card,border:"1px solid "+rgba(T.green,0.35)}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.green,marginBottom:4}}>💚 Anonymous Wellness Check-in</div>
+              <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>This is completely anonymous. Your name is never attached. Share how you are feeling academically, emotionally or personally.</div>
+              <div style={{display:"grid",gap:8,marginBottom:"1rem"}}>
+                {["I am struggling with coursework and deadlines","I am feeling overwhelmed or stressed","I have personal challenges affecting my studies","I need financial support","I feel isolated or disconnected","I am doing well — just checking in"].map(opt=>(
+                  <div key={opt} onClick={()=>setWellnessMsg(opt)} style={{padding:"10px 14px",borderRadius:8,border:"1px solid "+(wellnessMsg===opt?T.green:T.bd),background:wellnessMsg===opt?rgba(T.green,0.1):T.bg3,cursor:"pointer",fontSize:12,color:T.t1}}>
+                    {wellnessMsg===opt?"✓ ":""}{opt}
+                  </div>
+                ))}
+              </div>
+              <div style={{marginBottom:"1rem"}}><label style={s.lbl}>OR WRITE YOUR OWN</label><textarea style={{...s.input,height:80,resize:"vertical",fontSize:12}} placeholder="Share anything on your mind..." value={wellnessMsg} onChange={e=>setWellnessMsg(e.target.value)}/></div>
+              <button onClick={submitWellness} style={{...s.btnP,background:T.green,width:"100%"}} disabled={!wellnessMsg.trim()||wellnessSending}>{wellnessSending?"Sending...":"Send Anonymously"}</button>
             </div>
           ):(
             <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
               <div style={{fontSize:48,marginBottom:12}}>💚</div>
               <div style={{fontSize:16,fontWeight:600,color:T.green,marginBottom:8}}>Thank you for sharing</div>
-              <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem"}}>Your message has been sent anonymously to the wellness team. You are not alone.</div>
-              <button onClick={()=>{setWellnessDone(false);setWellnessMsg("");}} style={s.btnS}>Send Another</button>
+              <div style={{fontSize:13,color:T.t2,marginBottom:"1.5rem",lineHeight:1.7}}>Your message has been sent anonymously. You are not alone.</div>
+              <button onClick={()=>{setWellnessDone(false);setWellnessMsg("");}} style={s.btnS}>Send Another Message</button>
             </div>
-          )}
+          ))}
         </div>
       )}
 
-      {tab==="ratings"&&(
+      {tab==="ratings"&&!isLec&&(
         <div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.6}}>Rate your recent classes anonymously. Your feedback helps improve teaching quality.</div>
+          <div style={{fontSize:12,color:T.t2,marginBottom:"1rem",lineHeight:1.7}}>Rate your recent classes anonymously. Your honest feedback helps improve teaching quality.</div>
           {meetings.length===0?<div style={{...s.card,textAlign:"center",padding:"2rem",color:T.t3}}>No classes to rate yet.</div>:(
             <div style={{display:"grid",gap:12}}>
-              {meetings.slice(0,8).map(m=>(
+              {meetings.slice(0,10).map(m=>(
                 <div key={m.id} style={s.card}>
-                  <div style={{fontSize:13,fontWeight:500,color:T.t1,marginBottom:4}}>{m.title}</div>
-                  <div style={{fontSize:11,color:T.t3,marginBottom:10}}>{new Date(m.scheduled_at).toLocaleDateString("en-KE")} · {m.platform}</div>
-                  {ratingDone[m.id]?(
-                    <div style={{fontSize:12,color:T.green}}>✓ Rated {ratings[m.id]}/5 — Thank you!</div>
-                  ):(
+                  <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:2}}>{m.title}</div>
+                  <div style={{fontSize:11,color:T.t3,marginBottom:10}}>{m.host} · {new Date(m.scheduled_at).toLocaleDateString("en-KE")} · {m.platform}</div>
+                  {ratingDone[m.id]?<div style={{fontSize:12,color:T.green}}>✓ Rated {ratings[m.id]}/5 — Thank you!</div>:(
                     <div>
                       <div style={{display:"flex",gap:8,marginBottom:8}}>
                         {[1,2,3,4,5].map(n=>(
-                          <button key={n} onClick={()=>setRatings(r=>({...r,[m.id]:n}))} style={{background:ratings[m.id]>=n?T.amber:"none",border:"1px solid "+(ratings[m.id]>=n?T.amber:T.bd),borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:16,color:ratings[m.id]>=n?"#000":T.t3}}>★</button>
+                          <button key={n} onClick={()=>setRatings(r=>({...r,[m.id]:n}))} style={{background:ratings[m.id]>=n?T.amber:"none",border:"1px solid "+(ratings[m.id]>=n?T.amber:T.bd),borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:18,color:ratings[m.id]>=n?"#000":T.t3}}>★</button>
                         ))}
                         {ratings[m.id]&&<span style={{fontSize:11,color:T.t3,alignSelf:"center"}}>{ratings[m.id]}/5</span>}
                       </div>
                       <input style={{...s.input,fontSize:12,marginBottom:8}} placeholder="Optional comment (anonymous)..." value={ratingComment[m.id]||""} onChange={e=>setRatingComment(r=>({...r,[m.id]:e.target.value}))}/>
-                      <button onClick={()=>submitRating(m.id)} style={{...s.btnP,fontSize:11,padding:"6px 16px"}} disabled={!ratings[m.id]}>Submit Rating</button>
+                      <button onClick={()=>submitRating(m.id)} style={{...s.btnP,fontSize:11,padding:"6px 18px"}} disabled={!ratings[m.id]}>Submit Rating</button>
                     </div>
                   )}
                 </div>
@@ -4498,127 +4770,6 @@ const ClassroomView=({userField,role,userName,addNotif})=>{
 
       {tab==="insights"&&isLec&&(
         <LecturerInsights userField={userField} assignments={assignments} submissions={submissions} exams={exams} examSubs={examSubs} meetings={meetings} T={T} s={s}/>
-      )}
-    </div>
-  );
-};
-
-const LecturerInsights=({userField,assignments,submissions,exams,examSubs,meetings,T,s})=>{
-  const [ratings,setRatings]=useState([]);
-  const [wellness,setWellness]=useState([]);
-  const [loading,setLoading]=useState(true);
-
-  const [responding,setResponding]=useState(false);
-  const [responseText,setResponseText]=useState("");
-  const [responses,setResponses]=useState([]);
-  const [responseSent,setResponseSent]=useState(false);
-
-  useEffect(()=>{
-    (async()=>{
-      const {supabase}=await import("./supabase.js");
-      const [rRes,wRes,respRes]=await Promise.all([
-        supabase.from("class_ratings").select("*").eq("field",userField),
-        supabase.from("wellness_checkins").select("created_at,field,message,id").eq("field",userField).order("created_at",{ascending:false}),
-        supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false})
-      ]);
-      setRatings(rRes.data||[]);setWellness(wRes.data||[]);setResponses(respRes.data||[]);setLoading(false);
-    })();
-  },[]);
-
-  const sendResponse=async()=>{
-    if(!responseText.trim())return;
-    setResponseSent(false);
-    const {supabase}=await import("./supabase.js");
-    const {data:{user}}=await supabase.auth.getUser();
-    await supabase.from("wellness_responses").insert({
-      field:userField,message:responseText.trim(),
-      sender_name:"Wellness Team",sender_id:user.id,
-      created_at:new Date().toISOString()
-    });
-    setResponseText("");setResponding(false);setResponseSent(true);
-    setTimeout(()=>setResponseSent(false),3000);
-    const {data}=await supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false});
-    setResponses(data||[]);
-  };
-
-  const avgRating=ratings.length>0?(ratings.reduce((a,r)=>a+(r.rating||0),0)/ratings.length).toFixed(1):null;
-  const submissionRate=assignments.length>0?Math.round((submissions.length/Math.max(assignments.length,1))*100):0;
-  const gradedRate=submissions.length>0?Math.round((submissions.filter(s=>s.status==="graded").length/submissions.length)*100):0;
-
-  if(loading)return <div style={{color:T.t3,fontSize:13}}>Loading insights...</div>;
-
-  return(
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:"1.5rem"}}>
-        {[
-          ["Avg Class Rating",avgRating?avgRating+"/5":"No ratings","⭐",T.amber],
-          ["Total Ratings",ratings.length,"📊",T.blue],
-          ["Submission Rate",submissionRate+"%","📤",T.green],
-          ["Grading Rate",gradedRate+"%","✅",T.purple],
-          ["Wellness Flags",wellness.length,"💚",T.red],
-        ].map(([label,value,icon,color])=>(
-          <div key={label} style={{...s.card,textAlign:"center"}}>
-            <div style={{fontSize:22,marginBottom:4}}>{icon}</div>
-            <div style={{fontSize:20,fontWeight:700,color}}>{value}</div>
-            <div style={{fontSize:10,color:T.t3}}>{label}</div>
-          </div>
-        ))}
-      </div>
-      {ratings.length>0&&(
-        <div style={{...s.card,marginBottom:"1rem"}}>
-          <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:10}}>Recent Class Ratings</div>
-          {ratings.slice(0,5).map((r,i)=>{
-            const m=meetings.find(x=>x.id===r.meeting_id);
-            return(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid "+T.bd}}>
-                <div style={{fontSize:12,color:T.t1}}>{m?.title||"Class"}</div>
-                <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                  <span style={{fontSize:12,color:T.amber}}>{"★".repeat(r.rating||0)+"☆".repeat(5-(r.rating||0))}</span>
-                  {r.comment&&<span style={{fontSize:11,color:T.t3,fontStyle:"italic"}}>"{r.comment}"</span>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {wellness.length>0&&(
-        <div style={{...s.card,border:"1px solid "+rgba(T.green,0.3)}}>
-          <div style={{fontSize:13,fontWeight:600,color:T.green,marginBottom:10}}>💚 Anonymous Wellness Flags ({wellness.length})</div>
-          <div style={{fontSize:12,color:T.t2,marginBottom:8}}>These messages were sent anonymously by students. No names are attached.</div>
-          {wellness.slice(0,10).map((w,i)=>(
-            <div key={i} style={{padding:"10px 12px",background:rgba(T.green,0.06),borderRadius:6,fontSize:12,color:T.t1,lineHeight:1.6,fontStyle:"italic",marginBottom:6,borderLeft:"3px solid "+T.green}}>
-              <div>{w.message}</div>
-              <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(w.created_at).toLocaleDateString("en-KE")} — Anonymous Student</div>
-            </div>
-          ))}
-          <div style={{marginTop:"1rem",padding:"12px",background:rgba(T.blue,0.06),border:"1px solid "+rgba(T.blue,0.2),borderRadius:8}}>
-            <div style={{fontSize:12,fontWeight:600,color:T.blue,marginBottom:6}}>📢 Send Anonymous Response to Students</div>
-            <div style={{fontSize:11,color:T.t2,marginBottom:10}}>Your response appears in all students Wellness tab as a message from the Wellness Team — no name attached.</div>
-            {responseSent&&<div style={{background:rgba(T.green,0.1),border:"1px solid "+rgba(T.green,0.3),borderRadius:6,padding:"8px 12px",fontSize:12,color:T.green,marginBottom:8}}>Response sent to all students.</div>}
-            {responding?(
-              <div>
-                <textarea style={{...s.input,height:80,resize:"vertical",fontSize:12,marginBottom:8}} placeholder="e.g. We hear you. Please visit the counselling office Room 12, Mon-Fri 8am-5pm. You are not alone." value={responseText} onChange={e=>setResponseText(e.target.value)}/>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={sendResponse} style={{...s.btnP,fontSize:12,background:T.blue}} disabled={!responseText.trim()}>Send to All Students</button>
-                  <button onClick={()=>setResponding(false)} style={{...s.btnS,fontSize:12}}>Cancel</button>
-                </div>
-              </div>
-            ):(
-              <button onClick={()=>setResponding(true)} style={{...s.btnS,fontSize:12,borderColor:T.blue,color:T.blue}}>+ Write Response</button>
-            )}
-          </div>
-          {responses.length>0&&(
-            <div style={{marginTop:"1rem"}}>
-              <div style={{fontSize:11,fontWeight:600,color:T.t3,marginBottom:8}}>SENT RESPONSES ({responses.length})</div>
-              {responses.map((r,i)=>(
-                <div key={i} style={{padding:"8px 12px",background:rgba(T.blue,0.06),borderRadius:6,fontSize:12,color:T.t1,marginBottom:6,borderLeft:"3px solid "+T.blue}}>
-                  <div>{r.message}</div>
-                  <div style={{fontSize:10,color:T.t3,marginTop:4}}>{new Date(r.created_at).toLocaleDateString("en-KE")} — {r.sender_name}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
@@ -5678,7 +5829,7 @@ export default function App(){
     programme:<ProgrammeView userField={userField} role={role} userName={userName}/>,
     events:<EventsView userField={userField} role={role} userName={userName}/>,
     services:<ServicesView userField={userField}/>,
-    classroom:<ClassroomView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
+    classroom:<ClassroomView userField={userField} role={role} userName={userName} userId={userId} addNotif={addNotif}/>,
     admin:<AdminView/>,
     settings:<SettingsView lang={lang} setLang={setLang} themeId={themeId} setThemeId={(t)=>{localStorage.setItem("ak_theme",t);setThemeId(t);}} userField={userField} setUserField={setUserField} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} userId={userId} userName={userName}/>,
   };
