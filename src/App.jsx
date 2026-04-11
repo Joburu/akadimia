@@ -43,6 +43,59 @@ const LS={
 };
 const LS_STUB={welcome:"Karibu",dashboard:"Dashboard",courses:"Courses",exams:"Exams",assignments:"Assignments",research:"Research",ai:"AI",calendar:"Calendar",meetings:"Meetings",opps:"Opportunities",analytics:"Analytics",tools:"Tools",transcript:"Transcript",peers:"Peers",classroom:"Classroom",admin:"Admin",settings:"Settings",signIn:"Sign In",register:"Register",pending:"Pending",fieldSelect:"Choose Field",approve:"Approve",reject:"Reject",pendingApprovals:"Pending",online:"Online",offline:"Offline",send:"Send",ask:"Ask..."};
 
+
+async function callAI(prompt, maxTokens=1000) {
+  const anthropicKey = import.meta.env.VITE_ANTHROPIC_KEY;
+  const groqKey = import.meta.env.VITE_GROQ_KEY;
+  if (anthropicKey) {
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","x-api-key":anthropicKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:maxTokens,messages:[{role:"user",content:prompt}]})
+      });
+      const d = await res.json();
+      if (d.content) return d.content.filter(c=>c.type==="text").map(c=>c.text).join("");
+    } catch(e) { console.log("Anthropic failed, trying Groq:", e); }
+  }
+  if (groqKey) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {"Content-Type":"application/json","Authorization":"Bearer "+groqKey},
+      body: JSON.stringify({model:"llama-3.3-70b-versatile",max_tokens:maxTokens,messages:[{role:"user",content:prompt}]})
+    });
+    const d = await res.json();
+    return d.choices?.[0]?.message?.content || "No response";
+  }
+  return "AI service unavailable.";
+}
+
+async function callGemini(prompt, maxTokens=1000) {
+  const geminiKey = import.meta.env.VITE_GEMINI_KEY;
+  const groqKey = import.meta.env.VITE_GROQ_KEY;
+  if (geminiKey) {
+    try {
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+geminiKey, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}})
+      });
+      const d = await res.json();
+      return d.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+    } catch(e) { console.log("Gemini failed, trying Groq:", e); }
+  }
+  if (groqKey) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {"Content-Type":"application/json","Authorization":"Bearer "+groqKey},
+      body: JSON.stringify({model:"llama-3.3-70b-versatile",max_tokens:maxTokens,messages:[{role:"user",content:prompt}]})
+    });
+    const d = await res.json();
+    return d.choices?.[0]?.message?.content || "No response";
+  }
+  return "AI service unavailable.";
+}
+
 const FIELDS={
   actuarial:   {id:"actuarial",   name:"Actuarial Science",   icon:"📊",color:"#D4A843",group:"Sciences",   desc:"Risk, insurance & financial modelling"},
   medicine:    {id:"medicine",    name:"Medicine & Surgery",   icon:"🩺",color:"#EF4444",group:"Health",     desc:"Clinical medicine, surgery & health sciences",tools:["SPSS","STATA","R","NVivo","Epi Info"]},
