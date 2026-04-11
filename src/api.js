@@ -15,7 +15,19 @@ export async function askClaude(question, field, lang) {
     })
   })
   const data = await res.json()
-  return data.content?.[0]?.text || 'Sorry, I could not answer that. Please try again.'
+  if(data.content?.[0]?.text) return data.content[0].text;
+  } catch(e) { console.log("Anthropic failed, trying Groq"); }
+  const groqKey = import.meta.env.VITE_GROQ_KEY;
+  if(groqKey){
+    const gr = await fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+groqKey},
+      body:JSON.stringify({model:"llama-3.3-70b-versatile",max_tokens:400,messages:[{role:"system",content:"You are EduBot, an AI tutor for AKADIMIA — a Kenyan academic platform. You specialise in "+field+". Keep answers concise and relevant to East African students."},{role:"user",content:question}]})
+    });
+    const gd = await gr.json();
+    return gd.choices?.[0]?.message?.content || "Sorry, I could not answer that. Please try again.";
+  }
+  return "Sorry, I could not answer that. Please try again.";
 }
 
 export async function signUp(email, password, meta) {
