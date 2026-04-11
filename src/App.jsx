@@ -2215,7 +2215,7 @@ const AIView=({lang,userField})=>{
       const {askClaude}=await import("./api.js");
       const {supabase:sb}=await import("./supabase.js");
       const {data:{user:u}}=await sb.auth.getUser();
-      if(u){const ok=await checkAndLogUsage(sb,u.id,"ai_tutor",20);if(!ok){setMsgs(m=>[...m,{role:"bot",text:"You have reached your daily limit of 20 AI Tutor messages. Come back tomorrow!"}]);setL(false);return;}}
+      if(u&&role==="student"){const ok=await checkAndLogUsage(sb,u.id,"ai_tutor",20);if(!ok){setMsgs(m=>[...m,{role:"bot",text:"You have reached your daily limit of 20 AI Tutor messages. Come back tomorrow!"}]);setL(false);return;}}
       const reply=await askClaude(q,(fld&&fld.name)||"Actuarial Science",lang);
       setMsgs(m=>[...m,{role:"bot",text:reply}]);
     }catch(e){setMsgs(m=>[...m,{role:"bot",text:"Sorry, I could not process that. Please try again."}]);}
@@ -2349,7 +2349,7 @@ const AnalyticsView=({userField,userName,role})=>{
       const fieldName=(fld&&fld.name)||userField;
       const {supabase:sbA}=await import("./supabase.js");
       const {data:{user:uA}}=await sbA.auth.getUser();
-      if(uA){const ok=await checkAndLogUsage(sbA,uA.id,"career_analytics",3);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 3 daily career analysis runs. Try again tomorrow.");return;}}
+      if(uA&&role==="student"){const ok=await checkAndLogUsage(sbA,uA.id,"career_analytics",3);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 3 daily career analysis runs. Try again tomorrow.");return;}}
       const raw=await callAI("You are a career readiness analyst for Kenyan university graduates. Assess this student's employability.\n\nStudent: "+userName+"\nField: "+fieldName+"\nYear Level: "+(profile?.year_level||"Unknown")+"\nAssignments submitted: "+(subs||[]).length+"\nAssignments graded: "+gradedAssignments.length+"\nAvg assignment score: "+avgAssignment.toFixed(1)+"%\nExams taken: "+(exSubs||[]).length+"\nExams graded: "+gradedExams.length+"\nAvg exam score: "+avgExam.toFixed(1)+"%\n\nReturn ONLY this JSON: {\"overall_score\":NUMBER_0_100,\"grade\":\"A/B/C/D\",\"label\":\"Career Ready/Developing/Needs Work\",\"academic_score\":NUMBER,\"engagement_score\":NUMBER,\"skills_score\":NUMBER,\"strengths\":[\"STRING\",\"STRING\",\"STRING\"],\"gaps\":[\"STRING\",\"STRING\",\"STRING\"],\"top_roles\":[\"STRING\",\"STRING\",\"STRING\"],\"next_steps\":[\"STRING\",\"STRING\",\"STRING\"]}", 1200);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
@@ -2544,7 +2544,7 @@ const InnovationHub=({userName,role,userField})=>{
       const fld=FIELDS[userField];
       const {supabase:sbI}=await import("./supabase.js");
       const {data:{user:uI}}=await sbI.auth.getUser();
-      if(uI){const ok=await checkAndLogUsage(sbI,uI.id,"innovation_ideas",5);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 5 daily idea refreshes. Try again tomorrow.");return;}}
+      if(uI&&role==="student"){const ok=await checkAndLogUsage(sbI,uI.id,"innovation_ideas",5);if(!ok){if(addNotif)addNotif("⚠️","Limit Reached","You have used your 5 daily idea refreshes. Try again tomorrow.");return;}}
       const raw=await callGemini("Generate 6 exciting, actionable innovation ideas for Kenyan university students, especially those studying "+(fld?.name||userField)+". Ideas should address real African problems and have startup or social impact potential. Mix fields — include tech, agriculture, health, finance, education and social innovation. For each include a catchy title, 2-sentence description, category, potential impact and difficulty (Easy/Medium/Hard). Return ONLY a JSON array: [{title,description,category,impact,difficulty}]", 1500);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("["),clean.lastIndexOf("]")+1));
