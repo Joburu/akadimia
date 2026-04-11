@@ -4456,12 +4456,6 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
 
       {tab==="assignments"&&(
         <div>
-          {assignments.length===0&&!isLec&&(
-            <div style={{...s.card,textAlign:"center",padding:"3rem"}}>
-              <div style={{fontSize:48,marginBottom:12}}>📋</div>
-              <div style={{fontSize:14,color:T.t2}}>No assignments posted yet. Check back soon.</div>
-            </div>
-          )}
           {isLec&&(
             <div style={{marginBottom:"1rem"}}>
               <button onClick={()=>setShowCreate(!showCreate)} style={{...s.btnP,marginBottom:showCreate?"1rem":0}}>{showCreate?"✕ Cancel":"+ New Assignment"}</button>
