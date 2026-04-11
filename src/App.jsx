@@ -4301,29 +4301,35 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
 
   const load=async()=>{
     setLoading(true);
-    const {supabase}=await import("./supabase.js");
-    const lecRole=role==="lecturer"||role==="admin";
-    const [{data:aD},{data:sD},{data:eD},{data:esD},{data:mD},{data:wrD},{data:wcD}]=await Promise.all([
-      supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
-      supabase.from("submissions").select("*"),
-      supabase.from("exams").select("*").eq("field",userField).order("date",{ascending:true}),
-      supabase.from("exam_submissions").select("*"),
-      supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false}),
-      supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(10),
-      lecRole?supabase.from("wellness_checkins").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(30):Promise.resolve({data:[]}),
-    ]);
-    setAssignments(aD||[]);setSubmissions(sD||[]);
-    setExams(eD||[]);setExamSubs(esD||[]);
-    setMeetings(mD||[]);
-    setWellnessResponses(wrD||[]);
-    setWellnessCheckins(wcD||[]);
-    const aIds=(aD||[]).map(a=>"asgn_"+a.id);
-    if(aIds.length>0){
-      const {data:cD}=await supabase.from("innovation_comments").select("*").in("innovation_id",aIds);
-      const cMap={};
-      (cD||[]).forEach(c=>{if(!cMap[c.innovation_id])cMap[c.innovation_id]=[];cMap[c.innovation_id].push(c);});
-      setComments(cMap);
-    }
+    try{
+      const {supabase}=await import("./supabase.js");
+      const lecRole=role==="lecturer"||role==="admin";
+      const [aRes,sRes,eRes,esRes,mRes,wrRes]=await Promise.all([
+        supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
+        supabase.from("submissions").select("*"),
+        supabase.from("exams").select("*").eq("field",userField).order("date",{ascending:true}),
+        supabase.from("exam_submissions").select("*"),
+        supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false}),
+        supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(10),
+      ]);
+      setAssignments(aRes.data||[]);
+      setSubmissions(sRes.data||[]);
+      setExams(eRes.data||[]);
+      setExamSubs(esRes.data||[]);
+      setMeetings(mRes.data||[]);
+      setWellnessResponses(wrRes.data||[]);
+      if(lecRole){
+        const wcRes=await supabase.from("wellness_checkins").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(30);
+        setWellnessCheckins(wcRes.data||[]);
+      }
+      const aIds=(aRes.data||[]).map(a=>"asgn_"+a.id);
+      if(aIds.length>0){
+        const cRes=await supabase.from("innovation_comments").select("*").in("innovation_id",aIds);
+        const cMap={};
+        (cRes.data||[]).forEach(c=>{if(!cMap[c.innovation_id])cMap[c.innovation_id]=[];cMap[c.innovation_id].push(c);});
+        setComments(cMap);
+      }
+    }catch(err){console.error("ClassroomView load error:",err);}
     setLoading(false);
   };
   useEffect(()=>{load();},[userField]);
