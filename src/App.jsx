@@ -80,8 +80,12 @@ async function callGemini(prompt, maxTokens=1000) {
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}})
       });
-      const d = await res.json();
-      return d.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
+      if(res.status===429){console.log("Gemini rate limited, falling back to Groq");}
+      else{
+        const d = await res.json();
+        const text=d.candidates?.[0]?.content?.parts?.[0]?.text;
+        if(text) return text;
+      }
     } catch(e) { console.log("Gemini failed, trying Groq:", e); }
   }
   if (groqKey) {
