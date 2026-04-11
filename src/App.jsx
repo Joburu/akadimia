@@ -1181,6 +1181,7 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
   const [submissions,setSubmissions]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showCreate,setShowCreate]=useState(false);
+  const [editingA,setEditingA]=useState(null);
   const [selected,setSelected]=useState(null);
   const [submitting,setSubmitting]=useState(false);
   const [grading,setGrading]=useState(null);
