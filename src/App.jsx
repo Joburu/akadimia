@@ -2343,14 +2343,7 @@ const AnalyticsView=({userField,userName,role})=>{
       const avgAssignment=gradedAssignments.length>0?gradedAssignments.reduce((a,s)=>a+(s.marks||0),0)/gradedAssignments.length:0;
       const avgExam=gradedExams.length>0?gradedExams.reduce((a,s)=>a+(s.marks||0),0)/gradedExams.length:0;
       const fieldName=(fld&&fld.name)||userField;
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,
-          messages:[{role:"user",content:"You are a career readiness analyst for Kenyan university graduates. Assess this student's employability.\n\nStudent: "+userName+"\nField: "+fieldName+"\nYear Level: "+(profile?.year_level||"Unknown")+"\nAssignments submitted: "+(subs||[]).length+"\nAssignments graded: "+gradedAssignments.length+"\nAvg assignment score: "+avgAssignment.toFixed(1)+"%\nExams taken: "+(exSubs||[]).length+"\nExams graded: "+gradedExams.length+"\nAvg exam score: "+avgExam.toFixed(1)+"%\n\nReturn ONLY this JSON: {\"overall_score\":NUMBER_0_100,\"grade\":\"A/B/C/D\",\"label\":\"Career Ready/Developing/Needs Work\",\"academic_score\":NUMBER,\"engagement_score\":NUMBER,\"skills_score\":NUMBER,\"strengths\":[\"STRING\",\"STRING\",\"STRING\"],\"gaps\":[\"STRING\",\"STRING\",\"STRING\"],\"top_roles\":[\"STRING\",\"STRING\",\"STRING\"],\"next_steps\":[\"STRING\",\"STRING\",\"STRING\"]}"}]})
-      });
-      const d=await res.json();
-      const raw=d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"{}";
+      const raw=await callAI("You are a career readiness analyst for Kenyan university graduates. Assess this student's employability.\n\nStudent: "+userName+"\nField: "+fieldName+"\nYear Level: "+(profile?.year_level||"Unknown")+"\nAssignments submitted: "+(subs||[]).length+"\nAssignments graded: "+gradedAssignments.length+"\nAvg assignment score: "+avgAssignment.toFixed(1)+"%\nExams taken: "+(exSubs||[]).length+"\nExams graded: "+gradedExams.length+"\nAvg exam score: "+avgExam.toFixed(1)+"%\n\nReturn ONLY this JSON: {\"overall_score\":NUMBER_0_100,\"grade\":\"A/B/C/D\",\"label\":\"Career Ready/Developing/Needs Work\",\"academic_score\":NUMBER,\"engagement_score\":NUMBER,\"skills_score\":NUMBER,\"strengths\":[\"STRING\",\"STRING\",\"STRING\"],\"gaps\":[\"STRING\",\"STRING\",\"STRING\"],\"top_roles\":[\"STRING\",\"STRING\",\"STRING\"],\"next_steps\":[\"STRING\",\"STRING\",\"STRING\"]}", 1200);
       const clean=raw.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean.slice(clean.indexOf("{"),clean.lastIndexOf("}")+1));
       setScore(parsed);
@@ -3299,14 +3292,8 @@ const ToolsView=({userField,userName})=>{
     if(!aiPrompt.trim())return;
     setAiLoading(true);setAiResult("");
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,
-          messages:[{role:"user",content:"You are an expert in "+((fld&&fld.name)||"Actuarial Science")+". "+aiPrompt}]})
-      });
-      const d=await res.json();
-      setAiResult(d.content?.filter(c=>c.type==="text").map(c=>c.text).join("")||"No response");
+      const aiText=await callAI("You are an expert in "+((fld&&fld.name)||"Actuarial Science")+". "+aiPrompt, 800);
+      setAiResult(aiText);
     }catch(e){setAiResult("Error: "+e.message);}
     setAiLoading(false);
   };
