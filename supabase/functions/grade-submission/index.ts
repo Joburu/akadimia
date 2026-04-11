@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,16 +22,16 @@ serve(async (req) => {
       })
     }
 
-    // Fetch PDF from storage
     const pdfRes = await fetch(fileUrl)
     if (!pdfRes.ok) {
-      return new Response(JSON.stringify({ error: 'Could not fetch PDF' }), {
+      return new Response(JSON.stringify({ error: 'Could not fetch PDF: '+pdfRes.status }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       })
     }
+
     const pdfBuffer = await pdfRes.arrayBuffer()
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
+    const b64 = encode(new Uint8Array(pdfBuffer))
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -60,7 +61,7 @@ serve(async (req) => {
 
     const data = await res.json()
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error' }), {
+      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error', type: data.error?.type }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       })
