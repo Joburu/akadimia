@@ -4420,7 +4420,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     ?[["assignments","📋 Assignments"],["wellness","💚 Wellness"],["insights","📊 Insights"]]
     :[["assignments","📋 Assignments"],["grades","🎯 My Grades"],["wellness","💚 Wellness"],["ratings","⭐ Rate Classes"]];
 
-  if(loading)return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}>Loading your classroom...</div>;
+  if(loading)return <div style={{...s.card,textAlign:"center",padding:"3rem",color:T.t3}}><div>Loading your classroom...</div><button onClick={()=>setLoading(false)} style={{marginTop:12,fontSize:11,color:T.t3,background:"none",border:"none",cursor:"pointer"}}>Tap if stuck</button></div>;
 
   return(
     <div>
