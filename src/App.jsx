@@ -4302,6 +4302,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
   const load=async()=>{
     setLoading(true);
     const {supabase}=await import("./supabase.js");
+    const lecRole=role==="lecturer"||role==="admin";
     const [{data:aD},{data:sD},{data:eD},{data:esD},{data:mD},{data:wrD},{data:wcD}]=await Promise.all([
       supabase.from("assignments").select("*").eq("field",userField).order("created_at",{ascending:false}),
       supabase.from("submissions").select("*"),
@@ -4309,7 +4310,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
       supabase.from("exam_submissions").select("*"),
       supabase.from("meetings").select("*").eq("field",userField).order("scheduled_at",{ascending:false}),
       supabase.from("wellness_responses").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(10),
-      isLec?supabase.from("wellness_checkins").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(30):Promise.resolve({data:[]}),
+      lecRole?supabase.from("wellness_checkins").select("*").eq("field",userField).order("created_at",{ascending:false}).limit(30):Promise.resolve({data:[]}),
     ]);
     setAssignments(aD||[]);setSubmissions(sD||[]);
     setExams(eD||[]);setExamSubs(esD||[]);
@@ -4331,7 +4332,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
   const myExamSubs=examSubs.filter(s=>s.student_name===userName);
   const graded=mySubs.filter(s=>s.status==="graded");
   const gradedExams=myExamSubs.filter(s=>s.marks!=null);
-  const avgScore=graded.length>0?Math.round(graded.reduce((acc,sub)=>{const a=assignments.find(x=>x.id===sub.assignment_id);return acc+(a?Math.round((sub.marks/a.max_marks)*100):0);},0)/graded.length):null;
+  const avgScore=graded.length>0?Math.round(graded.reduce((acc,sub)=>{const a=assignments.find(x=>x.id===sub.assignment_id);return acc+(a&&a.max_marks>0?Math.round(((sub.marks||0)/a.max_marks)*100):0);},0)/graded.length):null;
 
   const uploadFile=async(file,path)=>{
     const {supabase}=await import("./supabase.js");
