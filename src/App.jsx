@@ -4651,7 +4651,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                             {mySub.file_url&&<a href={mySub.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12,color:T.ac,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:6,padding:"4px 12px",marginBottom:8}}>📎 View your submission</a>}
                             {mySub.status==="graded"&&(
                               <div style={{marginTop:8,background:rgba(T.purple,0.1),borderRadius:8,padding:"12px 14px"}}>
-                                <div style={{fontSize:16,fontWeight:700,color:T.purple}}>{mySub.marks}/{a.max_marks} marks · {Math.round((mySub.marks/a.max_marks)*100)}%</div>
+                                <div style={{fontSize:16,fontWeight:700,color:T.purple}}>{mySub.marks}/{a.max_marks} marks · {Math.min(100,Math.round((mySub.marks/a.max_marks)*100))}%</div>
                                 {mySub.feedback&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>Feedback: "{mySub.feedback}"</div>}
                               </div>
                             )}
@@ -4670,7 +4670,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                                       <div style={{fontSize:13,fontWeight:600,color:T.t1}}>{sub.student_name}</div>
                                       <div style={{fontSize:11,color:T.t3}}>{new Date(sub.submitted_at).toLocaleDateString("en-KE")} · {sub.status}</div>
                                       {sub.comment&&<div style={{fontSize:12,color:T.t2,marginTop:4,fontStyle:"italic"}}>"{sub.comment}"</div>}
-                                      {sub.status==="graded"&&<div style={{fontSize:12,color:T.purple,marginTop:4,fontWeight:600}}>{sub.marks}/{a.max_marks} · {Math.round((sub.marks/a.max_marks)*100)}%</div>}
+                                      {sub.status==="graded"&&<div style={{fontSize:12,color:T.purple,marginTop:4,fontWeight:600}}>{sub.marks}/{a.max_marks} · {Math.min(100,Math.round((sub.marks/a.max_marks)*100))}%</div>}
                                     </div>
                                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                                       {sub.file_url&&<a href={sub.file_url} target="_blank" rel="noreferrer" style={{...s.btnS,textDecoration:"none",fontSize:11,padding:"5px 12px"}}>📎 View</a>}
@@ -4679,7 +4679,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                                   </div>
                                   {grading===sub.id&&(
                                     <div style={{marginTop:10,display:"grid",gridTemplateColumns:"120px 1fr auto",gap:8,alignItems:"end"}}>
-                                      <div><label style={s.lbl}>MARKS/{a.max_marks}</label><input style={s.input} type="number" value={gradeMarks} onChange={e=>setGradeMarks(e.target.value)} placeholder="0"/></div>
+                                      <div><label style={s.lbl}>MARKS/{a.max_marks}</label><input style={s.input} type="number" value={gradeMarks} onChange={e=>setGradeMarks(Math.min(a.max_marks,Math.max(0,e.target.value)))} placeholder="0" min="0" max={a.max_marks}/></div>
                                       <div><label style={s.lbl}>FEEDBACK</label><input style={s.input} value={gradeFeedback} onChange={e=>setGradeFeedback(e.target.value)} placeholder="Write your feedback..."/></div>
                                       <button onClick={()=>gradeSubmission(sub.id)} style={{...s.btnP,padding:"8px 16px"}}>Save</button>
                                     </div>
