@@ -1257,8 +1257,8 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       const query=supabase.from("profiles").select("*").eq("status","approved").eq("field",userField);
       const {data:allProfiles}=await query;
       const students=(allProfiles||[]).filter(p=>{
-        if(newA.target_year==="all") return true;
-        return p.year_level===newA.target_year;
+        if(newA.target_year==="All") return true;
+        return String(p.year_level)===String(newA.target_year);
       });
       if(students&&students.length>0){
         const {sendAssignmentEmail}=await import("./email.js");
