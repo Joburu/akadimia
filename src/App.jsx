@@ -2203,7 +2203,7 @@ const ResearchView=({userField})=>{
   </div>);
 };
 
-const AIView=({lang,userField})=>{
+const AIView=({lang,userField,role})=>{
   const T=useT();const t=useLang();const s=sx(T);const fld=FIELDS[userField];
   const [msgs,setMsgs]=useState([{role:"bot",text:"Karibu! I am EduBot, AKADIMIA AI tutor. I specialise in "+((fld&&fld.name)||userField)+". Ask me anything about your coursework, assignments, research or career!"}]);
   const [inp,setInp]=useState(""),[loading,setL]=useState(false);const scrollRef=useRef(null);
@@ -5962,7 +5962,7 @@ export default function App(){
     exams:<ExamsView userField={userField} role={role} userName={userName} addNotif={addNotif}/>,
     assignments:<ClassroomView userField={userField} role={role} userName={userName} userId={userId} addNotif={addNotif}/>,
     research:<ResearchView userField={userField}/>,
-    ai:<AIView lang={lang} userField={userField}/>,
+    ai:<AIView lang={lang} userField={userField} role={role}/>,
     calendar:<CalendarView setTab={persistTab}/>,
     meetings:<MeetingsView role={role} userField={userField} userName={userName}/>,
     opps:<OppsView userField={userField}/>,
