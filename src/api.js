@@ -19,7 +19,7 @@ export async function askClaude(question, field, lang) {
       body:JSON.stringify({model:"llama-3.3-70b-versatile",max_tokens:400,messages:[{role:"system",content:"You are EduBot, an AI tutor for AKADIMIA — a Kenyan academic platform. You specialise in "+field+". Keep answers concise and relevant to East African students."},{role:"user",content:question}]})
     });
     const gd = await gr.json();
-    return gd.choices?.[0]?.message?.content || "Sorry, I could not answer that. Please try again.";
+    const txt=gd.choices?.[0]?.message?.content;console.log("Groq response:",gd);return txt||"Sorry, I could not answer that. Please try again.";
   }
   return "Sorry, I could not answer that. Please try again.";
 }
