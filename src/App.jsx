@@ -1224,8 +1224,21 @@ const AssignmentsView=({userField,role,userName,addNotif})=>{
       const {data:upData}=await supabase.storage.from("course-materials").upload(path,assignmentFile);
       if(upData){const {data:urlData}=supabase.storage.from("course-materials").getPublicUrl(path);fileUrl=urlData.publicUrl;}
     }
-    const {questions:qs,...assignData}=newA;
-    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...assignData,field:userField,created_by:user.id,file_url:fileUrl||null}).select().single();
+    const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
+    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({
+      title:baseData.title,
+      course_code:baseData.course_code,
+      description:baseData.description,
+      due_date:baseData.due_date||null,
+      max_marks:baseData.max_marks,
+      target_year:baseData.target_year,
+      field:userField,
+      created_by:user.id,
+      file_url:fileUrl||null,
+      assignment_type:assignment_type||"individual",
+      group_size:group_size||3,
+      allow_late:allow_late||false
+    }).select().single();
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
     if(qs&&qs.length>0&&insertedA){
@@ -4371,8 +4384,21 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
     const {data:{user}}=await supabase.auth.getUser();
     let fileUrl=null;
     if(assignFile){fileUrl=await uploadFile(assignFile,"assignments/"+Date.now()+"_"+assignFile.name);}
-    const {questions:qs,...assignData}=newA;
-    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({...assignData,field:userField,created_by:user.id,file_url:fileUrl||null}).select().single();
+    const {questions:qs,assignment_type,group_size,allow_late,...baseData}=newA;
+    const {data:insertedA,error:insertErr}=await supabase.from("assignments").insert({
+      title:baseData.title,
+      course_code:baseData.course_code,
+      description:baseData.description,
+      due_date:baseData.due_date||null,
+      max_marks:baseData.max_marks,
+      target_year:baseData.target_year,
+      field:userField,
+      created_by:user.id,
+      file_url:fileUrl||null,
+      assignment_type:assignment_type||"individual",
+      group_size:group_size||3,
+      allow_late:allow_late||false
+    }).select().single();
     if(insertErr){console.error("Assignment insert error:",insertErr);if(addNotif)addNotif("❌","Error","Failed to post assignment: "+insertErr.message);setCreating(false);return;}
     // Save questions separately if any
     if(qs&&qs.length>0&&insertedA){
