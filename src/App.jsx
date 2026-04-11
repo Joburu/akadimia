@@ -4569,7 +4569,7 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                       <input type="file" style={{display:"none"}} accept=".pdf,.doc,.docx,.png,.jpg,.txt" onChange={e=>setAssignFile(e.target.files[0]||null)}/>
                     </label>
                   </div>
-                  <button onClick={createAssignment} style={s.btnP} disabled={creating||!newA.title.trim()}>{creating?"Posting...":"Post Assignment"}</button>
+                  <button onClick={createAssignment} style={s.btnP} disabled={creating||!newA.title.trim()}>{creating?(editingA?"Saving...":"Posting..."):(editingA?"Save Changes":"Post Assignment")}</button><button onClick={()=>{setShowCreate(false);setEditingA(null);setNewA({title:"",course_code:"",description:"",due_date:"",max_marks:100,target_year:"All",assignment_type:"individual",group_size:3,allow_late:false,questions:[]});}} style={{...s.btnS,marginLeft:8}}>Cancel</button>
                 </div>
               )}
             </div>
