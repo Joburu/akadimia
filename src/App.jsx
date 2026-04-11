@@ -4527,7 +4527,13 @@ const ClassroomView=({userField,role,userName,userId,addNotif})=>{
                         {a.description&&<div style={{fontSize:13,color:T.t2,lineHeight:1.7,marginBottom:"1rem",background:T.bg3,borderRadius:8,padding:"10px 14px"}}>{a.description}</div>}
                         {a.file_url&&<a href={a.file_url} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:T.ac,textDecoration:"none",background:rgba(T.ac,0.1),borderRadius:8,padding:"6px 14px",marginBottom:"1rem"}}>📎 Download Instructions</a>}
 
-                        {!isLec&&!mySub&&(
+                        {!isLec&&!mySub&&overdue&&(
+                          <div style={{background:rgba(T.red,0.06),borderRadius:10,padding:"1rem",marginBottom:"1rem",border:"1px solid "+rgba(T.red,0.2)}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.red,marginBottom:4}}>⛔ Submission Closed</div>
+                            <div style={{fontSize:12,color:T.t2}}>The deadline for this assignment has passed. Contact your lecturer if you need an extension.</div>
+                          </div>
+                        )}
+                        {!isLec&&!mySub&&!overdue&&(
                           <div style={{background:rgba(T.ac,0.06),borderRadius:10,padding:"1rem",marginBottom:"1rem",border:"1px solid "+rgba(T.ac,0.2)}}>
                             <div style={{fontSize:13,fontWeight:600,color:T.t1,marginBottom:"0.75rem"}}>Submit Your Work</div>
                             <div style={{marginBottom:"0.75rem"}}>
